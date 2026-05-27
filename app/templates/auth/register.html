@@ -12,6 +12,7 @@
     </div>
 
     <form method="POST" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="row g-3 mb-3">
         <div class="col">
           <label class="vox-label" for="first_name">Prénom</label>

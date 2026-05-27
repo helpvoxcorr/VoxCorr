@@ -10,6 +10,7 @@
     </div>
     <div class="vox-card">
       <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="mb-3">
           <label class="vox-label">Prénom</label>
           <input type="text" name="first_name" class="vox-input" value="{{ first }}" required>

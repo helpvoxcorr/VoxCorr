@@ -11,10 +11,10 @@ import { api } from './modules/api.js';
 
 const CTX = window.VC || {};
 
-let recorder        = null;
-let audioBlob       = null;
-let correctionId    = CTX.correctionId || null;
-let pollTimer       = null;
+let recorder     = null;
+let audioBlob    = null;
+let correctionId = CTX.correctionId || null;
+let pollTimer    = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   // recorder.js est chargé en script classique → window.VoxRecorder disponible
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.status === 'draft' || data.status === 'published') {
           clearInterval(pollTimer);
           UI.setState('done', data);
-          // ── Injection des notes extraites par Mistral ──
+          // Injection des notes extraites par Mistral (GET — pas de CSRF requis)
           fetch('/teacher/api/correction/' + correctionId + '/scores')
             .then(r => r.json())
             .then(scores => {

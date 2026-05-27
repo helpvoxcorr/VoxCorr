@@ -13,8 +13,8 @@
       <a href="/teacher/assignments/new/{{ classroom.id }}" class="btn vox-btn-primary">
         <i class="bi bi-plus-lg me-1"></i>Nouveau devoir
       </a>
-      <form method="POST" action="/teacher/classes/{{ classroom.id }}/delete"
-            onsubmit="return confirm('Supprimer la classe {{ classroom.name }} et tous ses élèves et devoirs ?')">
+      <form method="POST" action="/teacher/classes/{{ classroom.id }}/delete" onsubmit="return confirm('Supprimer la classe {{ classroom.name }} et tous ses élèves et devoirs ?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn vox-btn-outline btn-sm"
                 style="border-color:#e53e3e;color:#e53e3e;height:100%">
           <i class="bi bi-trash me-1"></i>Supprimer
@@ -55,6 +55,7 @@
                     action="/teacher/classes/{{ classroom.id }}/students/{{ s.id }}/delete"
                     class="d-inline"
                     onsubmit="return confirm('Supprimer {{ s.alias }} ?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger btn-sm py-0 px-2" title="Supprimer">
                   <i class="bi bi-trash"></i>
                 </button>
@@ -72,6 +73,7 @@
       <hr class="my-3">
       <p class="fw-bold small mb-2">Ajouter un élève</p>
       <form method="POST" action="/teacher/classes/{{ classroom.id }}/students/add">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="row g-2 mb-2">
           <div class="col">
             <input type="text" name="first_name" class="vox-input" placeholder="Prénom" required>
@@ -120,6 +122,7 @@
               <form method="POST" action="/teacher/assignments/{{ a.id }}/delete"
                     class="d-inline"
                     onsubmit="return confirm('Supprimer « {{ a.title }} » et toutes ses corrections ?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger btn-sm py-0 px-2" title="Supprimer">
                   <i class="bi bi-trash"></i>
                 </button>

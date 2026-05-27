@@ -131,6 +131,7 @@
     <div class="alert alert-danger py-2 small">{{ lock_error }}</div>
     {% endif %}
     <form method="POST" action="/teacher/admin/unlock">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="mb-3 text-start">
         <label class="vox-label">Mot de passe</label>
         <input type="password" name="password" class="vox-input" autofocus required
@@ -242,6 +243,7 @@
   <div class="admin-zone-body">
     <p class="text-muted small mb-3">Le thème s'applique à votre espace et à la page de correction vue par vos élèves.</p>
     <form method="POST" action="/teacher/admin/theme">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="theme-grid mb-4">
 
         {% set themes = [
@@ -288,8 +290,8 @@
           Dans Pronote → votre classe → Exporter la liste des élèves en CSV.
           Un fichier par classe.
         </div>
-        <form method="POST" action="/teacher/import/pronote-file"
-              enctype="multipart/form-data">
+        <form method="POST" action="/teacher/import/pronote-file" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="mb-3">
             <label class="vox-label">Nom de la classe</label>
             <input type="text" name="class_name" class="vox-input"
@@ -331,6 +333,7 @@
       </div>
       <div class="modal-body">
         <form method="POST" action="/teacher/admin/export/notes">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="mb-3">
             <label class="vox-label">Classes</label>
             <div style="max-height:180px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;padding:.75rem">
@@ -390,6 +393,7 @@
           <strong>Action irréversible.</strong> Toutes vos classes, élèves, devoirs et corrections seront définitivement supprimés.
         </div>
         <form method="POST" action="/teacher/admin/delete-account">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="mb-3">
             <label class="vox-label">Tapez <strong>SUPPRIMER</strong> pour confirmer</label>
             <input type="text" name="confirm" class="vox-input" placeholder="SUPPRIMER" required

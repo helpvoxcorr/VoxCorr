@@ -12,6 +12,7 @@
 
     <div class="vox-card">
       <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="mb-3">
           <label class="vox-label">Nom de la classe *</label>
           <input type="text" name="name" class="vox-input" placeholder="ex : 3ème B" required>

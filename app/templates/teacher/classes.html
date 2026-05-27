@@ -53,8 +53,7 @@
                   title="Supprimer la classe">
             <i class="bi bi-trash"></i>
           </button>
-          <form method="POST" action="/teacher/classes/{{ c.id }}/delete"
-                id="form-delete-{{ c.id }}" class="d-none"></form>
+          <form method="POST" action="/teacher/classes/{{ c.id }}/delete" id="form-delete-{{ c.id }}" class="d-none"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
         </div>
       </div>
     </div>
