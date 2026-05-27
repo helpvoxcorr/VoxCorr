@@ -4,11 +4,19 @@
  * Aucun fetch() ailleurs dans le code.
  */
 
+// Lit le token CSRF depuis la meta injectée par base.html
+const _csrf = () =>
+  document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
 async function _post(url, body, isFormData = false) {
+  const headers = isFormData
+    ? { 'X-CSRFToken': _csrf() }                              // ← FormData : pas de Content-Type
+    : { 'Content-Type': 'application/json', 'X-CSRFToken': _csrf() };  // ← JSON
+
   const res = await fetch(url, {
     method:  'POST',
-    headers: isFormData ? {} : { 'Content-Type': 'application/json' },
-    body:    isFormData ? body : JSON.stringify(body),
+    headers,
+    body: isFormData ? body : JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({ error: res.statusText }));
   if (!res.ok) throw new Error(json.error || `Erreur ${res.status}`);
