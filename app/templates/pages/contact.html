@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Contact — VoxCorr{% endblock %}
+
+{% block content %}
+<div class="vox-page-hero mb-4">
+  <h1><i class="bi bi-envelope me-2"></i>Contact & Support</h1>
+  <p>Une question, un bug, une suggestion ? Écrivez-nous.</p>
+</div>
+
+<div class="row g-4 justify-content-center">
+  <div class="col-lg-5">
+    <div class="vox-card vox-card-accent mb-3">
+      <div class="d-flex align-items-center gap-3 mb-2">
+        <div style="width:44px;height:44px;border-radius:50%;background:rgba(57,255,20,.15);display:flex;align-items:center;justify-content:center">
+          <i class="bi bi-envelope-fill text-neon fs-5"></i>
+        </div>
+        <div>
+          <div class="fw-700">Support technique</div>
+          <div class="text-muted small">Bugs, problèmes d'accès, erreurs</div>
+        </div>
+      </div>
+      <a href="mailto:help.voxcorr@gmail.com" class="vox-btn-primary w-100 justify-content-center mt-2">
+        <i class="bi bi-envelope"></i> help.voxcorr@gmail.com
+      </a>
+    </div>
+
+    <div class="vox-card mb-3">
+      <div class="fw-700 mb-2"><i class="bi bi-clock me-2 text-neon"></i>Délais de réponse</div>
+      <table class="vox-table">
+        <tr><td>Support technique</td><td class="text-end"><span class="vox-badge vox-badge-success">48h ouvrées</span></td></tr>
+        <tr><td>Demande de fonctionnalité</td><td class="text-end"><span class="vox-badge vox-badge-grey">1 semaine</span></td></tr>
+        <tr><td>Signalement RGPD</td><td class="text-end"><span class="vox-badge">72h max</span></td></tr>
+      </table>
+    </div>
+
+    <div class="vox-card" style="background:var(--vox-grey)">
+      <div class="fw-700 mb-2"><i class="bi bi-lightbulb me-2 text-neon"></i>Avant d'écrire</div>
+      <ul class="text-muted mb-0" style="font-size:.875rem;line-height:2">
+        <li>Consultez la <a href="/pages/documentation" class="text-neon">documentation</a></li>
+        <li>Vérifiez la page <a href="/pages/aide" class="text-neon">Aide & Support</a></li>
+        <li>Précisez votre navigateur et OS dans votre message</li>
+        <li>Joignez une capture d'écran si possible</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

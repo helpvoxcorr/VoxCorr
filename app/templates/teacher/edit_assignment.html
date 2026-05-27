@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Modifier devoir — VoxCorr{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="vox-page-hero mb-4">
+      <h1>Modifier le devoir</h1>
+      <p>{{ assignment.classroom.name }}</p>
+    </div>
+    <div class="vox-card">
+      <form method="POST">
+        <div class="mb-3">
+          <label class="vox-label">Titre *</label>
+          <input type="text" name="title" class="vox-input" value="{{ assignment.title }}" required>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col">
+            <label class="vox-label">Date</label>
+            <input type="date" name="date" class="vox-input"
+                   value="{{ assignment.date.strftime('%Y-%m-%d') }}">
+          </div>
+          <div class="col">
+            <label class="vox-label">Total points</label>
+            <input type="number" name="total_points" class="vox-input"
+                   value="{{ assignment.total_points }}" step="0.5">
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="vox-label">Description</label>
+          <textarea name="description" class="vox-input" rows="2">{{ assignment.description or '' }}</textarea>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn vox-btn-primary">Enregistrer</button>
+          <a href="/teacher/classes/{{ assignment.classroom_id }}" class="btn vox-btn-dark">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

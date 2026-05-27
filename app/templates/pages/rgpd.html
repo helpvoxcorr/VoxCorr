@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Politique RGPD — VoxCorr{% endblock %}
+
+{% block content %}
+<div class="vox-page-hero mb-4">
+  <h1><i class="bi bi-lock me-2"></i>Protection des données — RGPD</h1>
+  <p>Comment VoxCorr protège les données des enseignants et des élèves</p>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <div class="vox-card vox-card-accent mb-3" style="background:rgba(57,255,20,.04)">
+      <div class="fw-700 mb-1"><i class="bi bi-check-circle-fill text-neon me-2"></i>Conformité RGPD</div>
+      <p class="text-muted mb-0 small">VoxCorr est conçu avec le principe de <em>privacy by design</em>. Les données sensibles des élèves sont chiffrées, jamais exposées publiquement, et stockées avec le strict minimum nécessaire.</p>
+    </div>
+
+    <div class="vox-card mb-3">
+      <h2 class="h5 fw-700 mb-4"><i class="bi bi-database me-2 text-neon"></i>Données collectées</h2>
+      <table class="vox-table">
+        <thead><tr><th>Donnée</th><th>Qui</th><th>Stockage</th><th>Protection</th></tr></thead>
+        <tbody>
+          <tr><td>Email + mot de passe</td><td>Enseignant</td><td>Base PostgreSQL</td><td>Hash bcrypt</td></tr>
+          <tr><td>Nom & prénom élève</td><td>Élève</td><td>Base PostgreSQL</td><td><strong>Chiffrement AES-128</strong></td></tr>
+          <tr><td>Alias anonyme</td><td>Élève</td><td>Base PostgreSQL</td><td>Non sensible</td></tr>
+          <tr><td>Enregistrement audio</td><td>Enseignant</td><td>Cloudinary</td><td>HTTPS + accès privé</td></tr>
+          <tr><td>Transcription écrite</td><td>Enseignant</td><td>Base PostgreSQL</td><td>Accès token unique</td></tr>
+          <tr><td>IP de consultation</td><td>Élève</td><td>Base PostgreSQL</td><td><strong>Hash SHA-256 irréversible</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="vox-card mb-3">
+      <h2 class="h5 fw-700 mb-3"><i class="bi bi-person-check me-2 text-neon"></i>Droits des personnes</h2>
+      <p class="text-muted">Conformément au RGPD (Règlement UE 2016/679), vous disposez des droits suivants :</p>
+      <ul class="text-muted" style="line-height:2">
+        <li><strong>Droit d'accès</strong> : consulter les données vous concernant</li>
+        <li><strong>Droit de rectification</strong> : corriger les données inexactes</li>
+        <li><strong>Droit à l'effacement</strong> : demander la suppression de vos données</li>
+        <li><strong>Droit à la portabilité</strong> : recevoir vos données dans un format structuré</li>
+        <li><strong>Droit d'opposition</strong> : vous opposer au traitement de vos données</li>
+      </ul>
+      <p class="text-muted mb-0">Pour exercer ces droits : <a href="mailto:help.voxcorr@gmail.com" class="text-neon">help.voxcorr@gmail.com</a></p>
+    </div>
+
+    <div class="vox-card mb-3">
+      <h2 class="h5 fw-700 mb-3"><i class="bi bi-clock me-2 text-neon"></i>Durée de conservation</h2>
+      <ul class="text-muted" style="line-height:2">
+        <li>Données enseignant : durée d'utilisation du compte + 3 ans</li>
+        <li>Données élèves : durée de l'année scolaire + 1 an</li>
+        <li>Enregistrements audio : supprimés sur demande ou à la fin de l'année scolaire</li>
+        <li>Logs de consultation : 6 mois glissants</li>
+      </ul>
+    </div>
+
+    <div class="vox-card">
+      <h2 class="h5 fw-700 mb-3"><i class="bi bi-shield-check me-2 text-neon"></i>Anonymisation des élèves</h2>
+      <p class="text-muted">Le vrai nom de chaque élève est chiffré via l'algorithme <strong>Fernet (AES-128-CBC)</strong> avec une clé propre à chaque déploiement. Seul l'enseignant connecté peut déchiffrer les noms. Les pages publiques (QR codes, corrections) n'affichent que l'alias anonyme.</p>
+      <p class="text-muted mb-0 small">Exemple d'alias : <code>Renard-07</code> — mnémotechnique pour l'enseignant, opaque pour un tiers.</p>
+    </div>
+
+    <p class="text-muted small mt-4 text-center"><i class="bi bi-calendar me-1"></i>Dernière mise à jour : mai 2026 · <a href="mailto:help.voxcorr@gmail.com" class="text-neon">Contacter le DPO</a></p>
+  </div>
+</div>
+{% endblock %}

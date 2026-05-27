@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% block title %}Documentation — VoxCorr{% endblock %}
+
+{% block head %}
+<style>
+  /* Sidebar docs */
+  .docs-layout { display: flex; gap: 2.5rem; align-items: flex-start; }
+  .docs-sidebar {
+    width: 240px; flex-shrink: 0;
+    position: sticky; top: 80px;
+    background: #fff;
+    border: 1px solid var(--vox-border);
+    border-radius: var(--vox-radius-lg);
+    padding: 1.25rem;
+    box-shadow: var(--vox-shadow-xs);
+  }
+  .docs-sidebar .sidebar-title {
+    font-size: .7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: var(--vox-muted); margin-bottom: .75rem;
+  }
+  .docs-sidebar nav a {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .45rem .75rem;
+    border-radius: 7px;
+    color: var(--vox-muted);
+    font-size: .85rem; font-weight: 500;
+    transition: var(--vox-tr);
+    margin-bottom: 2px;
+  }
+  .docs-sidebar nav a:hover { background: var(--vox-grey); color: var(--vox-black); }
+  .docs-sidebar nav a.active { background: rgba(57,255,20,.1); color: var(--vox-black); font-weight: 600; }
+  .docs-sidebar nav a i { font-size: .9rem; }
+
+  /* Content */
+  .docs-content { flex: 1; min-width: 0; }
+  .docs-section { scroll-margin-top: 90px; margin-bottom: 3rem; }
+  .docs-section h2 {
+    font-size: 1.4rem; font-weight: 700; letter-spacing: -.02em;
+    padding-bottom: .75rem; border-bottom: 2px solid var(--vox-neon);
+    margin-bottom: 1.5rem; display: flex; align-items: center; gap: .6rem;
+  }
+  .docs-section h3 { font-size: 1.05rem; font-weight: 700; margin: 1.5rem 0 .75rem; }
+  .docs-section p { color: #374151; line-height: 1.8; }
+  .docs-section ul { color: #374151; line-height: 1.9; padding-left: 1.25rem; }
+
+  /* Image doc */
+  .docs-img {
+    border: 1px solid var(--vox-border);
+    border-radius: var(--vox-radius-lg);
+    overflow: hidden; margin: 1.25rem 0;
+    box-shadow: var(--vox-shadow-sm);
+  }
+  .docs-img img { width: 100%; display: block; }
+  .docs-img figcaption {
+    padding: .6rem 1rem; background: var(--vox-grey);
+    font-size: .78rem; color: var(--vox-muted);
+    border-top: 1px solid var(--vox-border);
+  }
+
+  /* Tip box */
+  .docs-tip {
+    background: rgba(57,255,20,.07);
+    border-left: 3px solid var(--vox-neon);
+    border-radius: 0 var(--vox-radius) var(--vox-radius) 0;
+    padding: .9rem 1.1rem; margin: 1rem 0;
+    font-size: .88rem; color: #1a1a1a;
+  }
+  .docs-tip i { color: var(--vox-neon-d); }
+
+  .docs-warn {
+    background: #fef3c7; border-left: 3px solid #f59e0b;
+    border-radius: 0 var(--vox-radius) var(--vox-radius) 0;
+    padding: .9rem 1.1rem; margin: 1rem 0; font-size: .88rem;
+  }
+
+  /* Steps */
+  .docs-steps { counter-reset: step; }
+  .docs-step { display: flex; gap: 1rem; margin-bottom: 1rem; align-items: flex-start; }
+  .docs-step::before {
+    counter-increment: step;
+    content: counter(step);
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--vox-neon); color: var(--vox-black);
+    font-weight: 800; font-size: .8rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: .1rem;
+  }
+
+  @media(max-width:768px){
+    .docs-layout { flex-direction: column; }
+    .docs-sidebar { width: 100%; position: static; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="vox-page-hero mb-4">
+  <h1><i class="bi bi-book me-2"></i>Documentation</h1>
+  <p>Guide complet d'utilisation de VoxCorr pour les enseignants</p>
+</div>
+
+<div class="docs-layout">
+
+  <!-- Sidebar -->
+  <aside class="docs-sidebar">
+    <div class="sidebar-title">Sommaire</div>
+    <nav id="docs-nav">
+      <a href="#intro" class="active"><i class="bi bi-flag"></i>Introduction</a>
+      <a href="#classes"><i class="bi bi-people"></i>Créer une classe</a>
+      <a href="#eleves"><i class="bi bi-person-plus"></i>Ajouter des élèves</a>
+      <a href="#devoirs"><i class="bi bi-file-plus"></i>Créer un devoir</a>
+      <a href="#correction"><i class="bi bi-mic"></i>Enregistrer une correction</a>
+      <a href="#qr"><i class="bi bi-qr-code"></i>QR Code & page élève</a>
+      <a href="#impression"><i class="bi bi-printer"></i>Imprimer les corrections</a>
+      <a href="#rgpd-doc"><i class="bi bi-shield-check"></i>Anonymisation RGPD</a>
+      <a href="#faq"><i class="bi bi-question-circle"></i>FAQ</a>
+    </nav>
+  </aside>
+
+  <!-- Content -->
+  <div class="docs-content">
+
+    <!-- Introduction -->
+    <section class="docs-section" id="intro">
+      <h2><i class="bi bi-flag text-neon"></i>Introduction</h2>
+      <p>VoxCorr est une application de correction audio de copies d'élèves. L'enseignant dicte sa correction oralement, l'IA (Mistral) la transcrit et structure automatiquement le retour écrit. Un QR code est généré pour chaque élève, donnant accès à sa correction sans compte requis.</p>
+
+      <figure class="docs-img">
+        <img src="https://res.cloudinary.com/VOTRE_CLOUD/image/upload/voxcorr/docs/overview.png"
+             alt="Vue générale VoxCorr"
+             onerror="this.parentElement.style.display='none'">
+        <figcaption>Vue générale du tableau de bord VoxCorr</figcaption>
+      </figure>
+
+      <div class="docs-tip">
+        <i class="bi bi-lightbulb-fill me-2"></i>
+        <strong>Démarrage rapide :</strong> Créez une classe → ajoutez vos élèves → créez un devoir → enregistrez les corrections → publiez et partagez les QR codes.
+      </div>
+    </section>
+
+    <!-- Classes -->
+    <section class="docs-section" id="classes">
+      <h2><i class="bi bi-people text-neon"></i>Créer une classe</h2>
+      <p>Depuis le tableau de bord, cliquez sur <strong>Nouvelle classe</strong>. Renseignez le nom de la classe, la discipline et l'année scolaire.</p>
+
+      <div class="docs-steps">
+        <div class="docs-step"><div>Cliquer sur <strong>Nouvelle classe</strong> dans le tableau de bord.</div></div>
+        <div class="docs-step"><div>Renseigner le nom (ex : <em>3ème B</em>), la discipline (ex : <em>SVT</em>) et l'année.</div></div>
+        <div class="docs-step"><div>Valider. La classe apparaît dans la section correspondant à sa discipline.</div></div>
+      </div>
+
+      <figure class="docs-img">
+        <img src="https://res.cloudinary.com/VOTRE_CLOUD/image/upload/voxcorr/docs/new_class.png"
+             alt="Création d'une classe"
+             onerror="this.parentElement.style.display='none'">
+        <figcaption>Formulaire de création d'une classe</figcaption>
+      </figure>
+    </section>
+
+    <!-- Élèves -->
+    <section class="docs-section" id="eleves">
+      <h2><i class="bi bi-person-plus text-neon"></i>Ajouter des élèves</h2>
+      <p>Dans la page de la classe, utilisez le formulaire en bas de la liste pour ajouter un élève. Le prénom et le nom réel sont chiffrés (AES-256) en base de données. Un alias mnémotechnique est généré automatiquement (ex : <strong>Renard-07</strong>).</p>
+
+      <div class="docs-tip">
+        <i class="bi bi-shield-check me-2"></i>
+        Le vrai nom n'est jamais affiché publiquement. Seul l'enseignant connecté peut le déchiffrer.
+      </div>
+
+      <h3>Modifier ou supprimer un élève</h3>
+      <p>Les boutons <i class="bi bi-pencil"></i> et <i class="bi bi-trash"></i> sont disponibles sur chaque ligne. La suppression d'un élève efface également toutes ses corrections.</p>
+    </section>
+
+    <!-- Devoirs -->
+    <section class="docs-section" id="devoirs">
+      <h2><i class="bi bi-file-plus text-neon"></i>Créer un devoir</h2>
+      <p>Dans la page d'une classe, cliquez sur <strong>Nouveau devoir</strong>. Renseignez le titre, la date, le total de points, et ajoutez autant de questions que nécessaire avec leur barème.</p>
+
+      <div class="docs-warn">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Définissez bien vos questions avant de commencer les corrections — Mistral s'appuie sur leurs libellés pour extraire les notes automatiquement.
+      </div>
+
+      <figure class="docs-img">
+        <img src="https://res.cloudinary.com/VOTRE_CLOUD/image/upload/voxcorr/docs/new_assignment.png"
+             alt="Création d'un devoir"
+             onerror="this.parentElement.style.display='none'">
+        <figcaption>Formulaire de création d'un devoir avec barème</figcaption>
+      </figure>
+    </section>
+
+    <!-- Correction -->
+    <section class="docs-section" id="correction">
+      <h2><i class="bi bi-mic text-neon"></i>Enregistrer une correction</h2>
+      <p>Sur la page du devoir, cliquez sur <strong>Corriger</strong> en face d'un élève. La page d'enregistrement s'ouvre.</p>
+
+      <div class="docs-steps">
+        <div class="docs-step"><div>Cliquer sur le bouton micro vert pour démarrer l'enregistrement.</div></div>
+        <div class="docs-step"><div>Dicter la correction en mentionnant explicitement les notes : <em>« Question 1, trois virgule cinq sur cinq… »</em></div></div>
+        <div class="docs-step"><div>Cliquer sur le bouton stop rouge. L'audio est capturé, la transcription apparaît.</div></div>
+        <div class="docs-step"><div>Cliquer sur <strong>Sauvegarder et analyser</strong>. Mistral génère la synthèse et extrait les notes.</div></div>
+        <div class="docs-step"><div>Vérifier les notes dans le tableau à gauche, ajuster si besoin, puis <strong>Publier et générer QR</strong>.</div></div>
+      </div>
+
+      <div class="docs-tip">
+        <i class="bi bi-lightbulb-fill me-2"></i>
+        Prononcez les notes clairement : <em>« trois sur cinq »</em>, <em>« deux virgule cinq sur quatre »</em>. Évitez <em>« trois et demi »</em> qui peut être mal transcrit.
+      </div>
+    </section>
+
+    <!-- QR -->
+    <section class="docs-section" id="qr">
+      <h2><i class="bi bi-qr-code text-neon"></i>QR Code & page élève</h2>
+      <p>Après publication, un QR code unique est généré pour chaque élève. L'élève scanne ce QR avec son téléphone et accède à sa correction — sans compte, sans application.</p>
+
+      <h3>Déposer le QR code sur Pronote / Moodle / EcoleDirecte</h3>
+      <p>Téléchargez le QR code en PNG depuis la page de correction (bouton <i class="bi bi-download"></i>). Le fichier est nommé automatiquement <code>classe_devoir_alias.png</code>. Glissez-le dans votre espace numérique de travail habituel.</p>
+
+      <h3>Consultation hors-ligne</h3>
+      <p>La page de correction se met en cache automatiquement à la première visite. L'élève peut la relire sans connexion internet. Le fichier audio se télécharge à la demande via le bouton <strong>Télécharger pour écoute hors-ligne</strong>.</p>
+    </section>
+
+    <!-- Impression -->
+    <section class="docs-section" id="impression">
+      <h2><i class="bi bi-printer text-neon"></i>Imprimer les corrections</h2>
+      <p>Sur la page du devoir, cliquez sur <strong>Imprimer corrections</strong>. Une page s'ouvre avec un cadre par élève (tri alphabétique), contenant la synthèse écrite et le QR code. Faites <strong>Ctrl+P</strong> ou cliquez <strong>Imprimer / Exporter PDF</strong>.</p>
+
+      <div class="docs-tip">
+        <i class="bi bi-lightbulb-fill me-2"></i>
+        Dans les paramètres d'impression Chrome, activez <em>Arrière-plans graphiques</em> pour un rendu optimal. Choisissez A4 portrait.
+      </div>
+    </section>
+
+    <!-- RGPD -->
+    <section class="docs-section" id="rgpd-doc">
+      <h2><i class="bi bi-shield-check text-neon"></i>Anonymisation RGPD</h2>
+      <p>Les noms et prénoms des élèves sont chiffrés en base de données (algorithme Fernet, AES-128). Seul l'enseignant connecté peut les déchiffrer. Les exports publics (QR codes, page élève) n'affichent que l'alias anonyme.</p>
+      <p>Les logs de consultation (qui a vu quoi, quand) stockent l'adresse IP sous forme de hash SHA-256 irréversible — jamais l'IP brute.</p>
+    </section>
+
+    <!-- FAQ -->
+    <section class="docs-section" id="faq">
+      <h2><i class="bi bi-question-circle text-neon"></i>FAQ</h2>
+
+      <div class="accordion" id="faqAccordion">
+        {% set faq = [
+          ("Le micro ne fonctionne pas", "Vérifiez que votre navigateur a accès au micro. Dans Chrome : Paramètres → Confidentialité → Microphone. Utilisez Chrome ou Edge — Firefox ne supporte pas encore pleinement la Web Speech API."),
+          ("Mistral n'a pas extrait mes notes", "Mentionnez les notes explicitement en disant le nom de la question : « Question 1, trois sur cinq ». Évitez les abréviations. Vous pouvez toujours saisir les notes manuellement dans le tableau à gauche."),
+          ("Le QR code mène à une erreur", "L'URL dans le QR code doit pointer vers votre hébergement public (pas localhost). Vérifiez la variable APP_BASE_URL dans votre configuration."),
+          ("Puis-je recommencer une correction ?", "Oui. Sur la page du devoir, cliquez Revoir en face de l'élève. Un bouton Recommencer permet d'écraser la correction existante."),
+          ("L'audio ne se charge pas sur la page élève", "L'audio est hébergé sur Cloudinary et chargé à la demande. Vérifiez votre connexion. L'élève peut télécharger l'audio pour une écoute hors-ligne."),
+        ] %}
+        {% for q, r in faq %}
+        <div class="accordion-item border-0 mb-2">
+          <div class="vox-card p-0" style="overflow:hidden">
+            <h3 class="accordion-header">
+              <button class="accordion-button {{ 'collapsed' if not loop.first }} fw-600" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#faq{{ loop.index }}"
+                      style="font-size:.9rem;border-radius:var(--vox-radius-lg)">
+                <i class="bi bi-chevron-right me-2 text-neon" style="font-size:.75rem"></i>
+                {{ q }}
+              </button>
+            </h3>
+            <div id="faq{{ loop.index }}" class="accordion-collapse collapse {{ 'show' if i == 0 }}">
+              <div class="accordion-body text-muted" style="font-size:.88rem;line-height:1.8">
+                {{ r }}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Surligne le lien actif dans la sidebar selon le scroll
+  const sections = document.querySelectorAll('.docs-section');
+  const links = document.querySelectorAll('#docs-nav a');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => { if (window.scrollY >= s.offsetTop - 120) current = s.id; });
+    links.forEach(a => {
+      a.classList.remove('active');
+      if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+    });
+  });
+</script>
+{% endblock %}

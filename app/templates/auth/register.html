@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Créer un compte — VoxCorr{% endblock %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center py-4" style="background:var(--vox-grey)">
+  <div class="vox-card" style="width:100%;max-width:480px">
+
+    <div class="text-center mb-4">
+      <div class="vox-logo-mark mx-auto mb-3" style="width:52px;height:52px;font-size:1.5rem">V</div>
+      <h1 class="h4 fw-bold mb-1">Créer mon espace VoxCorr</h1>
+      <p class="text-muted small mb-0">Gratuit · Sans engagement · Conforme RGPD</p>
+    </div>
+
+    <form method="POST" novalidate>
+      <div class="row g-3 mb-3">
+        <div class="col">
+          <label class="vox-label" for="first_name">Prénom</label>
+          <input type="text" id="first_name" name="first_name" class="vox-input" required>
+        </div>
+        <div class="col">
+          <label class="vox-label" for="last_name">Nom</label>
+          <input type="text" id="last_name" name="last_name" class="vox-input" required>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="vox-label" for="email">E-mail professionnel</label>
+        <input type="email" id="email" name="email" class="vox-input" required>
+      </div>
+      <div class="mb-3">
+        <label class="vox-label" for="school">Établissement <span class="text-muted">(optionnel)</span></label>
+        <input type="text" id="school" name="school" class="vox-input" placeholder="ex : Collège Victor Hugo, Lyon">
+      </div>
+      <div class="mb-4">
+        <label class="vox-label" for="password">Mot de passe <span class="text-muted">(8 caractères min.)</span></label>
+        <input type="password" id="password" name="password" class="vox-input" required minlength="8">
+        <div class="mt-1" style="font-size:.75rem;color:var(--vox-muted)">
+          <i class="bi bi-info-circle me-1"></i>10 caractères min. · Majuscule · Chiffre · Caractère spécial (!@#$...)
+        </div>
+      </div>
+      <button type="submit" class="btn vox-btn-primary w-100 py-2">
+        Créer mon compte
+      </button>
+    </form>
+
+    <hr class="my-4">
+    <p class="text-center small text-muted mb-0">
+      Déjà un compte ? <a href="/auth/login" class="text-neon fw-bold">Se connecter</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

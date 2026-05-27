@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% set breadcrumbs = [{"label": "Classes", "url": "/teacher/classes"}, {"label": assignment.classroom.name, "url": "/teacher/classes/" ~ assignment.classroom_id}, {"label": assignment.title, "url": None}] %}
+{% block title %}{{ assignment.title }} — Corrections{% endblock %}
+
+{% block content %}
+<div class="vox-page-hero mb-4">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+      <h1>{{ assignment.title }}</h1>
+      <p>{{ assignment.classroom.name }} · {{ assignment.date.strftime('%d/%m/%Y') }} · /{{ assignment.total_points }} pts</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="/teacher/assignments/{{ assignment.id }}/edit" class="btn vox-btn-outline btn-sm">
+        <i class="bi bi-pencil me-1"></i>Modifier
+      </a>
+      <form method="POST" action="/teacher/assignments/{{ assignment.id }}/delete"
+            onsubmit="return confirm('Supprimer ce devoir et toutes ses corrections ?')">
+        <button type="submit" class="btn btn-danger btn-sm">
+          <i class="bi bi-trash me-1"></i>Supprimer
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Barème -->
+{% if assignment.questions %}
+<div class="vox-card mb-4">
+  <div class="fw-bold mb-2">Barème</div>
+  <div class="d-flex flex-wrap gap-2">
+    {% for q in assignment.questions %}
+    <span class="vox-badge vox-badge-grey">{{ q.label }} / {{ q.max_points }}</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Appréciation générale -->
+<div class="vox-card mb-4">
+  <div class="fw-bold mb-3">
+    <i class="bi bi-chat-quote me-2"></i>Appréciation générale sur la classe
+    <span class="text-muted fw-normal small ms-2">Optionnelle · visible par tous les élèves</span>
+  </div>
+
+  <!-- Mini recorder -->
+  <div class="d-flex align-items-center gap-3 mb-3 p-3 rounded" style="background:var(--vox-black)">
+    <button class="vox-record-btn" id="appr-record-btn" title="Dicter l'appréciation">
+      <i class="bi bi-mic-fill"></i>
+    </button>
+    <button class="vox-record-btn d-none" id="appr-stop-btn" style="border-color:#e53e3e;color:#e53e3e">
+      <i class="bi bi-stop-fill"></i>
+    </button>
+    <div class="text-white-50 small flex-grow-1" id="appr-record-status">
+      Micro pour dicter l'appréciation
+    </div>
+    {% if assignment.class_appreciation_audio_url %}
+    <audio controls src="{{ assignment.class_appreciation_audio_url }}"
+           style="height:32px;accent-color:var(--vox-neon)" preload="none"></audio>
+    {% endif %}
+  </div>
+
+  <textarea id="appreciation-text" class="vox-input mb-2" rows="3"
+            placeholder="Tapez ou dictez votre appréciation…">{{ assignment.class_appreciation or '' }}</textarea>
+  <div id="appr-interim" class="text-muted small fst-italic mb-2" style="min-height:1.2em"></div>
+
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <button id="btn-synthesize-appreciation" class="btn vox-btn-outline btn-sm">
+      <i class="bi bi-stars me-1"></i>Reformuler avec Mistral
+    </button>
+    <button id="btn-save-appreciation" class="btn vox-btn-primary btn-sm">
+      <i class="bi bi-floppy me-1"></i>Enregistrer
+    </button>
+    <span id="appreciation-status" class="text-muted small"></span>
+  </div>
+</div>
+
+<!-- Liste élèves + statut + bouton micro -->
+<div class="vox-card">
+  <div class="fw-bold mb-3">
+    Corrections <span class="vox-badge ms-1">{{ students|length }} élèves</span>
+  </div>
+  <table class="vox-table">
+    <thead>
+      <tr>
+        <th>N°</th>
+        <th>Alias</th>
+        <th>Nom réel</th>
+        <th>Statut</th>
+        <th>Note</th>
+        <th class="text-end">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in students %}
+      <tr>
+        <td class="text-muted small">{{ s.student_number }}</td>
+        <td><span class="vox-badge vox-badge-grey">{{ s.alias }}</span></td>
+        <td class="small">{{ s.display_last }}, {{ s.display_first }}</td>
+        <td>
+          {% if s.correction %}
+            {% if s.correction.status == 'published' %}
+            <span class="vox-badge">Publié</span>
+            {% elif s.correction.status == 'processing' %}
+            <span class="vox-badge vox-badge-grey">En cours…</span>
+            {% else %}
+            <span class="vox-badge vox-badge-dark">Brouillon</span>
+            {% endif %}
+          {% else %}
+          <span class="text-muted small">—</span>
+          {% endif %}
+        </td>
+        <td class="fw-bold">
+          {% if s.correction and s.correction.total_score is not none %}
+            {{ '%.1f'|format(s.correction.total_score) }}
+            <span class="text-muted fw-normal small">/ {{ assignment.total_points }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-end">
+          {% if s.correction %}
+          <a href="/teacher/correction/{{ s.correction.id }}"
+             class="btn vox-btn-outline btn-sm">
+            <i class="bi bi-eye me-1"></i>Revoir
+          </a>
+          {% else %}
+          <a href="/teacher/record/{{ s.id }}/{{ assignment.id }}"
+             class="btn vox-btn-primary btn-sm">
+            <i class="bi bi-mic-fill me-1"></i>Corriger
+          </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/recorder.js"></script>
+<script>
+(function () {
+  const assignmentId = {{ assignment.id }};
+  let apprRecorder   = null;
+  let apprBlob       = null;
+
+  apprRecorder = new VoxRecorder({
+    onTranscript: (final, interim) => {
+      document.getElementById('appreciation-text').value = final;
+      document.getElementById('appr-interim').textContent = interim;
+    },
+    onAudioReady: (blob) => {
+      apprBlob = blob;
+      document.getElementById('appr-record-status').textContent = 'Audio prêt — cliquez Enregistrer.';
+    },
+    onStateChange: (state) => {
+      const st = document.getElementById('appr-record-status');
+      if (state === 'recording') {
+        document.getElementById('appr-record-btn').classList.add('d-none');
+        document.getElementById('appr-stop-btn').classList.remove('d-none');
+        st.textContent = '⬤ Dictée en cours…';
+      } else {
+        document.getElementById('appr-record-btn').classList.remove('d-none');
+        document.getElementById('appr-stop-btn').classList.add('d-none');
+      }
+    },
+  });
+
+  document.getElementById('appr-record-btn').addEventListener('click', () => apprRecorder.start([]));
+  document.getElementById('appr-stop-btn').addEventListener('click',  () => apprRecorder.stop([]));
+
+  document.getElementById('btn-save-appreciation').addEventListener('click', async () => {
+    const text = document.getElementById('appreciation-text').value.trim();
+    const st   = document.getElementById('appreciation-status');
+    st.textContent = 'Enregistrement…';
+
+    // 1. Sauvegarde texte
+    const r1 = await fetch(`/teacher/assignments/${assignmentId}/appreciation`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ text }),
+    });
+    if (!r1.ok) { st.textContent = '✗ Erreur texte'; return; }
+
+    // 2. Upload audio si disponible
+    if (apprBlob) {
+      const fd = new FormData();
+      fd.append('audio', apprBlob, 'appreciation.webm');
+      const r2 = await fetch(`/teacher/assignments/${assignmentId}/appreciation/audio`, {
+        method: 'POST', body: fd,
+      });
+      if (r2.ok) {
+        const data = await r2.json();
+        // Affiche lecteur inline sans rechargement
+        const status = document.getElementById('appr-record-status');
+        status.innerHTML = `<audio controls src="${data.url}" style="height:32px;accent-color:var(--vox-neon)" preload="none"></audio>`;
+      }
+    }
+
+    st.textContent = '✓ Enregistré';
+    setTimeout(() => st.textContent = '', 3000);
+  });
+  document.getElementById('btn-synthesize-appreciation').addEventListener('click', async () => {
+    const text = document.getElementById('appreciation-text').value.trim();
+    const st   = document.getElementById('appreciation-status');
+    if (!text) { st.textContent = '⚠ Dictez d\'abord votre appréciation.'; return; }
+    st.innerHTML = '<span class="text-warning">⏳ Mistral reformule…</span>';
+    document.getElementById('btn-synthesize-appreciation').disabled = true;
+    try {
+      const r = await fetch(`/teacher/assignments/${assignmentId}/appreciation/synthesize`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ text }),
+      });
+      const data = await r.json();
+      if (data.text) {
+        document.getElementById('appreciation-text').value = data.text;
+        st.innerHTML = '<span class="text-success">✓ Reformulé — cliquez Enregistrer pour sauvegarder.</span>';
+      } else {
+        st.textContent = '✗ Erreur Mistral.';
+      }
+    } catch(e) {
+      st.textContent = '✗ Erreur réseau.';
+    } finally {
+      document.getElementById('btn-synthesize-appreciation').disabled = false;
+    }
+  });
+})();
+</script>
+{% endblock %}

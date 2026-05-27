@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% set breadcrumbs = [
+  {"label": "Classes",                 "url": "/teacher/classes"},
+  {"label": correction.assignment.classroom.name, "url": "/teacher/classes/" ~ correction.assignment.classroom_id},
+  {"label": correction.assignment.title,          "url": "/teacher/assignments/" ~ correction.assignment_id ~ "/corrections"},
+  {"label": student.alias,             "url": None}
+] %}
+{% block title %}Correction {{ student.alias }} — {{ correction.assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  {# ── Colonne gauche — infos + notes ──────────────────────────────────────── #}
+  <div class="col-lg-4">
+
+    {# Carte élève #}
+    <div class="vox-card mb-3">
+      <div class="text-muted small text-uppercase fw-bold mb-2" style="letter-spacing:.07em">Élève</div>
+      <div class="fw-bold fs-5">{{ student.alias }}</div>
+      <div class="text-muted small">
+        {{ correction.assignment.classroom.name }}
+        {% if correction.assignment.classroom.subject %} · {{ correction.assignment.classroom.subject }}{% endif %}
+      </div>
+    </div>
+
+    {# Carte devoir #}
+    <div class="vox-card mb-3">
+      <div class="text-muted small text-uppercase fw-bold mb-2" style="letter-spacing:.07em">Devoir</div>
+      <div class="fw-bold">{{ correction.assignment.title }}</div>
+      <div class="text-muted small">
+        {{ correction.assignment.date.strftime('%d/%m/%Y') }} · /{{ correction.assignment.total_points }} pts
+      </div>
+    </div>
+
+    {# Carte notes #}
+    <div class="vox-card mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="fw-bold">Notes</span>
+        <span class="vox-badge" style="font-size:1rem;padding:.35em .7em">
+          {% if correction.total_score is not none %}
+            {{ '%.1f'|format(correction.total_score) }}
+            <span class="fw-normal" style="font-size:.75rem;opacity:.7">/ {{ correction.assignment.total_points }}</span>
+          {% else %}—{% endif %}
+        </span>
+      </div>
+      {% for q in correction.assignment.questions %}
+      {% set score = correction.scores | selectattr('question_id','eq',q.id) | map(attribute='score') | first | default(None) %}
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <div class="flex-grow-1">
+          <div class="small fw-500">{{ q.label }}</div>
+          {% if q.competence %}
+          <div class="text-muted" style="font-size:.75rem">{{ q.competence }}</div>
+          {% endif %}
+        </div>
+        <span class="fw-bold small">
+          {% if score is not none %}{{ '%.1f'|format(score) }}{% else %}<span class="text-muted">—</span>{% endif %}
+        </span>
+        <span class="text-muted small">/{{ q.max_points }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    {# Actions #}
+    <div class="d-flex flex-column gap-2">
+      <a href="/teacher/record/{{ student.id }}/{{ correction.assignment_id }}"
+         class="btn vox-btn-primary btn-sm">
+        <i class="bi bi-mic-fill me-1"></i>Modifier la correction
+      </a>
+      <a href="/teacher/assignments/{{ correction.assignment_id }}/corrections"
+         class="btn vox-btn-outline btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Retour au devoir
+      </a>
+    </div>
+  </div>
+
+  {# ── Colonne droite — synthèse + audio + QR ───────────────────────────────── #}
+  <div class="col-lg-8">
+
+    {# Bandeau statut #}
+    <div class="d-flex align-items-center gap-2 mb-3">
+      {% if correction.status == 'published' %}
+      <span class="vox-badge" style="font-size:.85rem"><i class="bi bi-check-circle me-1"></i>Publié</span>
+      {% elif correction.status == 'draft' %}
+      <span class="vox-badge vox-badge-dark" style="font-size:.85rem">Brouillon</span>
+      {% endif %}
+      {% if correction.published_at %}
+      <span class="text-muted small">
+        Publié le {{ correction.published_at.strftime('%d/%m/%Y à %H:%M') }}
+      </span>
+      {% endif %}
+    </div>
+
+    {# Appréciation générale #}
+    {% if correction.assignment.class_appreciation %}
+    <div class="vox-card mb-3" style="border-left:3px solid var(--vox-neon)">
+      <div class="fw-bold mb-2">
+        <i class="bi bi-people me-2"></i>Appréciation générale sur le travail de la classe pour ce devoir
+      </div>
+      <div style="line-height:1.85">{{ correction.assignment.class_appreciation | safe }}</div>
+    </div>
+    {% endif %}
+
+    {# Lecteur audio #}
+    {% if correction.audio_url %}
+    <div class="vox-card mb-3">
+      <div class="fw-bold mb-2"><i class="bi bi-volume-up me-2"></i>Correction audio</div>
+      <audio controls src="{{ correction.audio_url }}"
+             style="width:100%;accent-color:var(--vox-neon)" preload="none"></audio>
+      {% if correction.audio_duration %}
+      <div class="text-muted small mt-1">
+        Durée : {{ (correction.audio_duration // 60)|int }}min {{ (correction.audio_duration % 60)|int }}s
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# Synthèse Mistral #}
+    {% if correction.structured_text %}
+    <div class="vox-card mb-3">
+      <div class="fw-bold mb-3">✦ Synthèse pour l'élève</div>
+      <div class="vox-synth-content">
+        {{ correction.structured_text | safe }}
+      </div>
+    </div>
+    {% endif %}
+
+    {# QR Code #}
+    {% if correction.status == 'published' %}
+    <div class="vox-card text-center">
+      <div class="fw-bold mb-3"><i class="bi bi-qr-code me-2"></i>QR Code élève</div>
+      <div class="vox-qr-box mx-auto mb-3">
+        <img src="{{ qr_b64 }}" alt="QR Code {{ student.alias }}">
+      </div>
+      <a href="{{ qr_url }}" target="_blank"
+         class="d-block small text-muted mb-3">{{ qr_url }}</a>
+      <div class="d-flex gap-2 justify-content-center flex-wrap">
+        <a href="/teacher/correction/{{ correction.id }}/qr.png"
+           class="btn vox-btn-dark btn-sm">
+          <i class="bi bi-download me-1"></i>Télécharger PNG
+        </a>
+        <button class="btn vox-btn-outline btn-sm" id="btn-copy-url"
+                data-url="{{ qr_url }}">
+          <i class="bi bi-clipboard me-1"></i>Copier le lien
+        </button>
+      </div>
+      <p class="text-muted small mt-3 mb-0">
+        L'élève <strong>n'a pas besoin de compte</strong> VoxCorr.
+      </p>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('btn-copy-url')?.addEventListener('click', function () {
+  navigator.clipboard.writeText(this.dataset.url).then(() => {
+    this.innerHTML = '<i class="bi bi-check me-1"></i>Copié !';
+    setTimeout(() => this.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copier le lien', 2000);
+  });
+});
+</script>
+{% endblock %}

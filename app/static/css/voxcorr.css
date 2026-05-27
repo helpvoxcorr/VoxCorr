@@ -1,0 +1,209 @@
+/* ═══════════════════════════════════════════════════════════════
+   VoxCorr — Design System 2026 Premium
+   Charte : noir #0a0a0a · blanc #fff · vert fluo #39FF14
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --vox-black:     #0a0a0a;
+  --vox-white:     #ffffff;
+  --vox-neon:      #39FF14;
+  --vox-neon-d:    #2ecc10;
+  --vox-neon-glow: rgba(57,255,20,.18);
+  --vox-grey:      #f4f5f7;
+  --vox-grey-2:    #eaebee;
+  --vox-border:    rgba(0,0,0,.08);
+  --vox-border-md: rgba(0,0,0,.13);
+  --vox-muted:     #6c757d;
+  --vox-radius:    10px;
+  --vox-radius-lg: 8px;
+  --vox-radius-xl: 12px;
+  --vox-shadow-xs: 0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --vox-shadow-sm: 0 2px 8px rgba(0,0,0,.07),0 1px 3px rgba(0,0,0,.04);
+  --vox-shadow-md: 0 4px 20px rgba(0,0,0,.09),0 2px 6px rgba(0,0,0,.05);
+  --vox-shadow-lg: 0 12px 40px rgba(0,0,0,.12),0 4px 12px rgba(0,0,0,.06);
+  --vox-tr:        200ms cubic-bezier(.4,0,.2,1);
+  --vox-font:      'Inter',system-ui,-apple-system,sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{font-family:var(--vox-font);background:#F5F4F0;color:var(--vox-black);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+main{flex:1}
+a{color:inherit;text-decoration:none}
+
+/* ── Navbar ── */
+.vox-navbar{background:var(--vox-black);border-bottom:2px solid var(--vox-neon);padding:.6rem 0;box-shadow:0 2px 24px rgba(0,0,0,.35)}
+.vox-navbar .navbar-brand{color:#fff;font-size:1.2rem;font-weight:700;letter-spacing:-.02em}
+.vox-navbar .navbar-brand:hover{color:var(--vox-neon)}
+.vox-navbar .nav-link{color:rgba(255,255,255,.6);border-radius:var(--vox-radius);padding:.4rem .85rem;font-size:.875rem;font-weight:500;transition:var(--vox-tr);display:flex;align-items:center;gap:.4rem}
+.vox-navbar .nav-link:hover{color:#fff;background:rgba(255,255,255,.08)}
+.vox-navbar .nav-link.active{color:var(--vox-neon);background:rgba(57,255,20,.08)}
+.vox-logo-mark{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:var(--vox-neon);color:var(--vox-black);font-weight:800;font-size:.9rem;box-shadow:0 0 12px var(--vox-neon-glow)}
+.text-neon{color:var(--vox-neon)}
+.vox-user-chip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:.3rem .85rem .3rem .5rem;display:flex;align-items:center;gap:.5rem;color:rgba(255,255,255,.75);font-size:.82rem}
+.vox-user-avatar{width:26px;height:26px;border-radius:50%;background:var(--vox-neon);display:flex;align-items:center;justify-content:center;color:var(--vox-black);font-weight:700;font-size:.7rem}
+
+/* ── Boutons ── */
+.vox-btn-primary{background:var(--vox-neon);color:var(--vox-black);border:2px solid var(--vox-neon);border-radius:var(--vox-radius);font-weight:700;font-size:.875rem;padding:.55rem 1.35rem;transition:var(--vox-tr);cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;letter-spacing:.01em}
+.vox-btn-primary:hover{background:var(--vox-neon-d);border-color:var(--vox-neon-d);color:var(--vox-black);transform:translateY(-1px);box-shadow:0 4px 16px var(--vox-neon-glow)}
+.vox-btn-primary:active{transform:none;box-shadow:none}
+.vox-btn-dark{background:var(--vox-black);color:#fff;border:2px solid var(--vox-black);border-radius:var(--vox-radius);font-weight:600;font-size:.875rem;padding:.55rem 1.35rem;transition:var(--vox-tr);cursor:pointer;display:inline-flex;align-items:center;gap:.4rem}
+.vox-btn-dark:hover{background:#222;border-color:#222;color:#fff;transform:translateY(-1px);box-shadow:var(--vox-shadow-sm)}
+.vox-btn-outline{background:transparent;color:var(--vox-black);border:1.5px solid var(--vox-border-md);border-radius:var(--vox-radius);font-weight:600;font-size:.875rem;padding:.5rem 1.2rem;transition:var(--vox-tr);cursor:pointer;display:inline-flex;align-items:center;gap:.4rem}
+.vox-btn-outline:hover{background:var(--vox-grey);border-color:rgba(0,0,0,.25);color:var(--vox-black)}
+.vox-btn-ghost{background:transparent;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.15);border-radius:var(--vox-radius);padding:.35rem .8rem;font-size:.82rem;font-weight:500;transition:var(--vox-tr);display:inline-flex;align-items:center;gap:.4rem}
+.vox-btn-ghost:hover{background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.25)}
+.vox-btn-danger{background:#e53e3e;color:#fff;border:2px solid #e53e3e;border-radius:var(--vox-radius);font-weight:600;font-size:.875rem;padding:.55rem 1.35rem;transition:var(--vox-tr);cursor:pointer;display:inline-flex;align-items:center;gap:.4rem}
+.vox-btn-danger:hover{background:#c53030;border-color:#c53030;transform:translateY(-1px)}
+
+/* ── Cards ── */
+.vox-card{background:var(--vox-white);border:1px solid #e5e7eb;border-radius:var(--vox-radius-lg);padding:1.5rem;transition:border-color var(--vox-tr),transform var(--vox-tr)}
+.vox-card:hover{border-color:#0a0a0a}
+a.vox-card,a.vox-card-link{display:block;color:inherit}
+a.vox-card:hover{border-color:#0a0a0a}
+.vox-card-accent{border-top:3px solid var(--vox-neon)}
+.vox-card-accent-blue{border-top-color:#3b82f6}
+.vox-card-accent-purple{border-top-color:#8b5cf6}
+.vox-card-accent-orange{border-top-color:#f59e0b}
+.vox-card-accent-red{border-top-color:#ef4444}
+.vox-card-accent-teal{border-top-color:#14b8a6}
+.vox-card-accent-pink{border-top-color:#ec4899}
+
+/* ── Stat cards ── */
+.vox-stat{background:#fafafa;border:1px solid var(--vox-border);border-radius:var(--vox-radius-lg);padding:1.35rem 1.5rem;position:relative;overflow:hidden}
+.vox-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:#e5e7eb;display:none}/.vox-stat-DISABLE{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--vox-neon)}
+.vox-stat .val{font-size:2.8rem;font-weight:800;line-height:1;letter-spacing:-.04em}
+.vox-stat .lbl{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--vox-muted);margin-top:.4rem}
+
+/* ── Page hero ── */
+.vox-page-hero{background:var(--vox-black);color:#fff;border-radius:var(--vox-radius-xl);padding:2.25rem 2.5rem;margin-bottom:2rem;position:relative;overflow:hidden}
+.vox-page-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at top right,rgba(57,255,20,.12) 0%,transparent 60%);pointer-events:none}
+.vox-page-hero h1{font-size:1.75rem;font-weight:700;letter-spacing:-.03em;margin:0}
+.vox-page-hero p{color:rgba(255,255,255,.5);margin:.4rem 0 0;font-size:.9rem}
+
+/* ── Section title ── */
+.vox-section-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--vox-muted);margin-bottom:.85rem;display:flex;align-items:center;gap:.5rem}
+.vox-section-title::after{content:'';flex:1;height:1px;background:var(--vox-border)}
+
+/* ── Discipline badges ── */
+.vox-disc{display:inline-flex;align-items:center;gap:.35rem;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:.25rem .7rem;border-radius:100px}
+.vox-disc-maths{background:#ede9fe;color:#5b21b6}
+.vox-disc-français,.vox-disc-francais{background:#fce7f3;color:#9d174d}
+.vox-disc-histoire{background:#fef3c7;color:#92400e}
+.vox-disc-sciences,.vox-disc-svt{background:#d1fae5;color:#065f46}
+.vox-disc-anglais{background:#dbeafe;color:#1e3a8a}
+.vox-disc-physique{background:#e0f2fe;color:#0c4a6e}
+.vox-disc-géographie,.vox-disc-geographie{background:#fef9c3;color:#713f12}
+.vox-disc-default{background:var(--vox-grey-2);color:var(--vox-muted)}
+
+/* ── Formulaires ── */
+.vox-input{width:100%;border:1.5px solid var(--vox-border-md);border-radius:var(--vox-radius);padding:.65rem 1rem;font-family:var(--vox-font);font-size:.9rem;background:#fff;color:var(--vox-black);outline:none;transition:border-color var(--vox-tr),box-shadow var(--vox-tr)}
+.vox-input:focus{border-color:var(--vox-neon);box-shadow:0 0 0 3px var(--vox-neon-glow)}
+.vox-label{display:block;font-size:.75rem;font-weight:700;color:var(--vox-muted);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.07em}
+.vox-form-group{margin-bottom:1.25rem}
+
+/* ── Tables ── */
+.vox-table{width:100%;border-collapse:separate;border-spacing:0}
+.vox-table th{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--vox-muted);padding:.65rem 1rem;background:var(--vox-grey);border-bottom:1px solid var(--vox-border)}
+.vox-table td{padding:.8rem 1rem;border-bottom:1px solid var(--vox-border);vertical-align:middle;font-size:.875rem}
+.vox-table tr:last-child td{border-bottom:none}
+.vox-table tbody tr{transition:background var(--vox-tr)}
+.vox-table tbody tr:hover{background:#f8f9fc}
+
+/* ── Badges ── */
+.vox-badge{display:inline-flex;align-items:center;gap:.3rem;background:var(--vox-neon);color:var(--vox-black);border-radius:100px;padding:.2rem .75rem;font-size:.72rem;font-weight:700;letter-spacing:.04em}
+.vox-badge-dark{background:var(--vox-black);color:#fff}
+.vox-badge-grey{background:var(--vox-grey-2);color:var(--vox-muted)}
+.vox-badge-success{background:#d1fae5;color:#065f46}
+.vox-badge-warning{background:#fef3c7;color:#92400e}
+.vox-badge-info{background:#dbeafe;color:#1e3a8a}
+.vox-badge-draft{background:#f3f4f6;color:#6b7280}
+
+/* ── Recorder ── */
+.vox-recorder{background:var(--vox-black);border-radius:var(--vox-radius-xl);padding:2rem;color:#fff;position:relative;overflow:hidden}
+.vox-recorder::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--vox-neon),transparent)}
+.vox-waveform{height:56px;display:flex;align-items:center;justify-content:center;gap:3px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:var(--vox-radius-lg);padding:0 .75rem;overflow:hidden}
+.vox-waveform-bar{width:3px;background:var(--vox-neon);border-radius:2px;height:6px;transition:height .1s ease;opacity:.4}
+.vox-record-btn{width:58px;height:58px;border-radius:50%;border:2px solid var(--vox-neon);background:transparent;color:var(--vox-neon);font-size:1.3rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:var(--vox-tr);flex-shrink:0}
+.vox-record-btn:hover{background:var(--vox-neon-glow);box-shadow:0 0 20px var(--vox-neon-glow);transform:scale(1.05)}
+.vox-record-btn.recording{background:#e53e3e;border-color:#e53e3e;color:#fff;animation:pulse-rec 1.4s ease-in-out infinite}
+@keyframes pulse-rec{0%,100%{box-shadow:0 0 0 0 rgba(229,62,62,.5)}50%{box-shadow:0 0 0 14px rgba(229,62,62,0)}}
+.vox-transcript{width:100%;min-height:100px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:var(--vox-radius-lg);padding:.9rem 1rem;color:#fff;font-family:var(--vox-font);font-size:.875rem;line-height:1.7;resize:vertical;outline:none;transition:border-color var(--vox-tr)}
+.vox-transcript:focus{border-color:var(--vox-neon)}
+.vox-action-bar{background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border:1px solid var(--vox-border);border-radius:var(--vox-radius-lg);padding:.85rem 1.25rem;display:flex;align-items:center;gap:.75rem;box-shadow:var(--vox-shadow-md);margin-top:.75rem}
+
+/* ── QR ── */
+.vox-qr-box{border:2px solid var(--vox-neon);border-radius:var(--vox-radius-lg);padding:1.1rem;text-align:center;max-width:220px;margin:0 auto;background:#fff;box-shadow:0 0 20px var(--vox-neon-glow)}
+.vox-qr-box img{width:160px;height:160px}
+
+/* ── Student ── */
+.vox-student-hero{background:var(--vox-black);color:#fff;border-radius:var(--vox-radius-xl);padding:2rem;position:relative;overflow:hidden}
+.vox-student-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at bottom left,rgba(57,255,20,.1) 0%,transparent 60%)}
+.vox-progress{height:6px;border-radius:3px;background:var(--vox-grey-2);overflow:hidden}
+.vox-progress-fill{height:100%;background:var(--vox-neon);border-radius:3px;transition:width .7s ease}
+
+/* ── Footer ── */
+.vox-footer{background:var(--vox-black);border-top:1px solid rgba(255,255,255,.06);color:rgba(255,255,255,.45);font-size:.8rem;padding:2.5rem 0 1.5rem;margin-top:auto}
+.vox-footer a{color:rgba(255,255,255,.45);transition:color var(--vox-tr)}
+.vox-footer a:hover{color:var(--vox-neon)}
+.vox-footer .footer-brand{font-weight:700;font-size:.95rem;color:#fff;letter-spacing:-.01em}
+.vox-footer .footer-tagline{color:rgba(255,255,255,.25);font-size:.75rem;margin-top:.15rem}
+.vox-footer hr{border-color:rgba(255,255,255,.06);margin:1.5rem 0 1rem}
+.vox-footer .footer-links{display:flex;flex-wrap:wrap;gap:.25rem 1.5rem}
+.vox-footer .footer-copy{color:rgba(255,255,255,.2);font-size:.72rem}
+
+/* ── Utilitaires ── */
+.vox-divider{border:none;border-top:1px solid var(--vox-border);margin:1.5rem 0}
+.fw-500{font-weight:500}.fw-600{font-weight:600}
+
+@media(max-width:768px){
+  .vox-page-hero{padding:1.5rem;border-radius:var(--vox-radius-lg)}
+  .vox-page-hero h1{font-size:1.4rem}
+  .vox-recorder{padding:1.25rem}
+}
+@media print{
+  .vox-navbar,.vox-footer,.screen-header,.btn-print{display:none!important}
+}
+
+/* ── Greeting (remplace hero dashboard) ── */
+.vox-greeting {
+  padding: 1.75rem 0 1.5rem;
+  border-bottom: 1px solid var(--vox-border);
+  margin-bottom: 2rem;
+}
+.vox-greeting-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  margin: 0 0 .3rem;
+  position: relative;
+  display: inline-block;
+}
+.vox-greeting-title::after {
+  content: '';
+  position: absolute;
+  bottom: -6px; left: 0;
+  width: 36px; height: 3px;
+  background: var(--vox-neon);
+  border-radius: 2px;
+}
+
+/* ── Bouton outline hover neon ── */
+.vox-btn-outline:hover {
+  border-color: var(--vox-neon);
+  color: var(--vox-black);
+  background: rgba(57,255,20,.06);
+}
+
+/* ── Neon pulse sur badge actif ── */
+.vox-badge-neon-pulse {
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+@keyframes neon-pulse {
+  0%,100% { box-shadow: 0 0 0 0 var(--vox-neon-glow); }
+  50%      { box-shadow: 0 0 8px 3px var(--vox-neon-glow); }
+}
+
+/* ── Stat card hover neon ── */
+.vox-stat:hover::before {
+  box-shadow: 0 0 8px var(--vox-neon-glow);
+}

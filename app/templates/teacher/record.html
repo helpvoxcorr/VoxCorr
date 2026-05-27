@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% set breadcrumbs = [{"label": "Classes", "url": "/teacher/classes"}, {"label": assignment.classroom.name, "url": "/teacher/classes/" ~ assignment.classroom_id}, {"label": assignment.title, "url": "/teacher/assignments/" ~ assignment.id ~ "/corrections"}, {"label": student.alias, "url": None}] %}
+{% block title %}Corriger {{ student.alias }} — VoxCorr{% endblock %}
+
+{% block head %}
+<script>
+  window.VC = {
+    studentId:    {{ student.id }},
+    assignmentId: {{ assignment.id }},
+    correctionId: {{ existing.id if existing else 'null' }},
+  };
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  <!-- Colonne infos + scores -->
+  <div class="col-lg-4">
+    <div class="vox-card mb-3">
+      <div class="text-muted small text-uppercase fw-bold mb-2" style="letter-spacing:.07em">Élève</div>
+      <div class="fw-bold fs-5">{{ student.alias }}</div>
+      <div class="text-muted small">{{ assignment.classroom.name }} · {{ assignment.classroom.subject or '' }}</div>
+    </div>
+
+    <div class="vox-card mb-3">
+      <div class="text-muted small text-uppercase fw-bold mb-2" style="letter-spacing:.07em">Devoir</div>
+      <div class="fw-bold">{{ assignment.title }}</div>
+      <div class="text-muted small">{{ assignment.date.strftime('%d/%m/%Y') }} · /{{ assignment.total_points }} pts</div>
+    </div>
+
+    <!-- Scores manuels -->
+    <div class="vox-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="fw-bold">Notes</span>
+        <span class="vox-badge" id="total-score">
+          {{ '%.1f'|format(existing.total_score) if existing and existing.total_score else '—' }}
+        </span>
+      </div>
+      {% for q in questions %}
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <div class="flex-grow-1">
+          <div class="small fw-500">{{ q.label }}</div>
+          {% if q.competence %}
+          <div class="text-muted" style="font-size:.75rem">{{ q.competence }}</div>
+          {% endif %}
+        </div>
+        <input type="number" class="vox-input score-input"
+               data-qid="{{ q.id }}"
+               min="0" max="{{ q.max_points }}" step="0.5"
+               style="width:70px;text-align:center"
+               value="{{ existing.scores | selectattr('question_id','eq',q.id) | map(attribute='score') | first | default('') if existing else '' }}">
+        <span class="text-muted small">/{{ q.max_points }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Colonne enregistreur -->
+  <div class="col-lg-8">
+    <div class="vox-recorder">
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h6 fw-bold mb-0 text-white">🎙 Correction orale</h2>
+        <div id="recording-status" class="small text-muted">Prêt à enregistrer…</div>
+      </div>
+      {% if existing %}
+      <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 py-2 px-3"
+           style="font-size:.85rem;border-radius:6px">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>
+          Une correction existe déjà pour cet élève ({{ '%.1f'|format(existing.total_score) if existing.total_score else '—' }} pts).
+          Sauvegarder <strong>remplacera</strong> la correction actuelle.
+          <a href="/teacher/correction/{{ existing.id }}" class="alert-link ms-1">Voir la correction →</a>
+        </span>
+      </div>
+      {% endif %}
+
+      <!-- Waveform -->
+      <div class="vox-waveform mb-4">
+        {% for _ in range(40) %}
+        <div class="vox-waveform-bar"></div>
+        {% endfor %}
+      </div>
+
+      <!-- Boutons -->
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <button class="vox-record-btn" id="btn-start" title="Démarrer">
+          <i class="bi bi-mic-fill"></i>
+        </button>
+        <button class="vox-record-btn d-none" id="btn-stop" title="Arrêter"
+                style="border-color:#e53e3e;color:#e53e3e">
+          <i class="bi bi-stop-fill"></i>
+        </button>
+        <div class="text-white-50 small">
+          Dictez votre correction.<br>
+          <span style="color:var(--vox-neon)">Mistral extraira les notes automatiquement.</span>
+        </div>
+      </div>
+
+      <!-- Transcription -->
+      <label class="vox-label text-white-50 mb-1">Transcription temps réel</label>
+      <textarea class="vox-transcript mb-1" id="transcription"
+                placeholder="Votre dictée apparaîtra ici…">{{ existing.raw_transcript or '' }}</textarea>
+      <div id="interim" class="text-white-50 small fst-italic mb-3" style="min-height:1.4em"></div>
+
+      <!-- Actions -->
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn vox-btn-primary d-none" id="btn-save">
+          <i class="bi bi-floppy me-1"></i>Sauvegarder et analyser
+        </button>
+        <button class="btn vox-btn-dark d-none" id="btn-publish">
+          <i class="bi bi-qr-code me-1"></i>Publier et générer QR
+        </button>
+      </div>
+    </div>
+
+    <!-- Synthèse Mistral -->
+    <div id="ai-result-section" class="vox-card mt-3 d-none">
+      <div class="fw-bold mb-2">✦ Synthèse pour l'élève</div>
+      <div id="ai-formatted-text" class="text-muted"></div>
+    </div>
+
+    <!-- QR Code -->
+    <div id="qr-panel" class="vox-card mt-3 d-none text-center">
+      <div class="fw-bold mb-3">QR Code de la correction</div>
+      <div class="vox-qr-box">
+        <img id="qr-img" src="" alt="QR Code">
+      </div>
+      <a id="qr-url" href="#" target="_blank" class="d-block small text-muted mt-2"></a>
+      <div class="d-flex gap-2 justify-content-center mt-3">
+        <a href="/correction/{{ existing.id if existing else 0 }}/qr.png"
+           class="btn vox-btn-dark btn-sm" id="btn-dl-qr">
+          <i class="bi bi-download me-1"></i>Télécharger PNG
+        </a>
+      </div>
+      <p class="text-muted small mt-3 mb-0">
+        Déposez ce QR sur Pronote, Moodle ou EcoleDirecte.<br>
+        L'élève <strong>n'a pas besoin de compte</strong> VoxCorr.
+      </p>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- recorder.js chargé en script classique (pas module) → window.VoxRecorder -->
+<script src="/static/js/recorder.js"></script>
+<!-- record_page.js est un module ES6 qui importe api.js et ui.js -->
+<script type="module" src="/static/js/record_page.js"></script>
+
+<!-- Modale erreur micro -->
+<div class="modal fade" id="vox-error-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+      <div class="modal-header border-0 pb-0" style="background:#fff">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:36px;height:36px;border-radius:8px;background:#fff0f0;display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-mic-mute-fill" style="color:#e53e3e;font-size:1rem"></i>
+          </div>
+          <h5 class="modal-title fw-bold mb-0" id="vox-error-title">Erreur</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-2" style="background:#fff">
+        <p id="vox-error-body" class="text-muted mb-0" style="font-size:.9rem;line-height:1.6"></p>
+      </div>
+      <div class="modal-footer border-0" style="background:#fff">
+        <button type="button" class="btn vox-btn-primary btn-sm px-4"
+                data-bs-dismiss="modal">Compris</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.voxShowError = function(title, message) {
+  document.getElementById('vox-error-title').textContent = title;
+  document.getElementById('vox-error-body').textContent  = message;
+  new bootstrap.Modal(document.getElementById('vox-error-modal')).show();
+};
+</script>
+{% endblock %}

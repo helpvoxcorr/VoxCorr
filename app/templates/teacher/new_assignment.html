@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Nouveau devoir — VoxCorr{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="vox-page-hero mb-4">
+      <h1>Nouveau devoir</h1>
+      <p>{{ classroom.name }} · {{ classroom.subject or '' }}</p>
+    </div>
+
+    <div class="vox-card">
+      <form method="POST">
+
+        <div class="mb-3">
+          <label class="vox-label">Titre *</label>
+          <input type="text" name="title" class="vox-input" placeholder="ex : Contrôle chapitre 3" required>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col">
+            <label class="vox-label">Date</label>
+            <input type="date" name="date" class="vox-input"
+                   value="{{ now.strftime('%Y-%m-%d') if now else '' }}">
+          </div>
+          <div class="col">
+            <label class="vox-label">Total points</label>
+            <input type="number" name="total_points" class="vox-input" value="20" step="0.5">
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="vox-label">Description (optionnel)</label>
+          <textarea name="description" class="vox-input" rows="2"></textarea>
+        </div>
+
+        <!-- Questions / Barème -->
+        <div class="fw-bold mb-3">
+          Barème par question
+          <span class="text-muted fw-normal small ms-2">Mistral extraira les notes automatiquement.</span>
+        </div>
+
+        <div id="questions-list">
+          <div class="question-row row g-2 mb-2 align-items-center">
+            <div class="col-5">
+              <input type="text" name="q_label" class="vox-input" placeholder="ex : Question 1">
+            </div>
+            <div class="col-3">
+              <input type="number" name="q_max" class="vox-input" placeholder="pts" step="0.5" min="0">
+            </div>
+            <div class="col-4">
+              <input type="text" name="q_competence" class="vox-input" placeholder="Compétence (opt.)">
+            </div>
+          </div>
+        </div>
+
+        <button type="button" id="add-question" class="btn vox-btn-dark btn-sm mb-4">
+          <i class="bi bi-plus me-1"></i>Ajouter une question
+        </button>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn vox-btn-primary">Créer le devoir</button>
+          <a href="/teacher/classes/{{ classroom.id }}" class="btn vox-btn-dark">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('add-question').addEventListener('click', () => {
+    const row = document.querySelector('.question-row').cloneNode(true);
+    row.querySelectorAll('input').forEach(i => i.value = '');
+    document.getElementById('questions-list').appendChild(row);
+  });
+</script>
+{% endblock %}

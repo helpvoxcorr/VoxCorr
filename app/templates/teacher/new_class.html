@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% set breadcrumbs = [{"label": "Classes", "url": "/teacher/classes"}, {"label": "Nouvelle classe", "url": None}] %}
+{% block title %}Nouvelle classe — VoxCorr{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="vox-page-hero mb-4">
+      <h1>Nouvelle classe</h1>
+      <p>Remplissez les informations de base.</p>
+    </div>
+
+    <div class="vox-card">
+      <form method="POST">
+        <div class="mb-3">
+          <label class="vox-label">Nom de la classe *</label>
+          <input type="text" name="name" class="vox-input" placeholder="ex : 3ème B" required>
+        </div>
+        <div class="mb-3">
+          <label class="vox-label">Matière</label>
+          <input type="text" name="subject" class="vox-input" placeholder="ex : Mathématiques">
+        </div>
+        <div class="mb-4">
+          <label class="vox-label">Année scolaire</label>
+          <input type="text" name="school_year" class="vox-input" value="2025-2026">
+        </div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn vox-btn-primary">Créer la classe</button>
+          <a href="/teacher/classes" class="btn vox-btn-dark">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

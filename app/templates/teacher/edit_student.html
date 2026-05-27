@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Modifier élève — VoxCorr{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-5">
+    <div class="vox-page-hero mb-4">
+      <h1>Modifier l'élève</h1>
+      <p>Alias actuel : <strong>{{ student.alias }}</strong></p>
+    </div>
+    <div class="vox-card">
+      <form method="POST">
+        <div class="mb-3">
+          <label class="vox-label">Prénom</label>
+          <input type="text" name="first_name" class="vox-input" value="{{ first }}" required>
+        </div>
+        <div class="mb-4">
+          <label class="vox-label">Nom</label>
+          <input type="text" name="last_name" class="vox-input" value="{{ last }}" required>
+        </div>
+        <p class="text-muted small mb-4">
+          L'alias RGPD sera recalculé automatiquement.
+        </p>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn vox-btn-primary">Enregistrer</button>
+          <a href="/teacher/classes/{{ classroom_id }}" class="btn vox-btn-dark">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

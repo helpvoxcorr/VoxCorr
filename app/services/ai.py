@@ -1,0 +1,148 @@
+"""
+Service IA — Mistral (mistral-small-latest)
+Synthétise la transcription brute du prof en :
+  - formatted_text : texte HTML lisible pour l'élève
+  - grades         : [{question, score, max_score}]
+"""
+import os, json, re
+from mistralai import Mistral
+
+SYSTEM_PROMPT = """Tu es un assistant pédagogique. Un enseignant t'envoie la transcription brute \
+de sa correction orale d'une copie d'élève.
+
+IMPORTANT — format des notes en français oral :
+- "3,5" ou "3.5" ou "3h30" ou "trois et demi" = 3,5 points
+- "un sur deux" = 1/2  |  "deux sur quatre" = 2/4
+- Toujours extraire le nombre réel, jamais un format heure.
+
+Ta mission :
+1. Réécrire la correction en français professionnel et structuré.
+2. Extraire toutes les notes mentionnées.
+
+Réponds UNIQUEMENT avec un objet JSON valide :
+{
+  "formatted_text": "<p>Texte HTML structuré…</p>",
+  "grades": [
+    {"question": "Question 1", "score": 3.5, "max_score": 4}
+  ]
+}
+
+Règles :
+- formatted_text : HTML simple (p, ul, li, strong) uniquement.
+- grades : score toujours en nombre décimal (3.5, pas "3h30").
+- Conserve le ton du professeur.
+"""
+
+def normalize_transcript(text: str) -> str:
+    """
+    Corrige les artifacts fréquents de la Web Speech API en français.
+    "3h30" → "3,5"  |  "2h30" → "2,5"  |  "1h30" → "1,5" etc.
+    """
+    # Xh30 → X,5  (ex: 3h30 → 3,5)
+    text = re.sub(r'(\d+)h30', lambda m: f"{m.group(1)},5", text)
+    # Xh00 → X  (ex: 4h00 → 4)
+    text = re.sub(r'(\d+)h00', lambda m: m.group(1), text)
+    # "et demi" après un chiffre → ",5"
+    text = re.sub(r'(\d+)\s+et\s+demi', lambda m: f"{m.group(1)},5", text)
+    # virgule écrite en lettres
+    text = text.replace(' virgule ', ',')
+    return text
+
+def synthesize_with_mistral(raw_text: str, question_labels: list[str]) -> dict:
+    """
+    Appelle Mistral et retourne {"formatted_text": "...", "grades": [...]}.
+    En cas d'erreur API, retourne un fallback sans planter le thread.
+    """
+    raw_text = normalize_transcript(raw_text)
+    api_key = os.environ.get('MISTRAL_API_KEY')
+
+    if api_key:
+        try:
+            client = Mistral(api_key=api_key)
+            user_msg = (
+                f"Questions du devoir : {', '.join(question_labels)}\n\n"
+                f"Transcription brute :\n{raw_text}"
+            )
+            response = client.chat.complete(
+                model    = 'mistral-small-latest',
+                messages = [
+                    {'role': 'system', 'content': SYSTEM_PROMPT},
+                    {'role': 'user',   'content': user_msg},
+                ],
+                temperature    = 0.2,
+                response_format = {'type': 'json_object'},
+            )
+            raw = response.choices[0].message.content.strip()
+            # Retire d'éventuels blocs ```json … ```
+            raw = re.sub(r'^```json\s*', '', raw)
+            raw = re.sub(r'\s*```$',    '', raw)
+            return json.loads(raw)
+
+        except Exception as e:
+            print(f'[Mistral] Erreur : {e}')
+            return _fallback(raw_text, str(e))
+    else:
+        return _fallback(raw_text, 'MISTRAL_API_KEY absente')
+
+
+def _fallback(transcript: str, reason: str) -> dict:
+    """Parsing regex basique si Mistral est indisponible."""
+    grades = []
+    pattern = r'(?:question|q)\s*(\d+[a-z]?)\s*[,:]?\s*([\d.,]+)\s*(?:sur|/|points?|pts?)?\s*([\d.,]+)?'
+    for m in re.finditer(pattern, transcript, re.IGNORECASE):
+        label    = f'Question {m.group(1)}'
+        score    = float(m.group(2).replace(',', '.'))
+        max_score = float(m.group(3).replace(',', '.')) if m.group(3) else None
+        if not any(g['question'] == label for g in grades):
+            grades.append({'question': label, 'score': score, 'max_score': max_score})
+
+    html = f'<p>{transcript}</p>'
+    html += f'<p class="text-muted small">Note : synthèse IA indisponible ({reason}).</p>'
+    return {'formatted_text': html, 'grades': grades}
+
+APPRECIATION_PROMPT = """Tu es un assistant pédagogique. Un enseignant t'envoie la transcription \
+brute de son appréciation orale sur l'ensemble d'une classe.
+
+Ta mission : réécrire cette appréciation en français professionnel, bienveillant et structuré, \
+en t'adressant à la classe entière (ton collectif, pas individuel).
+
+Réponds UNIQUEMENT avec un objet JSON valide :
+{
+  "formatted_text": "<p>Première idée.</p><p>Deuxième idée.</p>"
+}
+
+Règles :
+- HTML simple uniquement : balises <p> pour chaque idée distincte, <strong> pour insister.
+- Regroupe les idées par thème dans des paragraphes séparés.
+- Conserve le sens et le ton du professeur.
+- Corrige la ponctuation et l'orthographe.
+- 2 à 4 paragraphes maximum.
+"""
+
+def synthesize_appreciation(raw_text: str) -> str:
+    """
+    Reformule une appréciation générale dictée oralement.
+    Retourne le texte reformulé, ou le texte brut en cas d'erreur.
+    """
+    raw_text = normalize_transcript(raw_text)
+    api_key  = os.environ.get('MISTRAL_API_KEY')
+    if not api_key:
+        return raw_text
+    try:
+        client   = Mistral(api_key=api_key)
+        response = client.chat.complete(
+            model    = 'mistral-small-latest',
+            messages = [
+                {'role': 'system', 'content': APPRECIATION_PROMPT},
+                {'role': 'user',   'content': f"Transcription brute :\n{raw_text}"},
+            ],
+            temperature     = 0.3,
+            response_format = {'type': 'json_object'},
+        )
+        raw = response.choices[0].message.content.strip()
+        raw = re.sub(r'^```json\s*', '', raw)
+        raw = re.sub(r'\s*```$',    '', raw)
+        return json.loads(raw).get('formatted_text', raw_text)
+    except Exception as e:
+        print(f'[Mistral appreciation] Erreur : {e}')
+        return raw_text

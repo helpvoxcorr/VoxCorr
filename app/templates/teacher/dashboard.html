@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord — VoxCorr{% endblock %}
+
+{% block content %}
+
+<!-- Hero léger -->
+<div class="vox-greeting mb-4">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div>
+      <h1 class="vox-greeting-title">Bonjour, {{ current_user.first_name }} 👋</h1>
+      <p class="text-muted mb-0">{{ current_user.school or 'VoxCorr — Espace enseignant' }}</p>
+    </div>
+    <a href="/teacher/classes/new" class="vox-btn-primary">
+      <i class="bi bi-plus-lg"></i> Nouvelle classe
+    </a>
+  </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="vox-stat">
+      <div class="val">{{ classrooms|length }}</div>
+      <div class="lbl"><i class="bi bi-people me-1"></i>Classes</div><div style="font-size:.7rem;color:#9ca3af;margin-top:.25rem">↑ actives</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="vox-stat" >
+      <div class="val">{{ total_students }}</div>
+      <div class="lbl"><i class="bi bi-person me-1"></i>Élèves</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="vox-stat" >
+      <div class="val">{{ total_corrections }}</div>
+      <div class="lbl"><i class="bi bi-file-text me-1"></i>Devoirs</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="vox-stat" >
+      <div class="val">IA</div>
+      <div class="lbl"><i class="bi bi-stars me-1"></i>Mistral actif</div>
+    </div>
+  </div>
+</div>
+
+<!-- Classes groupées par discipline -->
+{% if classrooms %}
+
+  {# Groupement par discipline #}
+  {% set disciplines = {} %}
+  {% for c in classrooms %}
+    {% set disc = c.subject or 'Autre' %}
+    {% if disc not in disciplines %}
+      {% set _ = disciplines.update({disc: []}) %}
+    {% endif %}
+    {% set _ = disciplines[disc].append(c) %}
+  {% endfor %}
+
+  {% for discipline, classes in disciplines.items() %}
+
+  {# Choisit couleur accent selon discipline #}
+  {% set disc_lower = discipline|lower %}
+  {% if 'math' in disc_lower %}
+    {% set disc_class = 'vox-disc-maths' %}{% set accent = 'vox-card-accent-purple' %}
+  {% elif 'français' in disc_lower or 'francais' in disc_lower or 'lettres' in disc_lower %}
+    {% set disc_class = 'vox-disc-français' %}{% set accent = 'vox-card-accent-pink' %}
+  {% elif 'histoire' in disc_lower or 'géographie' in disc_lower or 'geo' in disc_lower %}
+    {% set disc_class = 'vox-disc-histoire' %}{% set accent = 'vox-card-accent-orange' %}
+  {% elif 'svt' in disc_lower or 'biologie' in disc_lower or 'sciences' in disc_lower %}
+    {% set disc_class = 'vox-disc-svt' %}{% set accent = 'vox-card-accent-teal' %}
+  {% elif 'anglais' in disc_lower or 'espagnol' in disc_lower or 'allemand' in disc_lower or 'lv' in disc_lower %}
+    {% set disc_class = 'vox-disc-anglais' %}{% set accent = 'vox-card-accent-blue' %}
+  {% elif 'physique' in disc_lower or 'chimie' in disc_lower %}
+    {% set disc_class = 'vox-disc-physique' %}{% set accent = 'vox-card-accent-blue' %}
+  {% else %}
+    {% set disc_class = 'vox-disc-default' %}{% set accent = '' %}
+  {% endif %}
+
+  <div class="mb-4">
+    <!-- En-tête discipline -->
+    <div class="vox-section-title" style="font-size:.8rem;color:#374151;font-weight:700">
+      <span class="vox-disc {{ disc_class }}">
+        <i class="bi bi-book"></i> {{ discipline }}
+      </span>
+      <span class="vox-badge-grey vox-badge ms-1">{{ classes|length }} classe{{ 's' if classes|length > 1 }}</span>
+    </div>
+
+  <!-- Cartes classes -->
+    <div class="row g-3">
+      {% for c in classes %}
+      <div class="col-md-6 col-lg-4">
+        <div class="vox-card" style="position:relative">
+          <a href="/teacher/classes/{{ c.id }}" class="d-block" style="text-decoration:none">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <div class="fw-700 fs-5 mb-1" style="letter-spacing:-.02em">{{ c.name }}</div>
+                <div class="small mb-1" style="color:var(--vox-neon);font-weight:600">{{ c.subject }}</div>
+                <div class="text-muted small">{{ c.school_year }}</div>
+              </div>
+              <span class="vox-badge">{{ c.students|length }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="text-muted small">
+                <i class="bi bi-file-text me-1"></i>{{ c.assignments|length }} devoir{{ 's' if c.assignments|length > 1 }}
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% else %}
+<div class="vox-card text-center py-5">
+  <i class="bi bi-people" style="font-size:3.5rem;opacity:.15;display:block;margin-bottom:1rem"></i>
+  <h5 class="fw-600 mb-2">Aucune classe pour l'instant</h5>
+  <p class="text-muted mb-4">Créez votre première classe pour commencer à utiliser VoxCorr.</p>
+  <a href="/teacher/classes/new" class="vox-btn-primary">
+    <i class="bi bi-plus-lg"></i> Créer ma première classe
+  </a>
+</div>
+{% endif %}
+{% endblock %}

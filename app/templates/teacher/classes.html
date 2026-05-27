@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+.btn-trash {
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+  color: #e53e3e;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.btn-trash:hover {
+  background: #e53e3e;
+  border-color: #e53e3e;
+  color: #fff;
+  transform: scale(1.1);
+}
+</style>
+{% endblock %}
+{% set breadcrumbs = [{"label": "Classes", "url": None}] %}
+{% block title %}Mes classes — VoxCorr{% endblock %}
+
+{% block content %}
+<div class="vox-page-hero">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <h1>Mes classes</h1>
+      <p>{{ classrooms|length }} classe(s) au total</p>
+    </div>
+    <a href="/teacher/classes/new" class="btn vox-btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>Nouvelle classe
+    </a>
+  </div>
+</div>
+
+{% if classrooms %}
+<div class="row g-3">
+  {% for c in classrooms %}
+  <div class="col-md-6 col-lg-4">
+    <div class="vox-card">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <a href="/teacher/classes/{{ c.id }}" class="fw-bold fs-5 text-decoration-none" style="color:inherit">
+          {{ c.name }}
+        </a>
+        <span class="vox-badge">{{ c.students|length }}</span>
+      </div>
+      <div class="text-muted small mb-3">{{ c.subject or '—' }} · {{ c.school_year }}</div>
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="text-muted small">
+          <i class="bi bi-file-text me-1"></i>{{ c.assignments|length }} devoir(s)
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm py-0 px-2 btn-trash"
+                  onclick="showDeleteModal('{{ c.id }}','{{ c.name }}')"
+                  title="Supprimer la classe">
+            <i class="bi bi-trash"></i>
+          </button>
+          <form method="POST" action="/teacher/classes/{{ c.id }}/delete"
+                id="form-delete-{{ c.id }}" class="d-none"></form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="vox-card text-center py-5">
+  <i class="bi bi-people" style="font-size:3rem;opacity:.2"></i>
+  <p class="mt-3 text-muted">Aucune classe créée.</p>
+  <a href="/teacher/classes/new" class="btn vox-btn-primary">Créer une classe</a>
+</div>
+{% endif %}
+
+<!-- Modale suppression classe -->
+<div class="modal fade" id="modal-delete-class" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px;overflow:hidden;border:1px solid #fecaca">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold text-danger">
+          <i class="bi bi-exclamation-triangle me-2"></i>Supprimer la classe
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">Supprimer la classe <strong id="modal-class-name"></strong> ?</p>
+        <p class="text-muted small mt-1 mb-0">
+          Tous les élèves, devoirs et corrections associés seront définitivement supprimés.
+        </p>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn vox-btn-outline btn-sm"
+                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-danger btn-sm" id="modal-confirm-delete">
+          <i class="bi bi-trash me-1"></i>Supprimer définitivement
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let _deleteFormId = null;
+function showDeleteModal(classId, className) {
+  _deleteFormId = 'form-delete-' + classId;
+  document.getElementById('modal-class-name').textContent = className;
+  new bootstrap.Modal(document.getElementById('modal-delete-class')).show();
+}
+document.getElementById('modal-confirm-delete').addEventListener('click', function () {
+  if (_deleteFormId) document.getElementById(_deleteFormId).submit();
+});
+</script>
+{% endblock %}

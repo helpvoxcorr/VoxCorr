@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Connexion — VoxCorr{% endblock %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center" style="background:var(--vox-grey)">
+  <div class="vox-card" style="width:100%;max-width:420px">
+
+    <div class="text-center mb-4">
+      <div class="vox-logo-mark mx-auto mb-3" style="width:52px;height:52px;font-size:1.5rem">V</div>
+      <h1 class="h4 fw-bold mb-1">Vox<span class="text-neon">Corr</span></h1>
+      <p class="text-muted small mb-0">Espace enseignant</p>
+    </div>
+
+    <form method="POST" novalidate>
+      <div class="mb-3">
+        <label class="vox-label" for="email">Adresse e-mail</label>
+        <input type="email" id="email" name="email" class="vox-input" required autocomplete="email">
+      </div>
+      <div class="mb-4">
+        <label class="vox-label" for="password">Mot de passe</label>
+        <input type="password" id="password" name="password" class="vox-input" required autocomplete="current-password">
+      </div>
+      <div class="form-check mb-4">
+        <input class="form-check-input" type="checkbox" name="remember" id="remember">
+        <label class="form-check-label text-muted small" for="remember">Se souvenir de moi</label>
+      </div>
+      <button type="submit" class="btn vox-btn-primary w-100 py-2">
+        Se connecter
+      </button>
+    </form>
+
+    <hr class="my-4">
+    <p class="text-center small text-muted mb-0">
+      Pas encore de compte ?
+      <a href="/auth/register" class="text-neon fw-bold">Créer mon espace</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

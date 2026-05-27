@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Corrections — {{ assignment.title }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── Base ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: #111;
+      background: #f5f5f5;
+      padding: 2rem;
+    }
+
+    /* ── En-tête page (masqué à l'impression) ── */
+    .screen-header {
+      background: #0a0a0a;
+      color: #fff;
+      border-radius: 12px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .screen-header h1 { font-size: 1.3rem; font-weight: 700; }
+    .screen-header p  { color: rgba(255,255,255,.55); font-size: .85rem; margin-top: .25rem; }
+    .btn-print {
+      background: #39FF14; color: #0a0a0a;
+      border: none; border-radius: 8px;
+      padding: .6rem 1.4rem; font-weight: 700;
+      font-size: .95rem; cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-print:hover { background: #2ecc10; }
+
+    .stats {
+      color: rgba(255,255,255,.6);
+      font-size: .8rem;
+    }
+
+    /* ── Grille des cartes (écran) ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* ── Carte élève ── */
+    .student-card {
+      background: #fff;
+      border: 1.5px solid #e0e0d8;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      break-inside: avoid;           /* ne coupe jamais une carte */
+      page-break-inside: avoid;      /* compat navigateurs anciens */
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+      padding-bottom: .75rem;
+      border-bottom: 1px solid #eee;
+    }
+
+    .student-name {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .student-alias {
+      font-size: .75rem;
+      color: #888;
+      margin-top: .15rem;
+    }
+    .student-score {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #0a0a0a;
+      line-height: 1;
+      text-align: right;
+    }
+    .student-score span {
+      font-size: .75rem;
+      font-weight: 400;
+      color: #888;
+    }
+
+    .card-body {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+    }
+
+    /* Synthèse texte */
+    .card-text {
+      flex: 1;
+      font-size: .82rem;
+      line-height: 1.65;
+      color: #333;
+    }
+    .card-text p    { margin-bottom: .5rem; }
+    .card-text ul   { padding-left: 1rem; margin-bottom: .5rem; }
+    .card-text li   { margin-bottom: .2rem; }
+    .card-text strong { color: #111; }
+
+    /* QR code */
+    .card-qr {
+      flex-shrink: 0;
+      text-align: center;
+    }
+    .card-qr img {
+      width: 110px;
+      height: 110px;
+      border: 1.5px solid #e0e0d8;
+      border-radius: 8px;
+      padding: 4px;
+      display: block;
+    }
+    .card-qr .qr-label {
+      font-size: .65rem;
+      color: #aaa;
+      margin-top: .35rem;
+      word-break: break-all;
+      max-width: 110px;
+    }
+    .card-qr a {
+      display: inline-block;
+      margin-top: .4rem;
+      font-size: .7rem;
+      color: #0a0a0a;
+      background: #f0f0ec;
+      border-radius: 4px;
+      padding: .2rem .5rem;
+      text-decoration: none;
+    }
+
+    /* Message si pas de synthèse */
+    .no-text {
+      color: #bbb;
+      font-style: italic;
+      font-size: .82rem;
+    }
+
+    /* ── Impression ── */
+    @media print {
+      body {
+        background: #fff;
+        padding: .5cm;
+        font-size: 11px;
+      }
+
+      /* Cache tout ce qui n'est pas les cartes */
+      .screen-header { display: none !important; }
+
+      /* En-tête d'impression */
+      .print-header {
+        display: block !important;
+        margin-bottom: 1.5rem;
+        padding-bottom: .75rem;
+        border-bottom: 2px solid #0a0a0a;
+      }
+
+      .cards-grid {
+        display: block;   /* une colonne en impression */
+        gap: 0;
+      }
+
+      .student-card {
+        margin-bottom: .8cm;
+        border: 1.5px solid #ccc;
+        border-radius: 8px;
+        padding: .8rem 1rem;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .card-qr img { width: 90px; height: 90px; }
+      .card-qr a   { display: none; }    /* pas de lien en print */
+
+      .btn-print   { display: none; }
+    }
+
+    /* En-tête print (caché à l'écran) */
+    .print-header {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- En-tête écran -->
+<div class="screen-header">
+  <div>
+    <h1>{{ assignment.title }}</h1>
+    <p>{{ assignment.classroom.name }} · {{ assignment.date.strftime('%d/%m/%Y') }} · /{{ assignment.total_points }} pts</p>
+    <p class="stats mt-1">{{ cards|length }} correction(s) publiée(s)</p>
+  </div>
+  <button class="btn-print" onclick="window.print()">
+    🖨 Imprimer / Exporter PDF
+  </button>
+</div>
+
+<!-- En-tête print uniquement -->
+<div class="print-header">
+  <strong>{{ assignment.title }}</strong> —
+  {{ assignment.classroom.name }} ·
+  {{ assignment.date.strftime('%d/%m/%Y') }} ·
+  /{{ assignment.total_points }} pts
+</div>
+
+<!-- Cartes -->
+{% if cards %}
+<div class="cards-grid">
+  {% for c in cards %}
+  <div class="student-card">
+
+    <div class="card-header">
+      <div>
+        <div class="student-name">{{ c.last_name }}, {{ c.first_name }}</div>
+        <div class="student-alias">{{ c.alias }}</div>
+      </div>
+      <div class="student-score">
+        {{ '%.1f'|format(c.score) if c.score is not none else '—' }}
+        <br><span>/ {{ assignment.total_points }}</span>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="card-text">
+        {% if c.text %}
+          {{ c.text | safe }}
+        {% else %}
+          <span class="no-text">Synthèse non encore générée.</span>
+        {% endif %}
+      </div>
+      <div class="card-qr">
+        <img src="{{ c.qr_b64 }}" alt="QR correction {{ c.alias }}">
+        <div class="qr-label">{{ c.alias }}</div>
+        <a href="{{ c.qr_url }}" target="_blank">Ouvrir</a>
+      </div>
+    </div>
+
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div style="text-align:center;padding:4rem;color:#aaa">
+  <p style="font-size:1.1rem">Aucune correction publiée pour ce devoir.</p>
+  <p style="font-size:.85rem;margin-top:.5rem">Publiez au moins une correction pour générer cette page.</p>
+</div>
+{% endif %}
+
+</body>
+</html>

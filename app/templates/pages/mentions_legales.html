@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Mentions légales — VoxCorr{% endblock %}
+
+{% block content %}
+<div class="vox-page-hero mb-4">
+  <h1><i class="bi bi-shield me-2"></i>Mentions légales</h1>
+  <p>Informations légales relatives à l'application VoxCorr</p>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="vox-card">
+
+      <h2 class="h5 fw-700 border-bottom pb-3 mb-4">Éditeur de l'application</h2>
+      <p class="text-muted">VoxCorr est une application développée à titre expérimental dans le cadre d'un projet éducatif. Elle est destinée à un usage interne aux établissements scolaires.</p>
+      <p class="text-muted">Contact : <a href="mailto:help.voxcorr@gmail.com" class="text-neon">help.voxcorr@gmail.com</a></p>
+
+      <h2 class="h5 fw-700 border-bottom pb-3 mb-4 mt-4">Hébergement</h2>
+      <ul class="text-muted" style="line-height:2">
+        <li><strong>Application</strong> : Render.com — 525 Brannan St, Suite 300, San Francisco, CA 94107, USA</li>
+        <li><strong>Base de données</strong> : Neon Technologies Inc. — PostgreSQL serverless</li>
+        <li><strong>Stockage audio</strong> : Cloudinary Ltd. — 3400 Central Expressway, Suite 110, Santa Clara, CA 95051, USA</li>
+        <li><strong>IA</strong> : Mistral AI SAS — 15 rue des Halles, 75001 Paris, France</li>
+      </ul>
+
+      <h2 class="h5 fw-700 border-bottom pb-3 mb-4 mt-4">Propriété intellectuelle</h2>
+      <p class="text-muted">L'ensemble des éléments constituant VoxCorr (code source, design, contenu) est la propriété de ses développeurs. Toute reproduction sans autorisation est interdite.</p>
+
+      <h2 class="h5 fw-700 border-bottom pb-3 mb-4 mt-4">Limitation de responsabilité</h2>
+      <p class="text-muted">VoxCorr est fourni en l'état, dans le cadre d'une version expérimentale. L'éditeur ne saurait être tenu responsable de toute interruption de service, perte de données ou inexactitude dans les transcriptions générées par l'IA.</p>
+
+      <h2 class="h5 fw-700 border-bottom pb-3 mb-4 mt-4">Droit applicable</h2>
+      <p class="text-muted">Les présentes mentions légales sont soumises au droit français. En cas de litige, les tribunaux français seront seuls compétents.</p>
+
+      <p class="text-muted small mt-4 mb-0"><i class="bi bi-calendar me-1"></i>Dernière mise à jour : mai 2026</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
