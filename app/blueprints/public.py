@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request
 from app import db
 from app.models import Correction, AccessLog
-from app.security import hash_ip
+from app.utils.security import hash_ip
 
 public_bp = Blueprint('public', __name__)
 
