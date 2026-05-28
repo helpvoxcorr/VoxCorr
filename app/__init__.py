@@ -5,8 +5,8 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from app.config import Config
-import threading                                    # ← nouveau
-from datetime import datetime, timezone, timedelta  # ← nouveau (timedelta manquait)
+import threading
+from datetime import datetime, timezone, timedelta
 
 db            = SQLAlchemy()
 migrate       = Migrate()
@@ -17,10 +17,8 @@ login_manager.login_view             = 'auth.login'
 login_manager.login_message          = 'Connectez-vous pour accéder à cette page.'
 login_manager.login_message_category = 'warning'
 
-# ── État partagé pour la purge périodique ─────────────────────────────────────
 _purge_lock    = threading.Lock()
-_last_purge_at = None                              # datetime UTC de la dernière purge
-# ─────────────────────────────────────────────────────────────────────────────
+_last_purge_at = None
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -53,14 +51,9 @@ def create_app(config_class=Config):
 
     @app.before_request
     def before_request_hooks():
-        """
-        Regroupe les tâches avant-requête :
-        1. Expiration session admin après 30 min.
-        2. Purge automatique des vieux logs (toutes les 6h max).
-        """
         from flask import session
 
-        # ── 1. Expiration session admin ───────────────────────────────────────
+        # 1. Expiration session admin
         unlocked_at = session.get('admin_unlocked_at')
         if unlocked_at:
             unlocked_dt = datetime.fromisoformat(unlocked_at)
@@ -68,35 +61,36 @@ def create_app(config_class=Config):
                 session.pop('admin_unlocked',    None)
                 session.pop('admin_unlocked_at', None)
 
-        # ── 2. Purge périodique (toutes les 6h) ───────────────────────────────
+        # 2. Purge périodique (toutes les 6h)
         global _last_purge_at
         now = datetime.now(timezone.utc)
-
         if _last_purge_at is None or (now - _last_purge_at) >= timedelta(hours=6):
-            # Le verrou évite les doubles exécutions sur workers multi-thread
             acquired = _purge_lock.acquire(blocking=False)
             if acquired:
                 try:
-                    # Double-check après acquisition du verrou
                     if _last_purge_at is None or (now - _last_purge_at) >= timedelta(hours=6):
                         _last_purge_at = now
                         _run_purge(app)
                 finally:
                     _purge_lock.release()
 
+    # Migration automatique au démarrage
+    with app.app_context():
+        from flask_migrate import upgrade as db_upgrade
+        try:
+            db_upgrade()
+            app.logger.info('[migrate] flask db upgrade OK')
+        except Exception as e:
+            app.logger.error(f'[migrate] Erreur : {e}')
+
+    return app  # ← INDISPENSABLE
+
 
 def _run_purge(app):
-    """
-    Supprime :
-    - les AccessLog de plus de 6 mois (RGPD)
-    - les Correction en statut 'draft' de plus de 30 jours
-    Exécuté dans le contexte applicatif existant (pas de thread séparé).
-    """
     from app.models import AccessLog, Correction
-    now     = datetime.now(timezone.utc)
+    now           = datetime.now(timezone.utc)
     cutoff_logs   = now - timedelta(days=180)
     cutoff_drafts = now - timedelta(days=30)
-
     try:
         n_logs = (
             db.session.query(AccessLog)
@@ -106,8 +100,8 @@ def _run_purge(app):
         n_drafts = (
             db.session.query(Correction)
             .filter(
-                Correction.status    == 'draft',
-                Correction.created_at < cutoff_drafts,
+                Correction.status     == 'draft',
+                Correction.created_at  < cutoff_drafts,
             )
             .delete(synchronize_session=False)
         )
