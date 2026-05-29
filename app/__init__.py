@@ -6,12 +6,12 @@ from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from app.config import Config
 import threading
-from datetime import datetime, timezone, timedelta
 
-db            = SQLAlchemy()
-migrate       = Migrate()
+from datetime import datetime, timezone, timedelta
+db = SQLAlchemy()
+migrate = Migrate()
 login_manager = LoginManager()
-csrf          = CSRFProtect()
+csrf = CSRFProtect()
 
 login_manager.login_view             = 'auth.login'
 login_manager.login_message          = 'Connectez-vous pour accéder à cette page.'
@@ -23,14 +23,12 @@ _last_purge_at = None
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
-
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
 
     from app import models
-
     from app.blueprints.auth    import auth_bp
     from app.blueprints.teacher import teacher_bp
     from app.blueprints.public  import public_bp
@@ -75,14 +73,13 @@ def create_app(config_class=Config):
                     _purge_lock.release()
 
     # Migration automatique au démarrage
-    with app.app_context():
-        from flask_migrate import upgrade as db_upgrade
-        try:
-            db_upgrade()
-            app.logger.info('[migrate] flask db upgrade OK')
-        except Exception as e:
-            app.logger.error(f'[migrate] Erreur : {e}')
-
+    # with app.app_context():
+    #     from flask_migrate import upgrade as db_upgrade
+    #     try:
+    #         db_upgrade()
+    #         app.logger.info('[migrate] flask db upgrade OK')
+    #     except Exception as e:
+    #         app.logger.error(f'[migrate] Erreur : {e}')
     return app  # ← INDISPENSABLE
 
 

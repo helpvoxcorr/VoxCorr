@@ -13,8 +13,8 @@
       <a href="/teacher/assignments/{{ assignment.id }}/edit" class="btn vox-btn-outline btn-sm">
         <i class="bi bi-pencil me-1"></i>Modifier
       </a>
-      <form method="POST" action="/teacher/assignments/{{ assignment.id }}/delete"
-            onsubmit="return confirm('Supprimer ce devoir et toutes ses corrections ?')">
+      <form method="POST" action="/teacher/assignments/{{ assignment.id }}/delete" onsubmit="return confirm('Supprimer ce devoir et toutes ses corrections ?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-danger btn-sm">
           <i class="bi bi-trash me-1"></i>Supprimer
         </button>
