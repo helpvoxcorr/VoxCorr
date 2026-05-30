@@ -141,6 +141,7 @@ class Correction(db.Model):
     status           = db.Column(db.String(20), default='draft', nullable=False)
     created_at       = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     published_at     = db.Column(db.DateTime)
+    read_at      = db.Column(db.DateTime, nullable=True)
  
     student    = db.relationship('Student',    back_populates='corrections')
     assignment = db.relationship('Assignment', back_populates='corrections')

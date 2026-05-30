@@ -97,6 +97,7 @@
         <th>Nom réel</th>
         <th>Statut</th>
         <th>Note</th>
+        <th>Lecture</th>
         <th class="text-end">Action</th>
       </tr>
     </thead>
@@ -124,6 +125,23 @@
             {{ '%.1f'|format(s.correction.total_score) }}
             <span class="text-muted fw-normal small">/ {{ assignment.total_points }}</span>
           {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if s.correction and s.correction.read_at %}
+            <span title="{{ s.correction.read_at.strftime('%d/%m/%Y à %Hh%M') }}"
+                  style="color:#16a34a">
+              <i class="bi bi-check-circle-fill"></i>
+              <span class="d-none d-md-inline small ms-1">
+                {{ s.correction.read_at.strftime('%d/%m') }}
+              </span>
+            </span>
+          {% elif s.correction and s.correction.status == 'published' %}
+            <span class="text-muted small" title="Pas encore écouté">
+              <i class="bi bi-hourglass-split"></i>
+            </span>
+          {% else %}
+            <span class="text-muted small">—</span>
+          {% endif %}
         </td>
         <td class="text-end">
           {% if s.correction %}

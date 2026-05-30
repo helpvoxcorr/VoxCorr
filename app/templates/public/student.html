@@ -20,6 +20,7 @@
   <script>
     window.VC_TOKEN     = "{{ correction.public_token }}";
     window.VC_AUDIO_URL = "{{ correction.audio_url or '' }}";
+    window.VC_READ_AT   = {{ ('"%s"' % correction.read_at.isoformat()) if correction.read_at else 'null' }};
   </script>
 </head>
 <body>
@@ -129,6 +130,32 @@
     {% else %}
     <p class="text-muted small mb-0">Aucun audio disponible.</p>
     {% endif %}
+
+    <!-- Confirmation d'écoute -->
+    <div id="read-confirmation" class="mt-4 pt-3" style="border-top:1px solid #e5e7eb">
+      {% if correction.read_at %}
+      <div class="d-flex align-items-center gap-2" style="color:#16a34a">
+        <i class="bi bi-check-circle-fill fs-5"></i>
+        <span class="small fw-semibold">
+          Correction écoutée le {{ correction.read_at.strftime('%d/%m/%Y à %Hh%M') }}
+        </span>
+      </div>
+      {% else %}
+      <div id="read-pending" class="d-flex align-items-center gap-3 flex-wrap">
+        <div class="text-muted small flex-grow-1">
+          <i class="bi bi-hourglass-split me-1"></i>
+          <span id="read-progress-text">Écoutez la correction pour valider</span>
+        </div>
+        <div class="vox-progress flex-grow-1" style="max-width:160px;height:6px">
+          <div id="read-progress-bar" class="vox-progress-fill" style="width:0%;transition:width .5s linear"></div>
+        </div>
+      </div>
+      <div id="read-done" class="d-none align-items-center gap-2" style="color:#16a34a">
+        <i class="bi bi-check-circle-fill fs-5"></i>
+        <span class="small fw-semibold">Correction écoutée — merci !</span>
+      </div>
+      {% endif %}
+    </div>
   </div>
 
   <div class="text-center text-muted small py-3">
@@ -145,6 +172,35 @@
   const URL   = window.VC_AUDIO_URL;
 
   if (audio && URL) audio.src = URL;
+
+  // ── Confirmation d'écoute à 90% ──────────────────────────────────────────
+  const TOKEN   = window.VC_TOKEN;
+  const readAt  = window.VC_READ_AT;
+
+  if (audio && !readAt) {
+    let confirmed = false;
+    const progressBar  = document.getElementById('read-progress-bar');
+    const progressText = document.getElementById('read-progress-text');
+    const pendingEl    = document.getElementById('read-pending');
+    const doneEl       = document.getElementById('read-done');
+
+    audio.addEventListener('timeupdate', () => {
+      if (confirmed || !audio.duration) return;
+      const pct = (audio.currentTime / audio.duration) * 100;
+      if (progressBar) progressBar.style.width = Math.min(pct, 100) + '%';
+
+      if (pct >= 90) {
+        confirmed = true;
+        // Affichage immédiat
+        if (pendingEl) pendingEl.classList.add('d-none');
+        if (doneEl)    { doneEl.classList.remove('d-none'); doneEl.classList.add('d-flex'); }
+        // POST silencieux
+        fetch(`/c/${TOKEN}/read`, { method: 'POST' }).catch(() => {});
+      } else if (pct > 5 && progressText) {
+        progressText.textContent = `${Math.round(pct)}% écouté…`;
+      }
+    });
+  }
 
   // Stockage offline IndexedDB (jamais dans le Service Worker — quota iOS)
   const DB = 'voxcorr-audio';
