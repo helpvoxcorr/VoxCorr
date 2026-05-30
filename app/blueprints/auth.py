@@ -33,9 +33,9 @@ def login():
 
             # ── Utilisateur non vérifié : message explicite ──────────────────
             flash(
-                'Votre compte n'est pas encore activé. '
-                'Vérifiez votre boîte mail et cliquez sur le lien de confirmation.',
-                'warning'
+                "Votre compte n'est pas encore activé."
+                "Vérifiez votre boîte mail et cliquez sur le lien de confirmation.",
+                "warning"
             )
             return render_template('auth/login.html')
 
