@@ -13,6 +13,10 @@ migrate = Migrate()
 login_manager = LoginManager()
 csrf = CSRFProtect()
 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+limiter = Limiter(key_func=get_remote_address, default_limits=[])
+
 login_manager.login_view             = 'auth.login'
 login_manager.login_message          = 'Connectez-vous pour accéder à cette page.'
 login_manager.login_message_category = 'warning'
@@ -27,6 +31,7 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+    limiter.init_app(app)
 
     from app import models
     from app.blueprints.auth    import auth_bp
@@ -38,6 +43,24 @@ def create_app(config_class=Config):
     app.register_blueprint(teacher_bp)
     app.register_blueprint(public_bp)
     app.register_blueprint(pages_bp)
+
+    # ── Gestionnaires d'erreurs ────────────────────────────────────────────────
+    @app.errorhandler(404)
+    def not_found(e):
+        return render_template('errors/404.html'), 404
+
+    @app.errorhandler(403)
+    def forbidden(e):
+        return render_template('errors/403.html'), 403
+
+    @app.errorhandler(429)
+    def too_many_requests(e):
+        return render_template('errors/429.html'), 429
+
+    @app.errorhandler(500)
+    def server_error(e):
+        app.logger.error(f'[500] {e}')
+        return render_template('errors/500.html'), 500
 
     @app.route('/ping')
     def ping():

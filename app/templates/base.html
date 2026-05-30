@@ -166,5 +166,6 @@
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/js/sw.js').catch(()=>{});
 </script>
 {% block scripts %}{% endblock %}
+{% include 'components/modals.html' %}
 </body>
 </html>

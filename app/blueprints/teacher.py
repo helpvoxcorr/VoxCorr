@@ -750,8 +750,40 @@ def admin_delete_account():
 @teacher_bp.route('/admin/export/notes', methods=['POST'])
 @login_required
 def admin_export_notes():
-    """Export notes — Excel ou PDF (placeholder, à compléter Sprint 5)."""
     if not session.get('admin_unlocked'):
         return redirect(url_for('teacher.admin'))
-    flash('Export en cours de développement — disponible au Sprint 5.', 'warning')
-    return redirect(url_for('teacher.admin'))
+
+    classroom_id = request.form.get('classroom_id', type=int)
+    classroom = Classroom.query.filter_by(
+        id=classroom_id, teacher_id=current_user.id
+    ).first_or_404()
+
+    output = _io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Élève', 'Devoir', 'Date', 'Note', 'Sur', 'Statut'])
+
+    for assignment in classroom.assignments:
+        for correction in assignment.corrections:
+            try:
+                first = decrypt_name(correction.student.encrypted_first_name)
+                last  = decrypt_name(correction.student.encrypted_last_name)
+                name  = f"{last} {first}"
+            except Exception:
+                name = correction.student.alias
+            writer.writerow([
+                name,
+                assignment.title,
+                assignment.date.strftime('%d/%m/%Y') if assignment.date else '',
+                correction.total_score if correction.total_score is not None else '',
+                assignment.total_points,
+                correction.status,
+            ])
+
+    output.seek(0)
+    filename = f"notes_{classroom.name.replace(' ', '_')}.csv"
+    return send_file(
+        io.BytesIO(output.getvalue().encode('utf-8-sig')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=filename,
+    )

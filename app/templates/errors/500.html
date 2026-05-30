@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Erreur serveur — VoxCorr{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height:60vh">
+  <div class="text-center" style="max-width:480px">
+    <div style="font-size:6rem;font-weight:800;color:#e53e3e;line-height:1;letter-spacing:-4px">500</div>
+    <h2 class="fw-bold mt-2 mb-1">Erreur interne</h2>
+    <p class="text-muted mb-4">
+      Quelque chose s'est mal passé de notre côté.<br>
+      L'incident a été enregistré. Réessayez dans quelques instants.
+    </p>
+    <div class="d-flex gap-2 justify-content-center">
+      <button onclick="location.reload()" class="btn vox-btn-outline">
+        <i class="bi bi-arrow-clockwise me-1"></i>Réessayer
+      </button>
+      <a href="{{ url_for('teacher.dashboard') if current_user.is_authenticated else url_for('auth.login') }}"
+         class="btn vox-btn-primary">
+        <i class="bi bi-house me-1"></i>Accueil
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
