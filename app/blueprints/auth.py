@@ -109,9 +109,9 @@ def register():
         db.session.delete(teacher)
         db.session.commit()
         flash(
-            'Impossible d'envoyer l'email de confirmation (service temporairement indisponible). '
-            'Votre compte n'a pas été créé. Veuillez réessayer dans quelques instants.',
-            'danger'
+            "Impossible d'envoyer l'email de confirmation (service temporairement indisponible). "
+            "Votre compte n'a pas été créé. Veuillez réessayer dans quelques instants.",
+            "danger"
         )
         return render_template('auth/register.html')
 
