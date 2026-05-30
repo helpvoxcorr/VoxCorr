@@ -532,7 +532,7 @@ def save_correction():
     corr.compute_total()
     db.session.commit()
     q_labels   = [q.label for q in assignment.questions]
-    q_ids      = [q.id    for q in assignment.questions]   # ← pour le fix 2
+    q_ids      = [q.id    for q in assignment.questions]
     app        = current_app._get_current_object()
 
     def _synthesize():
@@ -544,22 +544,15 @@ def save_correction():
             c.structured_text = result.get('formatted_text', c.raw_transcript)
             if not scores_data:
                 grades = result.get('grades', [])
-                for idx, ai_score in enumerate(grades):
-                    # ── FIX 2 : matching par position puis par label (insensible à la casse) ──
-                    q_id = None
-                    if idx < len(q_ids):
-                        q_id = q_ids[idx]          # correspondance positionnelle (fiable)
-                    else:
-                        # fallback : recherche par label insensible à la casse
-                        label_lower = ai_score['question'].lower()
-                        for i, lbl in enumerate(q_labels):
-                            if label_lower in lbl.lower() or lbl.lower() in label_lower:
-                                q_id = q_ids[i]
-                                break
-                    if q_id:
+                for ai_score in grades:
+                    idx = ai_score.get('question_index')
+                    # Fallback positionnel si Mistral n'a pas fourni question_index
+                    if idx is None:
+                        idx = grades.index(ai_score)
+                    if idx is not None and idx < len(q_ids):
                         db.session.add(QuestionScore(
                             correction_id = corr_id,
-                            question_id   = q_id,
+                            question_id   = q_ids[idx],
                             score         = float(ai_score['score']),
                         ))
                 db.session.flush()

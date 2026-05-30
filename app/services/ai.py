@@ -17,19 +17,26 @@ IMPORTANT — format des notes en français oral :
 
 Ta mission :
 1. Réécrire la correction en français professionnel et structuré.
-2. Extraire toutes les notes mentionnées.
+2. Extraire toutes les notes mentionnées et les associer à la bonne question.
+
+Tu reçois la liste des questions du devoir avec leur position (index 0, 1, 2…).
+L'enseignant peut les corriger dans n'importe quel ordre à l'oral.
+Tu dois identifier à quelle question chaque note correspond, en te basant sur le nom
+ou le numéro mentionné à l'oral ("question 2", "Q2", "deuxième question", etc.).
 
 Réponds UNIQUEMENT avec un objet JSON valide :
 {
   "formatted_text": "<p>Texte HTML structuré…</p>",
   "grades": [
-    {"question": "Question 1", "score": 3.5, "max_score": 4}
+    {"question_index": 0, "question": "Q1", "score": 3.5, "max_score": 4}
   ]
 }
 
 Règles :
 - formatted_text : HTML simple (p, ul, li, strong) uniquement.
 - grades : score toujours en nombre décimal (3.5, pas "3h30").
+- question_index : position de la question dans la liste fournie (commence à 0).
+- Si tu ne peux pas identifier la question avec certitude, utilise l'ordre d'apparition.
 - Conserve le ton du professeur.
 """
 
@@ -60,7 +67,8 @@ def synthesize_with_mistral(raw_text: str, question_labels: list[str]) -> dict:
         try:
             client = Mistral(api_key=api_key)
             user_msg = (
-                f"Questions du devoir : {', '.join(question_labels)}\n\n"
+                f"Questions du devoir (index : label) : "
+                f"{', '.join(f'{i}:{lbl}' for i, lbl in enumerate(question_labels))}\n\n"
                 f"Transcription brute :\n{raw_text}"
             )
             response = client.chat.complete(
