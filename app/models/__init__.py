@@ -98,6 +98,7 @@ class Assignment(db.Model):
     total_points = db.Column(db.Float, default=20.0)
     class_appreciation = db.Column(db.Text)
     created_at   = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    class_appreciation_audio_url = db.Column(db.String(500), nullable=True)
  
     classroom   = db.relationship('Classroom',   back_populates='assignments')
     questions   = db.relationship('Question',    back_populates='assignment',

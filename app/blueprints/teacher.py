@@ -6,7 +6,6 @@ from app.models import (Classroom, Student, Assignment, Question,
                         Correction, QuestionScore)
 from app.services.anonymization import generate_alias, encrypt_name, decrypt_name
 from app.services.ai import synthesize_with_mistral, synthesize_appreciation
-from app.services.ai            import synthesize_with_mistral
 from app.services.storage       import upload_audio
 from app.services.qrcode        import make_qr, qr_png_bytes
 from app.services.background    import run_in_background
@@ -753,34 +752,57 @@ def admin_export_notes():
     if not session.get('admin_unlocked'):
         return redirect(url_for('teacher.admin'))
 
-    classroom_id = request.form.get('classroom_id', type=int)
-    classroom = Classroom.query.filter_by(
-        id=classroom_id, teacher_id=current_user.id
-    ).first_or_404()
+    class_ids = request.form.getlist('class_ids', type=int)
+    date_from_str = request.form.get('date_from')
+    date_to_str   = request.form.get('date_to')
+
+    # Parse des dates optionnelles
+    try:
+        date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date() if date_from_str else None
+        date_to   = datetime.strptime(date_to_str,   '%Y-%m-%d').date() if date_to_str   else None
+    except ValueError:
+        date_from = date_to = None
+
+    # Classes sélectionnées (toutes si aucune cochée)
+    query = Classroom.query.filter_by(teacher_id=current_user.id)
+    if class_ids:
+        query = query.filter(Classroom.id.in_(class_ids))
+    classrooms = query.all()
+
+    if not classrooms:
+        flash('Aucune classe sélectionnée.', 'warning')
+        return redirect(url_for('teacher.admin'))
 
     output = _io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Élève', 'Devoir', 'Date', 'Note', 'Sur', 'Statut'])
+    writer.writerow(['Classe', 'Élève', 'Devoir', 'Date', 'Note', 'Sur', 'Statut'])
 
-    for assignment in classroom.assignments:
-        for correction in assignment.corrections:
-            try:
-                first = decrypt_name(correction.student.encrypted_first_name)
-                last  = decrypt_name(correction.student.encrypted_last_name)
-                name  = f"{last} {first}"
-            except Exception:
-                name = correction.student.alias
-            writer.writerow([
-                name,
-                assignment.title,
-                assignment.date.strftime('%d/%m/%Y') if assignment.date else '',
-                correction.total_score if correction.total_score is not None else '',
-                assignment.total_points,
-                correction.status,
-            ])
+    for classroom in classrooms:
+        for assignment in classroom.assignments:
+            # Filtre date
+            if date_from and assignment.date and assignment.date < date_from:
+                continue
+            if date_to and assignment.date and assignment.date > date_to:
+                continue
+            for correction in assignment.corrections:
+                try:
+                    first = decrypt_name(correction.student.encrypted_first_name)
+                    last  = decrypt_name(correction.student.encrypted_last_name)
+                    name  = f"{last} {first}"
+                except Exception:
+                    name = correction.student.alias
+                writer.writerow([
+                    classroom.name,
+                    name,
+                    assignment.title,
+                    assignment.date.strftime('%d/%m/%Y') if assignment.date else '',
+                    correction.total_score if correction.total_score is not None else '',
+                    assignment.total_points,
+                    correction.status,
+                ])
 
     output.seek(0)
-    filename = f"notes_{classroom.name.replace(' ', '_')}.csv"
+    filename = f"notes_export_{datetime.now().strftime('%Y%m%d')}.csv"
     return send_file(
         io.BytesIO(output.getvalue().encode('utf-8-sig')),
         mimetype='text/csv',
