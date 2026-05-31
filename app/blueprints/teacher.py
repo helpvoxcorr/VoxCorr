@@ -521,18 +521,22 @@ def save_correction():
     db.session.flush()
     corr_id = corr.id
 
+    q_max_by_id = {q.id: q.max_points for q in assignment.questions}
     QuestionScore.query.filter_by(correction_id=corr_id).delete()
     for s in scores_data:
+        max_pts = q_max_by_id.get(s['question_id'])
+        score   = min(float(s['score']), max_pts) if max_pts is not None else float(s['score'])
         db.session.add(QuestionScore(
             correction_id = corr_id,
             question_id   = s['question_id'],
-            score         = float(s['score']),
+            score         = score,
         ))
 
     corr.compute_total()
     db.session.commit()
-    q_labels   = [q.label for q in assignment.questions]
-    q_ids      = [q.id    for q in assignment.questions]
+    q_labels   = [q.label      for q in assignment.questions]
+    q_ids      = [q.id         for q in assignment.questions]
+    q_max      = [q.max_points for q in assignment.questions]
     app        = current_app._get_current_object()
 
     def _synthesize():
@@ -540,7 +544,7 @@ def save_correction():
             c = db.session.get(Correction, corr_id)
             if not c:
                 return
-            result = synthesize_with_mistral(c.raw_transcript, q_labels)
+            result = synthesize_with_mistral(c.raw_transcript, q_labels, q_max)
             c.structured_text = result.get('formatted_text', c.raw_transcript)
             if not scores_data:
                 grades = result.get('grades', [])
@@ -550,10 +554,12 @@ def save_correction():
                     if idx is None:
                         idx = grades.index(ai_score)
                     if idx is not None and idx < len(q_ids):
+                        raw_score = float(ai_score['score'])
+                        safe_score = min(raw_score, q_max[idx])  # jamais > max
                         db.session.add(QuestionScore(
                             correction_id = corr_id,
                             question_id   = q_ids[idx],
-                            score         = float(ai_score['score']),
+                            score         = safe_score,
                         ))
                 db.session.flush()
                 c.compute_total()

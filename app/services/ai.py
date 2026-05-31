@@ -33,17 +33,17 @@ Réponds UNIQUEMENT avec un objet JSON valide :
 }
 
 Règles :
-+- formatted_text : HTML simple uniquement — balises autorisées : section, p, ul, li, strong.
-+- Structure le formatted_text en blocs <section> :
-+  • Remarques générales avant la première question → <section data-qi="intro">…</section>
-+  • Commentaire de chaque question N → <section data-qi="N">…</section>  (N = question_index, commence à 0)
-+    Commence chaque section question par : <p class="section-label">Q[N+1] — [label de la question]</p>
-+  • Conclusion éventuelle → <section data-qi="conclusion">…</section>
-+  • Omets les sections vides.
-+- grades : score toujours en nombre décimal (3.5, pas "3h30").
-+- question_index : position de la question dans la liste fournie (commence à 0).
-+- Si tu ne peux pas identifier la question avec certitude, utilise l'ordre d'apparition.
-+- Conserve le ton du professeur.
+- formatted_text : HTML simple uniquement — balises autorisées : section, p, ul, li, strong.
+- Structure le formatted_text en blocs <section> :
+  • Remarques générales avant la première question → <section data-qi="intro">…</section>
+  • Commentaire de chaque question N → <section data-qi="N">…</section>  (N = question_index, commence à 0)
+    Commence chaque section question par : <p class="section-label">Q[N+1] — [label de la question]</p>
+  • Conclusion éventuelle → <section data-qi="conclusion">…</section>
+  • Omets les sections vides.
+- grades : score toujours en nombre décimal (3.5, pas "3h30"). Le score ne peut JAMAIS dépasser le max indiqué entre crochets.
+- question_index : position de la question dans la liste fournie (commence à 0).
+- Si tu ne peux pas identifier la question avec certitude, utilise l'ordre d'apparition.
+- Conserve le ton du professeur.
 """
 
 def normalize_transcript(text: str) -> str:
@@ -61,7 +61,7 @@ def normalize_transcript(text: str) -> str:
     text = text.replace(' virgule ', ',')
     return text
 
-def synthesize_with_mistral(raw_text: str, question_labels: list[str]) -> dict:
+def synthesize_with_mistral(raw_text: str, question_labels: list[str], question_max: list[float] | None = None) -> dict:
     """
     Appelle Mistral et retourne {"formatted_text": "...", "grades": [...]}.
     En cas d'erreur API, retourne un fallback sans planter le thread.
@@ -72,9 +72,12 @@ def synthesize_with_mistral(raw_text: str, question_labels: list[str]) -> dict:
     if api_key:
         try:
             client = Mistral(api_key=api_key)
+            labels_str = ', '.join(
+                f"{i}:{lbl} [max {question_max[i]}]" if question_max else f"{i}:{lbl}"
+                for i, lbl in enumerate(question_labels)
+            )
             user_msg = (
-                f"Questions du devoir (index : label) : "
-                f"{', '.join(f'{i}:{lbl}' for i, lbl in enumerate(question_labels))}\n\n"
+                f"Questions du devoir (index : label [max points]) : {labels_str}\n\n"
                 f"Transcription brute :\n{raw_text}"
             )
             response = client.chat.complete(
