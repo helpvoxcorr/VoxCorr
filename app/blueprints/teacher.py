@@ -984,50 +984,50 @@ def admin_export_notes():
 @teacher_bp.route('/correction/<int:correction_id>/pdf')
 @login_required
 def correction_pdf(correction_id):
+    from weasyprint import HTML
+    from app.services.qrcode import make_qr
+
+    corr = db.session.get(Correction, correction_id)
+    if not corr or corr.assignment.classroom.teacher_id != current_user.id:
+        flash('Accès non autorisé.', 'danger')
+        return redirect(url_for('teacher.dashboard'))
+
+    student = corr.student
+    scores_detail = [
+        {
+            'label':      qs.question.label,
+            'score':      qs.score,
+            'max':        qs.question.max_points,
+            'competence': qs.question.competence,
+        }
+        for qs in corr.scores
+    ]
+
+    qr_url  = f"{current_app.config['APP_BASE_URL']}/c/{corr.public_token}"
+    qr_data = make_qr(corr.public_token) if corr.status == 'published' else None
+    qr_b64  = qr_data['png_b64'] if qr_data else None
+
+    html_str = render_template(
+        'teacher/correction_pdf.html',
+        correction=corr,
+        student=student,
+        scores=scores_detail,
+        qr_b64=qr_b64,
+        qr_url=qr_url if corr.status == 'published' else None,
+        teacher=corr.assignment.classroom.teacher,
+        now=datetime.now(timezone.utc),
+    )
+
     try:
-        from weasyprint import HTML
-
-        corr = db.session.get(Correction, correction_id)
-        if not corr or corr.assignment.classroom.teacher_id != current_user.id:
-            flash('Accès non autorisé.', 'danger')
-            return redirect(url_for('teacher.dashboard'))
-
-        student = corr.student
-        scores_detail = [
-            {
-                'label':      qs.question.label,
-                'score':      qs.score,
-                'max':        qs.question.max_points,
-                'competence': qs.question.competence,
-            }
-            for qs in corr.scores
-        ]
-
-        from app.services.qrcode import make_qr
-        qr_url = f"{current_app.config['APP_BASE_URL']}/c/{corr.public_token}"
-        qr_data = make_qr(corr.public_token) if corr.status == 'published' else None
-        qr_b64 = qr_data['png_b64'] if qr_data else None
-
-        html_str = render_template(
-            'teacher/correction_pdf.html',
-            correction=corr,
-            student=student,
-            scores=scores_detail,
-            qr_b64=qr_b64,
-            qr_url=qr_url if corr.status == 'published' else None,
-            teacher=corr.assignment.classroom.teacher,
-            now=datetime.now(timezone.utc),
-        )
-
         pdf = HTML(string=html_str, base_url=request.host_url).write_pdf()
+    except Exception:
+        flash("Erreur lors de la génération du PDF.", "danger")
+        return redirect(url_for('teacher.correction_detail', correction_id=correction_id))
 
-        return current_app.response_class(
-            pdf,
-            mimetype='application/pdf',
-            headers={
-                'Content-Disposition': f'attachment; filename="correction-{student.alias}-{corr.assignment.title}.pdf"'
-            }
-        )
-
-    except Exception as e:
-        return f"<pre>ERREUR PDF : {type(e).__name__}: {e}</pre>", 500
+    return current_app.response_class(
+        pdf,
+        mimetype='application/pdf',
+        headers={
+            'Content-Disposition': f'attachment; filename="correction-{student.alias}-{corr.assignment.title}.pdf"'
+        }
+    )
