@@ -424,19 +424,6 @@ def edit_assignment(assignment_id):
                            assignment=a,
                            questions_data=questions_data)
 
-@teacher_bp.route('/debug/assignment/<int:assignment_id>/questions')
-@login_required
-def debug_assignment_questions(assignment_id):
-    a = Assignment.query.get_or_404(assignment_id)
-    if a.classroom.teacher_id != current_user.id:
-        return "Accès refusé", 403
-    return {
-        "questions": [
-            {"id": q.id, "label": q.label, "max": q.max_points, "order": q.order}
-            for q in a.questions
-        ],
-        "total": len(a.questions)
-    }
 
 @teacher_bp.route('/assignments/<int:assignment_id>/delete', methods=['POST'])
 @login_required
@@ -990,4 +977,54 @@ def admin_export_notes():
         mimetype='text/csv',
         as_attachment=True,
         download_name=filename,
+    )
+
+/# --------------- EXPORT PDF CORRECTION --------------#/
+
+@teacher_bp.route('/correction/<int:correction_id>/pdf')
+@login_required
+def correction_pdf(correction_id):
+    from weasyprint import HTML, CSS
+    import io
+
+    corr = db.session.get(Correction, correction_id)
+    if not corr or corr.assignment.classroom.teacher_id != current_user.id:
+        flash('Accès non autorisé.', 'danger')
+        return redirect(url_for('teacher.dashboard'))
+
+    student = corr.student
+    scores_detail = [
+        {
+            'label':      qs.question.label,
+            'score':      qs.score,
+            'max':        qs.question.max_points,
+            'competence': qs.question.competence,
+        }
+        for qs in corr.scores
+    ]
+
+    # Génère le QR code en base64
+    from services.qrcode import generate_qr_b64
+    qr_url = f"{current_app.config['APP_BASE_URL']}/c/{corr.public_token}"
+    qr_b64 = generate_qr_b64(qr_url) if corr.status == 'published' else None
+
+    html_str = render_template(
+        'teacher/correction_pdf.html',
+        correction=corr,
+        student=student,
+        scores=scores_detail,
+        qr_b64=qr_b64,
+        qr_url=qr_url if corr.status == 'published' else None,
+        teacher=corr.assignment.classroom.teacher,
+        now=datetime.now(timezone.utc),
+    )
+
+    pdf = HTML(string=html_str, base_url=request.host_url).write_pdf()
+
+    return current_app.response_class(
+        pdf,
+        mimetype='application/pdf',
+        headers={
+            'Content-Disposition': f'attachment; filename="correction-{student.alias}-{corr.assignment.title}.pdf"'
+        }
     )
