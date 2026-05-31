@@ -378,16 +378,65 @@ def edit_assignment(assignment_id):
     if a.classroom.teacher_id != current_user.id:
         flash('Accès non autorisé.', 'danger')
         return redirect(url_for('teacher.dashboard'))
+
     if request.method == 'POST':
-        a.title        = request.form['title'].strip()
-        a.description  = request.form.get('description', '')
+        a.title       = request.form['title'].strip()
+        a.description = request.form.get('description', '')
+        a.date        = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
         a.total_points = float(request.form.get('total_points', 20))
-        a.date         = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
+
+        # Mise à jour des questions existantes
+        for q in a.questions:
+            label      = request.form.get(f'q_label_{q.id}', '').strip()
+            competence = request.form.get(f'q_competence_{q.id}', '').strip()
+            new_max    = request.form.get(f'q_max_{q.id}')
+            force_clamp = request.form.get(f'q_clamp_{q.id}') == '1'
+
+            if label:
+                q.label = label
+            q.competence = competence
+
+            if new_max is not None:
+                new_max = float(new_max)
+                if new_max != q.max_points:
+                    if force_clamp:
+                        # Reclamper tous les scores existants
+                        for qs in QuestionScore.query.filter_by(question_id=q.id).all():
+                            if qs.score is not None and qs.score > new_max:
+                                qs.score = new_max
+                        # Recalculer les totaux affectés
+                        affected = {qs.correction_id for qs in QuestionScore.query.filter_by(question_id=q.id).all()}
+                        for corr in Correction.query.filter(Correction.id.in_(affected)).all():
+                            corr.compute_total()
+                    q.max_points = new_max
+
         db.session.commit()
         flash('Devoir mis à jour.', 'success')
         return redirect(url_for('teacher.class_detail', class_id=a.classroom_id))
-    return render_template('teacher/edit_assignment.html', assignment=a)
 
+    # Compte les corrections existantes par question
+    questions_data = []
+    for q in a.questions:
+        count = QuestionScore.query.filter_by(question_id=q.id).count()
+        questions_data.append({'question': q, 'corrections_count': count})
+
+    return render_template('teacher/edit_assignment.html',
+                           assignment=a,
+                           questions_data=questions_data)
+
+@teacher_bp.route('/debug/assignment/<int:assignment_id>/questions')
+@login_required
+def debug_assignment_questions(assignment_id):
+    a = Assignment.query.get_or_404(assignment_id)
+    if a.classroom.teacher_id != current_user.id:
+        return "Accès refusé", 403
+    return {
+        "questions": [
+            {"id": q.id, "label": q.label, "max": q.max_points, "order": q.order}
+            for q in a.questions
+        ],
+        "total": len(a.questions)
+    }
 
 @teacher_bp.route('/assignments/<int:assignment_id>/delete', methods=['POST'])
 @login_required
