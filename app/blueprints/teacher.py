@@ -616,6 +616,11 @@ def save_correction():
                 c.status = 'draft'
                 db.session.commit()
 
+            except Exception as e:
+                db.session.rollback()
+                c.status = 'draft'
+                db.session.commit()
+
     run_in_background(_synthesize)
     return jsonify({'ok': True, 'correction_id': corr_id, 'token': corr.public_token})
 
