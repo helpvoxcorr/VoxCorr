@@ -84,6 +84,18 @@
   </div>
 </div>
 
+<!-- Barre suppression groupée -->
+<div id="bulk-action-bar" class="d-none mb-3 p-3 rounded d-flex align-items-center gap-3 flex-wrap"
+     style="background:#fef2f2;border:1px solid #fecaca">
+  <span id="bulk-count" class="fw-bold text-danger small"></span>
+  <button id="btn-bulk-delete" class="btn btn-danger btn-sm ms-auto">
+    <i class="bi bi-trash me-1"></i>Supprimer la sélection
+  </button>
+  <button id="btn-bulk-cancel" class="btn vox-btn-outline btn-sm">
+    Annuler
+  </button>
+</div>
+
 <!-- Liste élèves + statut + bouton micro -->
 <div class="vox-card">
   <div class="fw-bold mb-3">
@@ -92,6 +104,10 @@
   <table class="vox-table">
     <thead>
       <tr>
+        <th style="width:40px">
+          <input type="checkbox" id="chk-all" class="form-check-input"
+                 title="Tout sélectionner" style="cursor:pointer">
+        </th>
         <th>N°</th>
         <th>Alias</th>
         <th>Nom réel</th>
@@ -103,7 +119,13 @@
     </thead>
     <tbody>
       {% for s in students %}
-      <tr>
+      <tr data-correction-id="{{ s.correction.id if s.correction else '' }}">
+        <td>
+          {% if s.correction %}
+          <input type="checkbox" class="form-check-input chk-corr"
+                 value="{{ s.correction.id }}" style="cursor:pointer">
+          {% endif %}
+        </td>
         <td class="text-muted small">{{ s.student_number }}</td>
         <td><span class="vox-badge vox-badge-grey">{{ s.alias }}</span></td>
         <td class="small">{{ s.display_last }}, {{ s.display_first }}</td>
@@ -246,6 +268,35 @@
           </div>
         </div>
 
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modale suppression groupée -->
+<div class="modal fade" id="modal-bulk-delete" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px;overflow:hidden;border:1px solid #fecaca">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold text-danger">
+          <i class="bi bi-exclamation-triangle me-2"></i>Supprimer les corrections
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger py-2 small mb-3">
+          <strong>Action irréversible.</strong>
+          <span id="bulk-modal-count"></span> correction(s) seront définitivement supprimées.
+        </div>
+        <div class="mb-3">
+          <label class="vox-label">Mot de passe pour confirmer</label>
+          <input type="password" id="bulk-delete-password" class="vox-input"
+                 placeholder="Votre mot de passe VoxCorr" autocomplete="current-password">
+          <div id="bulk-delete-error" class="text-danger small mt-1 d-none"></div>
+        </div>
+        <button id="btn-bulk-delete-confirm" class="btn btn-danger w-100">
+          <i class="bi bi-trash me-1"></i>Supprimer définitivement
+        </button>
       </div>
     </div>
   </div>
@@ -512,6 +563,89 @@
       }, { once: true });
     });
   })();
+
+  // ── Checkboxes + suppression groupée ─────────────────────────────────────
+  const _csrf2 = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+  const chkAll  = document.getElementById('chk-all');
+  const bulkBar = document.getElementById('bulk-action-bar');
+  const bulkCount = document.getElementById('bulk-count');
+  const bulkModal = new bootstrap.Modal(document.getElementById('modal-bulk-delete'));
+
+  function getChecked() {
+    return [...document.querySelectorAll('.chk-corr:checked')].map(c => parseInt(c.value));
+  }
+
+  function updateBulkBar() {
+    const ids = getChecked();
+    if (ids.length > 0) {
+      bulkBar.classList.remove('d-none');
+      bulkCount.textContent = `${ids.length} correction${ids.length > 1 ? 's' : ''} sélectionnée${ids.length > 1 ? 's' : ''}`;
+    } else {
+      bulkBar.classList.add('d-none');
+    }
+  }
+
+  document.querySelectorAll('.chk-corr').forEach(c => {
+    c.addEventListener('change', () => {
+      updateBulkBar();
+      const all = document.querySelectorAll('.chk-corr');
+      chkAll.checked = [...all].every(c => c.checked);
+      chkAll.indeterminate = !chkAll.checked && [...all].some(c => c.checked);
+    });
+  });
+
+  chkAll?.addEventListener('change', function () {
+    document.querySelectorAll('.chk-corr').forEach(c => c.checked = this.checked);
+    updateBulkBar();
+  });
+
+  document.getElementById('btn-bulk-cancel')?.addEventListener('click', () => {
+    document.querySelectorAll('.chk-corr').forEach(c => c.checked = false);
+    chkAll.checked = false;
+    chkAll.indeterminate = false;
+    bulkBar.classList.add('d-none');
+  });
+
+  document.getElementById('btn-bulk-delete')?.addEventListener('click', () => {
+    const n = getChecked().length;
+    document.getElementById('bulk-modal-count').textContent = n;
+    document.getElementById('bulk-delete-password').value = '';
+    document.getElementById('bulk-delete-error').classList.add('d-none');
+    bulkModal.show();
+  });
+
+  document.getElementById('btn-bulk-delete-confirm')?.addEventListener('click', async function () {
+    const pwd = document.getElementById('bulk-delete-password').value;
+    const err = document.getElementById('bulk-delete-error');
+    const ids = getChecked();
+    if (!pwd) { err.textContent = 'Mot de passe requis.'; err.classList.remove('d-none'); return; }
+    if (!ids.length) return;
+
+    this.disabled = true;
+    this.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Suppression…';
+
+    try {
+      const res = await fetch('/teacher/api/corrections/delete-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrf2() },
+        body: JSON.stringify({ ids, password: pwd }),
+      }).then(r => r.json());
+
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        err.textContent = res.error || 'Erreur.';
+        err.classList.remove('d-none');
+        this.disabled = false;
+        this.innerHTML = '<i class="bi bi-trash me-1"></i>Supprimer définitivement';
+      }
+    } catch {
+      err.textContent = 'Erreur réseau.';
+      err.classList.remove('d-none');
+      this.disabled = false;
+      this.innerHTML = '<i class="bi bi-trash me-1"></i>Supprimer définitivement';
+    }
+  });
 
 })();
 </script>

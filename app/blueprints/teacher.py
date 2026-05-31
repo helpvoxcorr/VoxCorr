@@ -644,6 +644,50 @@ def download_qr(correction_id):
         download_name = filename,
     )
 
+@teacher_bp.route('/api/correction/<int:correction_id>/delete', methods=['POST'])
+@login_required
+def delete_correction(correction_id):
+    """Suppression définitive d'une correction (unitaire).
+    Body JSON : { "password": "..." }
+    """
+    corr = db.session.get(Correction, correction_id)
+    if not corr or corr.assignment.classroom.teacher_id != current_user.id:
+        return jsonify({'error': 'Non autorisé'}), 403
+
+    data = request.get_json(silent=True) or {}
+    if not current_user.check_password(data.get('password', '')):
+        return jsonify({'error': 'Mot de passe incorrect'}), 403
+
+    assignment_id = corr.assignment_id
+    db.session.delete(corr)
+    db.session.commit()
+    return jsonify({'ok': True, 'assignment_id': assignment_id})
+
+
+@teacher_bp.route('/api/corrections/delete-bulk', methods=['POST'])
+@login_required
+def delete_corrections_bulk():
+    """Suppression groupée de plusieurs corrections.
+    Body JSON : { "ids": [1, 2, 3], "password": "..." }
+    """
+    data = request.get_json(silent=True) or {}
+    if not current_user.check_password(data.get('password', '')):
+        return jsonify({'error': 'Mot de passe incorrect'}), 403
+
+    ids = data.get('ids', [])
+    if not ids:
+        return jsonify({'error': 'Aucune correction sélectionnée'}), 400
+
+    deleted = 0
+    for cid in ids:
+        corr = db.session.get(Correction, cid)
+        if corr and corr.assignment.classroom.teacher_id == current_user.id:
+            db.session.delete(corr)
+            deleted += 1
+
+    db.session.commit()
+    return jsonify({'ok': True, 'deleted': deleted})
+
 @teacher_bp.route('/assignments/<int:assignment_id>/appreciation', methods=['POST'])
 @login_required
 def save_appreciation(assignment_id):

@@ -75,6 +75,9 @@
          class="btn vox-btn-outline btn-sm">
         <i class="bi bi-arrow-left me-1"></i>Retour au devoir
       </a>
+      <button class="btn btn-outline-danger btn-sm mt-2" id="btn-delete-correction">
+        <i class="bi bi-trash me-1"></i>Supprimer cette correction
+      </button>
     </div>
   </div>
 
@@ -156,6 +159,36 @@
 
   </div>
 </div>
+
+<!-- Modale suppression correction -->
+<div class="modal fade" id="modal-delete-correction" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px;overflow:hidden;border:1px solid #fecaca">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold text-danger">
+          <i class="bi bi-exclamation-triangle me-2"></i>Supprimer la correction
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger py-2 small mb-3">
+          <strong>Action irréversible.</strong>
+          L'audio, la synthèse et les notes de
+          <strong>{{ student.alias }}</strong> seront définitivement supprimés.
+        </div>
+        <div class="mb-3">
+          <label class="vox-label">Mot de passe pour confirmer</label>
+          <input type="password" id="delete-corr-password" class="vox-input"
+                 placeholder="Votre mot de passe VoxCorr" autocomplete="current-password">
+          <div id="delete-corr-error" class="text-danger small mt-1 d-none"></div>
+        </div>
+        <button id="btn-delete-corr-confirm" class="btn btn-danger w-100">
+          <i class="bi bi-trash me-1"></i>Supprimer définitivement
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -190,6 +223,46 @@ document.getElementById('btn-copy-url')?.addEventListener('click', function () {
     this.innerHTML = '<i class="bi bi-check me-1"></i>Copié !';
     setTimeout(() => this.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copier le lien', 2000);
   });
+});
+
+// ── Suppression correction ──────────────────────────────────────────────────
+const _deleteModal = new bootstrap.Modal(document.getElementById('modal-delete-correction'));
+
+document.getElementById('btn-delete-correction')?.addEventListener('click', () => {
+  document.getElementById('delete-corr-password').value = '';
+  document.getElementById('delete-corr-error').classList.add('d-none');
+  _deleteModal.show();
+});
+
+document.getElementById('btn-delete-corr-confirm')?.addEventListener('click', async function () {
+  const pwd = document.getElementById('delete-corr-password').value;
+  const err = document.getElementById('delete-corr-error');
+  if (!pwd) { err.textContent = 'Mot de passe requis.'; err.classList.remove('d-none'); return; }
+
+  this.disabled = true;
+  this.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Suppression…';
+
+  try {
+    const res = await fetch('/teacher/api/correction/{{ correction.id }}/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrf() },
+      body: JSON.stringify({ password: pwd }),
+    }).then(r => r.json());
+
+    if (res.ok) {
+      window.location.href = '/teacher/assignments/{{ correction.assignment_id }}/corrections';
+    } else {
+      err.textContent = res.error || 'Erreur.';
+      err.classList.remove('d-none');
+      this.disabled = false;
+      this.innerHTML = '<i class="bi bi-trash me-1"></i>Supprimer définitivement';
+    }
+  } catch {
+    err.textContent = 'Erreur réseau.';
+    err.classList.remove('d-none');
+    this.disabled = false;
+    this.innerHTML = '<i class="bi bi-trash me-1"></i>Supprimer définitivement';
+  }
 });
 </script>
 {% endblock %}
