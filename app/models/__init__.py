@@ -151,6 +151,7 @@ class Correction(db.Model):
                                   cascade='all, delete-orphan', lazy='select')
  
     def compute_total(self):
+        db.session.refresh(self)  # invalide le cache des relations
         self.total_score = sum(s.score for s in self.scores if s.score is not None)
  
     def publish(self):

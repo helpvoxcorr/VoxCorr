@@ -206,10 +206,10 @@
               role="button" tabindex="0"
               aria-label="Aller au commentaire de {{ s.label }}">
             <td>
-          +   <i class="bi bi-play-circle-fill row-nav-icon"
-          +      style="display:none;color:var(--vox-neon);font-size:.8rem;margin-right:.35rem"
-          +      aria-hidden="true"></i>{{ s.label }}
-          + </td>
+             <i class="bi bi-play-circle-fill row-nav-icon"
+                style="display:none;color:var(--vox-neon);font-size:.8rem;margin-right:.35rem"
+                aria-hidden="true"></i>{{ s.label }}
+           </td>
             {% if s.competence %}
             <td><span class="vox-badge vox-badge-grey">{{ s.competence }}</span></td>
             {% endif %}
@@ -310,7 +310,11 @@
   {% endif %}
 
   <div class="text-center text-muted small py-3">
+    {% if not preview_mode %}
     VoxCorr · Consulté {{ correction.access_logs|length }} fois
+    {% else %}
+    VoxCorr · Aperçu enseignant
+    {% endif %}
   </div>
 </main>
 
@@ -457,7 +461,6 @@
     });
   });
 
-  /* ── Confirmation d'écoute à 90% ──────────────────────────────────── */
   /* ── Confirmation d'écoute à 90% ──────────────────────────────────── */
   if (audio && !readAt && !window.VC_PREVIEW_MODE) {
       let confirmed    = false;
