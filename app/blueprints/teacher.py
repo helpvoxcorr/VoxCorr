@@ -928,3 +928,25 @@ def admin_export_notes():
         as_attachment=True,
         download_name=filename,
     )
+
+@teacher_bp.route('/debug/correction/<int:correction_id>/scores')
+@login_required
+def debug_correction_scores(correction_id):
+    corr = db.session.get(Correction, correction_id)
+    if not corr or corr.assignment.classroom.teacher_id != current_user.id:
+        return "Accès refusé", 403
+
+    return {
+        "status": corr.status,
+        "raw_transcript_length": len(corr.raw_transcript or ""),
+        "raw_transcript_preview": (corr.raw_transcript or "")[:500],
+        "structured_text_preview": (corr.structured_text or "")[:1000],
+        "scores_in_db": [
+            {"question_id": qs.question_id, "label": qs.question.label, "score": qs.score}
+            for qs in corr.scores
+        ],
+        "questions_in_assignment": [
+            {"id": q.id, "label": q.label, "max": q.max_points}
+            for q in corr.assignment.questions
+        ]
+    }
