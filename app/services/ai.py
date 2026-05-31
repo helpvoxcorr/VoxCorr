@@ -24,6 +24,15 @@ L'enseignant peut les corriger dans n'importe quel ordre à l'oral.
 Tu dois identifier à quelle question chaque note correspond, en te basant sur le nom
 ou le numéro mentionné à l'oral ("question 2", "Q2", "deuxième question", etc.).
 
+RÈGLES D'IDENTIFICATION DES QUESTIONS — priorité décroissante :
+1. Numéro explicite : "question 1", "Q1", "la première question" avec un chiffre → question_index = chiffre - 1.
+2. Ordinal ambigu : "ta première réponse", "le premier point" SANS chiffre → utilise le max_points
+   de la question pour confirmer. Si le prof dit "deux points" et que seule Q1 a max=2.0, c'est Q1.
+3. Ordre d'apparition : si aucun numéro ni indice de max ne permet d'identifier, attribue
+   dans l'ordre d'apparition dans le transcript (premier commentaire → index 0, etc.).
+4. Ne jamais réordonner les sections dans formatted_text : respecte toujours l'ordre
+   question_index 0, 1, 2… quelle que soit l'ordre oral du prof.
+
 Réponds UNIQUEMENT avec un objet JSON valide :
 {
   "formatted_text": "<p>Texte HTML structuré…</p>",
@@ -45,6 +54,8 @@ Règles :
     <p class="section-label">Q3 — Distinguer croyance et fait scientifique</p>
   • Conclusion éventuelle → <section data-qi="conclusion">…</section>
   • Omets les sections vides.
+  • Les sections doivent toujours apparaître dans l'ordre croissant des question_index,
+    indépendamment de l'ordre oral du prof.
 - grades : score toujours en nombre décimal (3.5, pas "3h30"). Le score ne peut JAMAIS dépasser le max indiqué entre crochets.
 - question_index : position de la question dans la liste fournie (commence à 0).
 - Extraction des notes implicites : si le prof dit "je te mets un point", "je mets deux points",
@@ -54,11 +65,6 @@ Règles :
   "zéro", "aucun point", "tu n'as rien"), attribue le score 0 à la question concernée.
 - Si tu ne peux pas identifier la question avec certitude, utilise l'ordre d'apparition.
 - Conserve le ton du professeur.
-- Si le prof dit "ma première réponse", "ta première réponse", "le premier" sans numéro explicite,
-  utilise UNIQUEMENT le contexte suivant (note mentionnée, max de la question) pour identifier
-  la question. Ne jamais supposer que "première" = question_index 0 si le max ne correspond pas.
-- En cas de doute sur l'attribution d'une note, préfère l'ordre d'apparition dans le transcript
-  plutôt que le numéro oral.
 """
 
 def normalize_transcript(text: str) -> str:
