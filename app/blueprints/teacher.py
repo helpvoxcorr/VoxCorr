@@ -1035,15 +1035,14 @@ def correction_pdf(correction_id):
 @teacher_bp.route('/debug/class/<int:class_id>/students')
 @login_required
 def debug_class_students(class_id):
-    students = Student.query.filter_by(classroom_id=class_id).all()
-    return {
-        "students": [
-            {
-                "id": s.id,
-                "alias": s.alias,
-                "has_first": bool(s.encrypted_first_name),
-                "has_last": bool(s.encrypted_last_name),
-            }
-            for s in students
-        ]
-    }
+    from app.services.anonymization import decrypt_name
+    students = Student.query.filter_by(classroom_id=class_id).limit(1).all()
+    results = []
+    for s in students:
+        try:
+            first = decrypt_name(s.encrypted_first_name)
+            last  = decrypt_name(s.encrypted_last_name)
+            results.append({"alias": s.alias, "first": first, "last": last, "error": None})
+        except Exception as e:
+            results.append({"alias": s.alias, "error": f"{type(e).__name__}: {e}"})
+    return {"results": results}
