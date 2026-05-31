@@ -979,7 +979,7 @@ def admin_export_notes():
         download_name=filename,
     )
 
-/# --------------- EXPORT PDF CORRECTION --------------#/
+# ______________________ EXPORT PDF CORRECTION __________________________
 
 @teacher_bp.route('/correction/<int:correction_id>/pdf')
 @login_required
