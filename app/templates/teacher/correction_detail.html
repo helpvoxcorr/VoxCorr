@@ -62,8 +62,13 @@
 
     {# Actions #}
     <div class="d-flex flex-column gap-2">
+      {% if correction.status == 'draft' %}
+      <button id="btn-publish-direct" class="btn vox-btn-primary btn-sm">
+        <i class="bi bi-send-check me-1"></i>Publier la correction
+      </button>
+      {% endif %}
       <a href="/teacher/record/{{ student.id }}/{{ correction.assignment_id }}"
-         class="btn vox-btn-primary btn-sm">
+         class="btn vox-btn-outline btn-sm">
         <i class="bi bi-mic-fill me-1"></i>Modifier la correction
       </a>
       <a href="/teacher/assignments/{{ correction.assignment_id }}/corrections"
@@ -155,6 +160,31 @@
 
 {% block scripts %}
 <script>
+const _csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+// Publier depuis la page détail (brouillon)
+document.getElementById('btn-publish-direct')?.addEventListener('click', async function () {
+  this.disabled = true;
+  this.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Publication…';
+  try {
+    const res = await fetch('/teacher/api/correction/{{ correction.id }}/publish', {
+      method:  'POST',
+      headers: { 'X-CSRFToken': _csrf() },
+    }).then(r => r.json());
+    if (res.ok) {
+      window.location.reload();
+    } else {
+      this.disabled = false;
+      this.innerHTML = '<i class="bi bi-send-check me-1"></i>Publier la correction';
+      alert('Erreur lors de la publication.');
+    }
+  } catch {
+    this.disabled = false;
+    this.innerHTML = '<i class="bi bi-send-check me-1"></i>Publier la correction';
+    alert('Erreur réseau.');
+  }
+});
+
 document.getElementById('btn-copy-url')?.addEventListener('click', function () {
   navigator.clipboard.writeText(this.dataset.url).then(() => {
     this.innerHTML = '<i class="bi bi-check me-1"></i>Copié !';
