@@ -88,6 +88,11 @@
       <button class="btn btn-outline-danger btn-sm mt-2" id="btn-delete-correction">
         <i class="bi bi-trash me-1"></i>Supprimer cette correction
       </button>
+      {% if correction.status == 'draft' %}
+      <a href="/teacher/correction/{{ correction.id }}/preview" target="_blank" rel="noopener noreferrer" class="btn vox-btn-outline btn-sm mt-2">
+        <i class="bi bi-eye me-1"></i>Aperçu élève
+      </a>
+      {% endif %}
     </div>
   </div>
 

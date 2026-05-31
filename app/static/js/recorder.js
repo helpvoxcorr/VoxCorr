@@ -9,6 +9,10 @@ class VoxRecorder {
   }
   _initRecognition() {
     const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+    if (!SR) {
+      console.warn('Web Speech API non disponible sur ce navigateur.');
+      return null;
+    }
     const r=new SR(); r.lang="fr-FR"; r.continuous=true; r.interimResults=true;
     r.onresult=(e)=>{ let interim=""; for(let i=e.resultIndex;i<e.results.length;i++){ const t=e.results[i][0].transcript; if(e.results[i].isFinal) this.transcript+=t+" "; else interim=t; } this.onTranscript(this.transcript,interim); };
     r.onerror=(e)=>console.warn(e.error);

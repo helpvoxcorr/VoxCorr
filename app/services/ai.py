@@ -37,11 +37,21 @@ Règles :
 - Structure le formatted_text en blocs <section> :
   • Remarques générales avant la première question → <section data-qi="intro">…</section>
   • Commentaire de chaque question N → <section data-qi="N">…</section>  (N = question_index, commence à 0)
-    Commence chaque section question par : <p class="section-label">Q[N+1] — [label de la question]</p>
+    Commence chaque section question par un paragraphe avec la classe "section-label" contenant
+    le numéro et le label réel de la question.
+    Exemple : si question_index=0 et label="Raisonner", écrire :
+    <p class="section-label">Q1 — Raisonner</p>
+    Exemple : si question_index=2 et label="Distinguer croyance et fait scientifique", écrire :
+    <p class="section-label">Q3 — Distinguer croyance et fait scientifique</p>
   • Conclusion éventuelle → <section data-qi="conclusion">…</section>
   • Omets les sections vides.
 - grades : score toujours en nombre décimal (3.5, pas "3h30"). Le score ne peut JAMAIS dépasser le max indiqué entre crochets.
 - question_index : position de la question dans la liste fournie (commence à 0).
+- Extraction des notes implicites : si le prof dit "je te mets un point", "je mets deux points",
+  "tu as tout juste" sans nommer explicitement la question, attribue la note à la question
+  dont il vient de parler dans le contexte immédiat.
+- Si le prof indique clairement qu'il ne met pas de points ("je ne peux pas te mettre de points",
+  "zéro", "aucun point", "tu n'as rien"), attribue le score 0 à la question concernée.
 - Si tu ne peux pas identifier la question avec certitude, utilise l'ordre d'apparition.
 - Conserve le ton du professeur.
 """
@@ -51,13 +61,9 @@ def normalize_transcript(text: str) -> str:
     Corrige les artifacts fréquents de la Web Speech API en français.
     "3h30" → "3,5"  |  "2h30" → "2,5"  |  "1h30" → "1,5" etc.
     """
-    # Xh30 → X,5  (ex: 3h30 → 3,5)
     text = re.sub(r'(\d+)h30', lambda m: f"{m.group(1)},5", text)
-    # Xh00 → X  (ex: 4h00 → 4)
     text = re.sub(r'(\d+)h00', lambda m: m.group(1), text)
-    # "et demi" après un chiffre → ",5"
     text = re.sub(r'(\d+)\s+et\s+demi', lambda m: f"{m.group(1)},5", text)
-    # virgule écrite en lettres
     text = text.replace(' virgule ', ',')
     return text
 
@@ -86,11 +92,10 @@ def synthesize_with_mistral(raw_text: str, question_labels: list[str], question_
                     {'role': 'system', 'content': SYSTEM_PROMPT},
                     {'role': 'user',   'content': user_msg},
                 ],
-                temperature    = 0.2,
+                temperature     = 0.2,
                 response_format = {'type': 'json_object'},
             )
             raw = response.choices[0].message.content.strip()
-            # Retire d'éventuels blocs ```json … ```
             raw = re.sub(r'^```json\s*', '', raw)
             raw = re.sub(r'\s*```$',    '', raw)
             return json.loads(raw)
@@ -107,15 +112,16 @@ def _fallback(transcript: str, reason: str) -> dict:
     grades = []
     pattern = r'(?:question|q)\s*(\d+[a-z]?)\s*[,:]?\s*([\d.,]+)\s*(?:sur|/|points?|pts?)?\s*([\d.,]+)?'
     for m in re.finditer(pattern, transcript, re.IGNORECASE):
-        label    = f'Question {m.group(1)}'
-        score    = float(m.group(2).replace(',', '.'))
+        label     = f'Question {m.group(1)}'
+        score     = float(m.group(2).replace(',', '.'))
         max_score = float(m.group(3).replace(',', '.')) if m.group(3) else None
         if not any(g['question'] == label for g in grades):
             grades.append({'question': label, 'score': score, 'max_score': max_score})
 
-    html = f'<p>{transcript}</p>'
+    html  = f'<p>{transcript}</p>'
     html += f'<p class="text-muted small">Note : synthèse IA indisponible ({reason}).</p>'
     return {'formatted_text': html, 'grades': grades}
+
 
 APPRECIATION_PROMPT = """Tu es un assistant pédagogique. Un enseignant t'envoie la transcription \
 brute de son appréciation orale sur l'ensemble d'une classe.

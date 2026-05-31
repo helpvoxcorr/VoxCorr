@@ -119,10 +119,30 @@
     {% else %}
     window.VC_SCORE_PCT = null;
     {% endif %}
+    window.VC_PREVIEW_MODE = {{ 'true' if preview_mode else 'false' }};
   </script>
 </head>
 <body>
-
+{% if preview_mode %}
+<div id="preview-banner" style="
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+    background: #f59e0b; color: #1c1917;
+    padding: 10px 16px;
+    font-size: .875rem; font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    display: flex; align-items: center;
+    justify-content: space-between; gap: 8px;
+  ">
+  <span><i class="bi bi-eye me-1"></i>Aperçu enseignant — cette page n'est pas encore publiée</span>
+  <button onclick="window.close()"
+          style="min-height:44px; min-width:44px;
+                 padding:4px 14px; border:none; border-radius:4px;
+                 cursor:pointer; font-weight:600; flex-shrink:0;">
+    ✕
+  </button>
+</div>
+<div style="height: 52px;"></div>  <!-- compense la bannière fixe -->
+{% endif %}
 <header class="d-flex align-items-center gap-2 px-4 py-3"
         style="background:var(--vox-black);border-bottom:2px solid var(--vox-neon)">
   <span class="vox-logo-mark">V</span>
@@ -371,6 +391,8 @@
       pillsWrap.appendChild(btn);
       ch.pill = btn;
     });
+    // Active l'affordance visuelle sur les lignes du tableau
+    document.querySelectorAll('.row-nav-icon').forEach(el => el.style.display = 'inline');
   }
 
   function chapterLabel(qi) {
@@ -436,26 +458,27 @@
   });
 
   /* ── Confirmation d'écoute à 90% ──────────────────────────────────── */
-  if (audio && !readAt) {
-    let confirmed    = false;
-    const progressBar  = document.getElementById('read-progress-bar');
-    const progressText = document.getElementById('read-progress-text');
-    const pendingEl    = document.getElementById('read-pending');
-    const doneEl       = document.getElementById('read-done');
+  /* ── Confirmation d'écoute à 90% ──────────────────────────────────── */
+  if (audio && !readAt && !window.VC_PREVIEW_MODE) {
+      let confirmed    = false;
+      const progressBar  = document.getElementById('read-progress-bar');
+      const progressText = document.getElementById('read-progress-text');
+      const pendingEl    = document.getElementById('read-pending');
+      const doneEl       = document.getElementById('read-done');
 
-    audio.addEventListener('timeupdate', () => {
-      if (confirmed || !audio.duration) return;
-      const pct = (audio.currentTime / audio.duration) * 100;
-      if (progressBar) progressBar.style.width = Math.min(pct, 100) + '%';
-      if (pct >= 90) {
-        confirmed = true;
-        pendingEl?.classList.add('d-none');
-        if (doneEl) { doneEl.classList.remove('d-none'); doneEl.classList.add('d-flex'); }
-        fetch(`/c/${TOKEN}/read`, { method: 'POST' }).catch(() => {});
-      } else if (pct > 5 && progressText) {
-        progressText.textContent = `${Math.round(pct)}% écouté…`;
-      }
-    });
+      audio.addEventListener('timeupdate', () => {
+          if (confirmed || !audio.duration) return;
+          const pct = (audio.currentTime / audio.duration) * 100;
+          if (progressBar) progressBar.style.width = Math.min(pct, 100) + '%';
+          if (pct >= 90) {
+              confirmed = true;
+              pendingEl?.classList.add('d-none');
+              if (doneEl) { doneEl.classList.remove('d-none'); doneEl.classList.add('d-flex'); }
+              fetch(`/c/${TOKEN}/read`, { method: 'POST' }).catch(() => {});
+          } else if (pct > 5 && progressText) {
+              progressText.textContent = `${Math.round(pct)}% écouté…`;
+          }
+      });
   }
 
   /* ── Stockage offline — IndexedDB ─────────────────────────────────── */
@@ -480,6 +503,7 @@
     } catch { return null; }
   }
   (async () => {
+    if (window.VC_PREVIEW_MODE) return;
     const local = await getLocalBlob();
     if (local && audio) {
       audio.src = URL.createObjectURL(local);
@@ -487,6 +511,7 @@
     }
   })();
   dlBtn?.addEventListener('click', async () => {
+    if (window.VC_PREVIEW_MODE) return;
     if (!audioUrl) return;
     dlBtn.disabled = true; dlBtn.textContent = 'Téléchargement…';
     try {

@@ -492,6 +492,46 @@ def correction_detail(correction_id):
                            student=student,
                            qr_b64=qr.get('png_b64', ''),
                            qr_url=qr.get('url', ''))
+
+@teacher_bp.route('/correction/<int:correction_id>/preview')
+@login_required
+def preview_correction(correction_id):
+    corr = db.session.get(Correction, correction_id)
+    if not corr or corr.assignment.classroom.teacher_id != current_user.id:
+        flash('Accès non autorisé.', 'danger')
+        return redirect(url_for('teacher.dashboard'))
+
+    # Si déjà publié, rediriger vers la vraie page élève
+    if corr.status == 'published':
+        return redirect(url_for('public.student_view', token=corr.public_token))
+
+    # Whitelist des statuts autorisés pour l'aperçu
+    PREVIEWABLE_STATUSES = ('draft',)
+    if corr.status not in PREVIEWABLE_STATUSES:
+        flash(
+            f"Aperçu non disponible — correction en statut « {corr.status} »."
+            " Revenez dans quelques instants.",
+            "warning"
+        )
+        return redirect(url_for('teacher.correction_detail', correction_id=correction_id))
+
+    scores_detail = [
+        {
+            'label':      qs.question.label,
+            'score':      qs.score,
+            'max':        qs.question.max_points,
+            'competence': qs.question.competence,
+        }
+        for qs in corr.scores
+    ]
+
+    return render_template(
+        'public/student.html',
+        correction=corr,
+        scores=scores_detail,
+        teacher=corr.assignment.classroom.teacher,
+        preview_mode=True
+    )
 # ── API JSON ──────────────────────────────────────────────────────────────────
 
 @teacher_bp.route('/api/correction/save', methods=['POST'])
