@@ -688,6 +688,42 @@ def delete_corrections_bulk():
     db.session.commit()
     return jsonify({'ok': True, 'deleted': deleted})
 
+@teacher_bp.route('/api/correction/<int:correction_id>/resynthesize', methods=['POST'])
+@login_required
+def resynthesize_correction(correction_id):
+    """Relance Mistral sur le raw_transcript existant, sans toucher à l'audio ni aux scores."""
+    corr = db.session.get(Correction, correction_id)
+    if not corr or corr.assignment.classroom.teacher_id != current_user.id:
+        return jsonify({'error': 'Non autorisé'}), 403
+
+    if corr.status == 'published':
+        return jsonify({'error': 'Impossible de modifier une correction publiée'}), 400
+
+    if not corr.raw_transcript:
+        return jsonify({'error': 'Aucune transcription disponible — veuillez ré-enregistrer.'}), 400
+
+    # Prépare les labels et max_points pour Mistral
+    questions    = corr.assignment.questions
+    q_labels     = [q.label     for q in questions]
+    q_max_points = [q.max_points for q in questions]
+
+    app_ctx = current_app._get_current_object()
+
+    def _do_resynthesize():
+        with app_ctx.app_context():
+            try:
+                result = synthesize_with_mistral(
+                    corr.raw_transcript, q_labels, q_max_points
+                )
+                corr.structured_text = result.get('formatted_text', corr.raw_transcript)
+                corr.status = 'draft'
+                db.session.commit()
+            except Exception as e:
+                app_ctx.logger.error(f'Resynthesize error corr {correction_id}: {e}')
+
+    run_in_background(_do_resynthesize)
+    return jsonify({'ok': True})
+
 @teacher_bp.route('/assignments/<int:assignment_id>/appreciation', methods=['POST'])
 @login_required
 def save_appreciation(assignment_id):

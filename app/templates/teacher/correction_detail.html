@@ -71,6 +71,16 @@
          class="btn vox-btn-outline btn-sm">
         <i class="bi bi-mic-fill me-1"></i>Modifier la correction
       </a>
+      {% if correction.status == 'draft' and correction.raw_transcript %}
+      <button id="btn-resynthesize" class="btn vox-btn-outline btn-sm">
+        <i class="bi bi-stars me-1"></i>Recalculer la synthèse
+      </button>
+      {% elif correction.status == 'draft' and not correction.raw_transcript %}
+      <button class="btn vox-btn-outline btn-sm" disabled
+              title="Aucune transcription — ré-enregistrez d'abord">
+        <i class="bi bi-stars me-1"></i>Recalculer la synthèse
+      </button>
+      {% endif %}
       <a href="/teacher/assignments/{{ correction.assignment_id }}/corrections"
          class="btn vox-btn-outline btn-sm">
         <i class="bi bi-arrow-left me-1"></i>Retour au devoir
@@ -97,6 +107,14 @@
       </span>
       {% endif %}
     </div>
+
+    {% if correction.status == 'draft' %}
+    <div id="resynth-status" class="d-none mb-3 p-3 rounded d-flex align-items-center gap-2"
+        style="background:#f0fdf4;border:1px solid #bbf7d0">
+      <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+      <span class="small text-success fw-bold">Mistral recalcule la synthèse… (10-30 s)</span>
+    </div>
+    {% endif %}
 
     {# Appréciation générale #}
     {% if correction.assignment.class_appreciation %}
@@ -264,5 +282,56 @@ document.getElementById('btn-delete-corr-confirm')?.addEventListener('click', as
     this.innerHTML = '<i class="bi bi-trash me-1"></i>Supprimer définitivement';
   }
 });
+
+// ── Régénération Mistral ────────────────────────────────────────────────────
+(function () {
+  const btn = document.getElementById('btn-resynthesize');
+  if (!btn) return;
+
+  let _polling = null;
+
+  function startPolling() {
+    // Poll /api/correction/<id>/status toutes les 3s
+    _polling = setInterval(async () => {
+      try {
+        const res = await fetch('/teacher/api/correction/{{ correction.id }}/status')
+                          .then(r => r.json());
+        if (res.status === 'draft' && res.structured_text) {
+          clearInterval(_polling);
+          window.location.reload();
+        }
+      } catch { /* silencieux */ }
+    }, 3000);
+  }
+
+  btn.addEventListener('click', async function () {
+    this.disabled = true;
+    this.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Recalcul en cours…';
+
+    const statusBar = document.getElementById('resynth-status');
+    statusBar?.classList.remove('d-none');
+
+    try {
+      const res = await fetch('/teacher/api/correction/{{ correction.id }}/resynthesize', {
+        method:  'POST',
+        headers: { 'X-CSRFToken': _csrf() },
+      }).then(r => r.json());
+
+      if (res.ok) {
+        startPolling();
+      } else {
+        statusBar?.classList.add('d-none');
+        this.disabled = false;
+        this.innerHTML = '<i class="bi bi-stars me-1"></i>Recalculer la synthèse';
+        alert(res.error || 'Erreur lors du recalcul.');
+      }
+    } catch {
+      statusBar?.classList.add('d-none');
+      this.disabled = false;
+      this.innerHTML = '<i class="bi bi-stars me-1"></i>Recalculer la synthèse';
+      alert('Erreur réseau.');
+    }
+  });
+})();
 </script>
 {% endblock %}
