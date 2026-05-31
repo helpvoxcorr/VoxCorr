@@ -631,7 +631,7 @@ def save_correction():
             except Exception as e:
                 # Écrit l'erreur en base pour debug sans logs
                 db.session.rollback()
-                c.structured_text = f"<p class='text-danger'>[DEBUG ERROR] {type(e).__name__}: {e}
+                c.structured_text = "<p class='text-danger'>[DEBUG ERROR] " + type(e).__name__ + ": " + str(e) + "</p>"
 
 
 @teacher_bp.route('/api/correction/<int:correction_id>/status')
