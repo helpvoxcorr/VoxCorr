@@ -90,7 +90,9 @@ def synthesize_with_mistral(raw_text: str, question_labels: list[str], question_
         try:
             client = Mistral(api_key=api_key)
             labels_str = ', '.join(
-                f"{i}:{lbl} [max {question_max[i]}]" if question_max else f"{i}:{lbl}"
+                f"Q{i+1} (index {i}, label:\"{lbl}\") [max {question_max[i]}]"
+                if question_max else
+                f"Q{i+1} (index {i}, label:\"{lbl}\")"
                 for i, lbl in enumerate(question_labels)
             )
             user_msg = (
