@@ -580,34 +580,55 @@ def save_correction():
     app        = current_app._get_current_object()
 
     def _synthesize():
-        with app.app_context():
-            c = db.session.get(Correction, corr_id)
-            if not c:
-                return
-            result = synthesize_with_mistral(c.raw_transcript, q_labels, q_max)
-            c.structured_text = result.get('formatted_text', c.raw_transcript)
-            if not scores_data:
-                grades = result.get('grades', [])
-                for ai_score in grades:
-                    idx = ai_score.get('question_index')
-                    # Fallback positionnel si Mistral n'a pas fourni question_index
-                    if idx is None:
-                        idx = grades.index(ai_score)
-                    if idx is not None and idx < len(q_ids):
-                        raw_score = float(ai_score['score'])
-                        safe_score = min(raw_score, q_max[idx])  # jamais > max
-                        db.session.add(QuestionScore(
-                            correction_id = corr_id,
-                            question_id   = q_ids[idx],
-                            score         = safe_score,
-                        ))
-                db.session.flush()
-                c.compute_total()
-            c.status = 'draft'
-            db.session.commit()
+    with app.app_context():
+        c = db.session.get(Correction, corr_id)
+        if not c:
+            return
+        result = synthesize_with_mistral(c.raw_transcript, q_labels, q_max)
+        c.structured_text = result.get('formatted_text', c.raw_transcript)
 
-    run_in_background(_synthesize)
-    return jsonify({'ok': True, 'correction_id': corr_id, 'token': corr.public_token})
+        # Scores déjà en base (pour éviter les doublons)
+        existing_qids = {qs.question_id for qs in c.scores}
+
+        if scores_data:
+            # Scores saisis manuellement — on les honore
+            for idx, qid in enumerate(q_ids):
+                if qid in existing_qids:
+                    continue  # déjà sauvegardé
+                raw_score = scores_data.get(str(qid)) or scores_data.get(idx)
+                if raw_score is not None:
+                    safe_score = min(float(raw_score), q_max[idx])
+                    db.session.add(QuestionScore(
+                        correction_id=corr_id,
+                        question_id=qid,
+                        score=safe_score,
+                    ))
+                    existing_qids.add(qid)
+
+        # Scores Mistral — uniquement pour les questions sans score
+        grades = result.get('grades', [])
+        for ai_score in grades:
+            idx = ai_score.get('question_index')
+            if idx is None:
+                idx = grades.index(ai_score)
+            if idx is None or idx >= len(q_ids):
+                continue
+            qid = q_ids[idx]
+            if qid in existing_qids:
+                continue  # score manuel prioritaire, on ne touche pas
+            raw_score = float(ai_score['score'])
+            safe_score = min(raw_score, q_max[idx])
+            db.session.add(QuestionScore(
+                correction_id=corr_id,
+                question_id=qid,
+                score=safe_score,
+            ))
+            existing_qids.add(qid)
+
+        db.session.flush()
+        c.compute_total()
+        c.status = 'draft'
+        db.session.commit()
 
 
 @teacher_bp.route('/api/correction/<int:correction_id>/status')
