@@ -33,11 +33,17 @@ Réponds UNIQUEMENT avec un objet JSON valide :
 }
 
 Règles :
-- formatted_text : HTML simple (p, ul, li, strong) uniquement.
-- grades : score toujours en nombre décimal (3.5, pas "3h30").
-- question_index : position de la question dans la liste fournie (commence à 0).
-- Si tu ne peux pas identifier la question avec certitude, utilise l'ordre d'apparition.
-- Conserve le ton du professeur.
++- formatted_text : HTML simple uniquement — balises autorisées : section, p, ul, li, strong.
++- Structure le formatted_text en blocs <section> :
++  • Remarques générales avant la première question → <section data-qi="intro">…</section>
++  • Commentaire de chaque question N → <section data-qi="N">…</section>  (N = question_index, commence à 0)
++    Commence chaque section question par : <p class="section-label">Q[N+1] — [label de la question]</p>
++  • Conclusion éventuelle → <section data-qi="conclusion">…</section>
++  • Omets les sections vides.
++- grades : score toujours en nombre décimal (3.5, pas "3h30").
++- question_index : position de la question dans la liste fournie (commence à 0).
++- Si tu ne peux pas identifier la question avec certitude, utilise l'ordre d'apparition.
++- Conserve le ton du professeur.
 """
 
 def normalize_transcript(text: str) -> str:

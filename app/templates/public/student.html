@@ -16,16 +16,115 @@
       --vox-black: {{ teacher.theme_secondary }};
       --vox-bg:    {{ teacher.theme_bg }};
     }
+
+    /* ── Jauge circulaire ─────────────────────────────────────────── */
+    .score-gauge-wrap {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      flex-shrink: 0;
+    }
+    .score-gauge-wrap svg { display: block; }
+    .score-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.15;
+      pointer-events: none;
+    }
+    .score-num {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--vox-neon);
+    }
+    .score-denom {
+      font-size: .68rem;
+      color: rgba(255,255,255,.45);
+    }
+
+    /* ── Pills de chapitres ───────────────────────────────────────── */
+    .chapter-pills {
+      display: flex;
+      gap: .35rem;
+      flex-wrap: wrap;
+      margin-top: .75rem;
+    }
+    .chapter-pill {
+      min-height: 34px;
+      padding: .3rem .8rem;
+      border-radius: 999px;
+      border: 1px solid #3a3a3a;
+      background: transparent;
+      color: #888;
+      font-size: .75rem;
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+      touch-action: manipulation;
+    }
+    .chapter-pill:hover { border-color: #666; color: #ccc; }
+    .chapter-pill.active {
+      background: var(--vox-neon);
+      border-color: var(--vox-neon);
+      color: #000;
+      font-weight: 600;
+    }
+
+    /* ── Sections du transcript ───────────────────────────────────── */
+    #transcript-body section[data-qi] {
+      border-radius: 8px;
+      padding: .75rem 1rem;
+      margin-bottom: .35rem;
+      border-left: 3px solid transparent;
+      transition: background .25s, border-left-color .25s;
+    }
+    #transcript-body section[data-qi].vc-active {
+      background: rgba(255,255,255,.04);
+      border-left-color: var(--vox-neon);
+    }
+    #transcript-body .section-label {
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--vox-neon);
+      margin-bottom: .45rem;
+      opacity: .75;
+    }
+
+    /* ── Lignes du tableau cliquables ────────────────────────────── */
+    .chapter-row {
+      cursor: pointer;
+      transition: background .15s;
+      touch-action: manipulation;
+    }
+    .chapter-row:hover  { background: rgba(255,255,255,.03); }
+    .chapter-row:focus  { outline: 2px solid var(--vox-neon); outline-offset: -2px; }
+    .chapter-row.vc-active { background: rgba(57,255,20,.06); }
+
+    /* ── Tableau scrollable mobile ────────────────────────────────── */
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* ── Hint "cliquez" ───────────────────────────────────────────── */
+    .row-hint { font-size: .72rem; color: #666; margin-top: .4rem; }
   </style>
   <script>
     window.VC_TOKEN     = "{{ correction.public_token }}";
     window.VC_AUDIO_URL = "{{ correction.audio_url or '' }}";
     window.VC_READ_AT   = {{ ('"%s"' % correction.read_at.isoformat()) if correction.read_at else 'null' }};
+    {% if correction.total_score is not none and correction.assignment.total_points %}
+    window.VC_SCORE_PCT = {{ ((correction.total_score / correction.assignment.total_points) * 100) | round | int }};
+    {% else %}
+    window.VC_SCORE_PCT = null;
+    {% endif %}
   </script>
 </head>
 <body>
 
-<header class="d-flex align-items-center gap-2 px-4 py-3" style="background:var(--vox-black);border-bottom:2px solid var(--vox-neon)">
+<header class="d-flex align-items-center gap-2 px-4 py-3"
+        style="background:var(--vox-black);border-bottom:2px solid var(--vox-neon)">
   <span class="vox-logo-mark">V</span>
   <span class="fw-bold text-white">Vox<span class="text-neon">Corr</span></span>
   <span class="vox-badge ms-auto">Ma correction</span>
@@ -33,87 +132,107 @@
 
 <main class="container py-4" style="max-width:720px">
 
-  <!-- Hero note globale -->
+  <!-- ── Hero : infos devoir + jauge score ─────────────────────────── -->
   <div class="vox-student-hero mb-4">
-    <div class="row align-items-center">
-      <div class="col">
+    <div class="d-flex align-items-center gap-3">
+      <div class="flex-grow-1 min-w-0">
         <div class="small text-white-50">{{ correction.assignment.title }}</div>
         <div class="small text-white-50">{{ correction.assignment.classroom.name }}</div>
-        <div class="small text-white-50 mt-2">
+        <div class="small text-white-50 mt-1">
           <i class="bi bi-calendar3 me-1"></i>{{ correction.assignment.date.strftime('%d %B %Y') }}
         </div>
       </div>
-      <div class="col-auto text-end">
-        <div class="fw-bold" style="font-size:3rem;color:var(--vox-neon);line-height:1">
-          {{ '%.1f'|format(correction.total_score) if correction.total_score is not none else '—' }}
+
+      <!-- Jauge SVG circulaire -->
+      <div class="score-gauge-wrap"
+           aria-label="Note : {{ '%.1f'|format(correction.total_score) if correction.total_score is not none else 'non renseignée' }} sur {{ correction.assignment.total_points }}">
+        <svg viewBox="0 0 100 100" width="90" height="90" role="img" aria-hidden="true">
+          <circle cx="50" cy="50" r="40" fill="none" stroke="#2a2a2a" stroke-width="9"/>
+          <circle id="gauge-arc" cx="50" cy="50" r="40" fill="none"
+                  stroke="#22c55e"
+                  stroke-width="9"
+                  stroke-linecap="round"
+                  stroke-dasharray="251.3"
+                  stroke-dashoffset="251.3"
+                  transform="rotate(-90 50 50)"/>
+        </svg>
+        <div class="score-center">
+          <span class="score-num">
+            {{ '%.1f'|format(correction.total_score) if correction.total_score is not none else '—' }}
+          </span>
+          <span class="score-denom">/ {{ correction.assignment.total_points }}</span>
         </div>
-        <div class="text-white-50 small">/ {{ correction.assignment.total_points }}</div>
       </div>
     </div>
   </div>
 
-  <!-- Tableau des notes -->
+  <!-- ── Détail des notes (cliquable → chapitre audio) ─────────────── -->
   {% if scores %}
   <div class="vox-card mb-4">
     <div class="fw-bold mb-3">Détail des notes</div>
-    <table class="vox-table">
-      <thead>
-        <tr>
-          <th>Question</th>
-          {% if scores[0].competence %}<th>Compétence</th>{% endif %}
-          <th class="text-end">Note</th>
-          <th style="width:120px"></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for s in scores %}
-        <tr>
-          <td>{{ s.label }}</td>
-          {% if s.competence %}
-          <td><span class="vox-badge vox-badge-grey">{{ s.competence }}</span></td>
-          {% endif %}
-          <td class="text-end fw-bold">
-            {{ '%.1f'|format(s.score) if s.score is not none else '—' }}
-            <span class="text-muted fw-normal">/ {{ s.max }}</span>
-          </td>
-          <td>
-            <div class="vox-progress">
-              <div class="vox-progress-fill"
-                   style="width:{{ ((s.score / s.max * 100)|round|int) if s.score and s.max else 0 }}%">
+    <div class="table-scroll">
+      <table class="vox-table">
+        <thead>
+          <tr>
+            <th>Question</th>
+            {% if scores[0].competence %}<th>Compétence</th>{% endif %}
+            <th class="text-end">Note</th>
+            <th style="min-width:90px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in scores %}
+          <tr class="chapter-row" data-qi="{{ loop.index0 }}"
+              role="button" tabindex="0"
+              aria-label="Aller au commentaire de {{ s.label }}">
+            <td>{{ s.label }}</td>
+            {% if s.competence %}
+            <td><span class="vox-badge vox-badge-grey">{{ s.competence }}</span></td>
+            {% endif %}
+            <td class="text-end fw-bold">
+              {{ '%.1f'|format(s.score) if s.score is not none else '—' }}
+              <span class="text-muted fw-normal">/ {{ s.max }}</span>
+            </td>
+            <td>
+              <div class="vox-progress">
+                <div class="vox-progress-fill"
+                     style="width:{{ ((s.score / s.max * 100)|round|int) if s.score and s.max else 0 }}%">
+                </div>
               </div>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="row-hint mb-0">
+      <i class="bi bi-hand-index me-1"></i>Appuyez sur une ligne pour naviguer dans la correction orale.
+    </p>
   </div>
   {% endif %}
 
+  <!-- ── Appréciation générale ──────────────────────────────────────── -->
   {% if correction.assignment.class_appreciation %}
   <div class="vox-card mb-4" style="border-left:3px solid var(--vox-neon)">
     <div class="fw-bold mb-3">
-      <i class="bi bi-people me-2"></i>Appréciation générale sur le travail de la classe pour ce devoir
+      <i class="bi bi-people me-2"></i>Appréciation générale sur le travail de la classe
     </div>
     <div style="line-height:1.85">{{ correction.assignment.class_appreciation | safe }}</div>
   </div>
   {% endif %}
 
-  <!-- Synthèse écrite -->
-  {% if correction.structured_text %}
-  <div class="vox-card mb-4">
-    <div class="fw-bold mb-3">✦ Commentaires de votre enseignant</div>
-    <div style="line-height:1.85">{{ correction.structured_text | safe }}</div>
-  </div>
-  {% endif %}
-
-  <!-- Audio -->
+  <!-- ── Lecteur audio + chapitres ─────────────────────────────────── -->
   <div class="vox-card mb-4">
     <div class="fw-bold mb-3"><i class="bi bi-mic me-2"></i>Correction orale</div>
+
     {% if correction.audio_url %}
     <audio id="vc-audio" controls class="w-100" preload="none"
            style="accent-color:var(--vox-neon);border-radius:8px">
     </audio>
+
+    <!-- Pills générées dynamiquement par JS si sections détectées -->
+    <div id="chapter-pills" class="chapter-pills" aria-label="Navigation par chapitre"></div>
+
     <div class="d-flex gap-2 align-items-center flex-wrap mt-3">
       <button id="btn-dl-audio" class="btn vox-btn-dark btn-sm">
         <i class="bi bi-download me-1"></i>Télécharger pour écoute hors-ligne
@@ -147,7 +266,8 @@
           <span id="read-progress-text">Écoutez la correction pour valider</span>
         </div>
         <div class="vox-progress flex-grow-1" style="max-width:160px;height:6px">
-          <div id="read-progress-bar" class="vox-progress-fill" style="width:0%;transition:width .5s linear"></div>
+          <div id="read-progress-bar" class="vox-progress-fill"
+               style="width:0%;transition:width .5s linear"></div>
         </div>
       </div>
       <div id="read-done" class="d-none align-items-center gap-2" style="color:#16a34a">
@@ -158,6 +278,16 @@
     </div>
   </div>
 
+  <!-- ── Synthèse écrite (transcript structuré) ─────────────────────── -->
+  {% if correction.structured_text %}
+  <div class="vox-card mb-4">
+    <div class="fw-bold mb-3">✦ Commentaires de votre enseignant</div>
+    <div id="transcript-body" style="line-height:1.85">
+      {{ correction.structured_text | safe }}
+    </div>
+  </div>
+  {% endif %}
+
   <div class="text-center text-muted small py-3">
     VoxCorr · Consulté {{ correction.access_logs|length }} fois
   </div>
@@ -165,17 +295,148 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
-  const audio    = document.getElementById('vc-audio');
-  const dlBtn    = document.getElementById('btn-dl-audio');
-  const TOKEN    = window.VC_TOKEN;
-  const audioUrl = window.VC_AUDIO_URL;
-  const readAt   = window.VC_READ_AT;
+  /* ── Refs ──────────────────────────────────────────────────────────── */
+  const audio      = document.getElementById('vc-audio');
+  const dlBtn      = document.getElementById('btn-dl-audio');
+  const pillsWrap  = document.getElementById('chapter-pills');
+  const transcript = document.getElementById('transcript-body');
+  const TOKEN      = window.VC_TOKEN;
+  const audioUrl   = window.VC_AUDIO_URL;
+  const readAt     = window.VC_READ_AT;
+  const scorePct   = window.VC_SCORE_PCT;   // 0-100 ou null
 
+  /* ── Jauge circulaire ──────────────────────────────────────────────── */
+  (function initGauge() {
+    const arc = document.getElementById('gauge-arc');
+    if (!arc || scorePct === null) return;
+
+    // Couleur selon niveau : vert ≥70%, orange ≥50%, rouge sinon
+    const neon  = getComputedStyle(document.documentElement)
+                    .getPropertyValue('--vox-neon').trim() || '#39FF14';
+    const color = scorePct >= 70 ? neon
+                : scorePct >= 50 ? '#f97316'
+                :                  '#ef4444';
+
+    const circ  = 2 * Math.PI * 40;          // ≈ 251.3
+    const offset = circ * (1 - scorePct / 100);
+
+    arc.setAttribute('stroke', color);
+    arc.style.transition = 'stroke-dashoffset 1s ease-out';
+    // RAF + timeout pour déclencher l'animation CSS après le premier paint
+    requestAnimationFrame(() => setTimeout(() => {
+      arc.style.strokeDashoffset = String(offset);
+    }, 80));
+  })();
+
+  /* ── Chargement audio ──────────────────────────────────────────────── */
   if (audio && audioUrl) audio.src = audioUrl;
 
-  // ── Confirmation d'écoute à 90% ──────────────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════════
+     CHAPITRES  — synchronisation audio ↔ transcript
+     ─────────────────────────────────────────────────────────────────
+     Fonctionnement :
+     • Mistral génère <section data-qi="0|1|intro|conclusion"> dans
+       structured_text. Ce flag indique la question traitée.
+     • Sans timestamp réels, on estime la position de chaque chapitre
+       de façon proportionnelle : longueur de texte / durée totale.
+     • La synchro est approximative (~±10%) mais suffisante pour
+       naviguer ; le clic "seek" reste précis (on pose currentTime).
+  ════════════════════════════════════════════════════════════════════ */
+  let chapters = [];   // [{qi, el, startT, endT, pill}]
+
+  function buildChapters() {
+    if (!transcript || !audio || !audio.duration) return;
+    const sections = Array.from(transcript.querySelectorAll('section[data-qi]'));
+    if (!sections.length) return;
+
+    const totalChars = sections.reduce((s, el) => s + (el.textContent || '').length, 0) || 1;
+    let cum = 0;
+    chapters = sections.map(el => {
+      const len    = (el.textContent || '').length;
+      const startT = (cum / totalChars) * audio.duration;
+      cum += len;
+      const endT   = (cum / totalChars) * audio.duration;
+      return { qi: el.dataset.qi, el, startT, endT, pill: null };
+    });
+
+    // Génère les pills
+    pillsWrap.innerHTML = '';
+    chapters.forEach(ch => {
+      const btn = document.createElement('button');
+      btn.className = 'chapter-pill';
+      btn.textContent = chapterLabel(ch.qi);
+      btn.dataset.qi  = ch.qi;
+      btn.addEventListener('click', () => seekToChapter(ch));
+      pillsWrap.appendChild(btn);
+      ch.pill = btn;
+    });
+  }
+
+  function chapterLabel(qi) {
+    if (qi === 'intro')      return 'Intro';
+    if (qi === 'conclusion') return 'Conclusion';
+    const n = parseInt(qi, 10);
+    return isNaN(n) ? qi : `Q${n + 1}`;
+  }
+
+  function seekToChapter(ch) {
+    if (audio && isFinite(ch.startT)) {
+      audio.currentTime = ch.startT;
+      if (audio.paused) audio.play().catch(() => {});
+    }
+    ch.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    activateChapter(ch.qi);
+  }
+
+  function activateChapter(qi) {
+    // Transcript
+    transcript?.querySelectorAll('section[data-qi]').forEach(s => {
+      s.classList.toggle('vc-active', s.dataset.qi === qi);
+    });
+    // Pills
+    chapters.forEach(ch => ch.pill?.classList.toggle('active', ch.qi === qi));
+    // Tableau
+    document.querySelectorAll('.chapter-row').forEach(row => {
+      row.classList.toggle('vc-active', row.dataset.qi === qi);
+    });
+  }
+
+  // Construit les chapitres dès que la durée est connue
+  if (audio) {
+    audio.addEventListener('loadedmetadata', buildChapters);
+    if (audio.readyState >= 1) buildChapters();   // déjà disponible (cache)
+  }
+
+  // Mise à jour en temps réel pendant la lecture
+  if (audio) {
+    audio.addEventListener('timeupdate', () => {
+      if (!chapters.length || !audio.duration) return;
+      const t   = audio.currentTime;
+      const cur = chapters.find(ch => t >= ch.startT && t < ch.endT)
+                   ?? (t >= chapters.at(-1).startT ? chapters.at(-1) : null);
+      if (cur) activateChapter(cur.qi);
+    });
+  }
+
+  // Clic sur une ligne du tableau
+  document.querySelectorAll('.chapter-row').forEach(row => {
+    const go = () => {
+      const qi = row.dataset.qi;
+      const ch = chapters.find(c => c.qi === qi);
+      if (ch) { seekToChapter(ch); return; }
+      // Fallback si pas encore de chapitres (audio pas chargé)
+      const sec = transcript?.querySelector(`section[data-qi="${qi}"]`);
+      if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    row.addEventListener('click', go);
+    row.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+    });
+  });
+
+  /* ── Confirmation d'écoute à 90% ──────────────────────────────────── */
   if (audio && !readAt) {
-    let confirmed = false;
+    let confirmed    = false;
     const progressBar  = document.getElementById('read-progress-bar');
     const progressText = document.getElementById('read-progress-text');
     const pendingEl    = document.getElementById('read-pending');
@@ -187,8 +448,8 @@
       if (progressBar) progressBar.style.width = Math.min(pct, 100) + '%';
       if (pct >= 90) {
         confirmed = true;
-        if (pendingEl) pendingEl.classList.add('d-none');
-        if (doneEl)    { doneEl.classList.remove('d-none'); doneEl.classList.add('d-flex'); }
+        pendingEl?.classList.add('d-none');
+        if (doneEl) { doneEl.classList.remove('d-none'); doneEl.classList.add('d-flex'); }
         fetch(`/c/${TOKEN}/read`, { method: 'POST' }).catch(() => {});
       } else if (pct > 5 && progressText) {
         progressText.textContent = `${Math.round(pct)}% écouté…`;
@@ -196,34 +457,34 @@
     });
   }
 
-  // ── Stockage offline IndexedDB ────────────────────────────────────────────
-  const DB = 'voxcorr-audio';
+  /* ── Stockage offline — IndexedDB ─────────────────────────────────── */
+  const DB_NAME = 'voxcorr-audio';
   function openDB() {
     return new Promise((res, rej) => {
-      const r = indexedDB.open(DB, 1);
+      const r = indexedDB.open(DB_NAME, 1);
       r.onupgradeneeded = e => e.target.result.createObjectStore('blobs');
       r.onsuccess = e => res(e.target.result);
       r.onerror   = e => rej(e.target.error);
     });
   }
-
-  async function checkLocal() {
+  async function getLocalBlob() {
     try {
       const db  = await openDB();
       const tx  = db.transaction('blobs', 'readonly');
       const req = tx.objectStore('blobs').get(TOKEN);
-      return new Promise(res => { req.onsuccess = () => res(req.result || null); req.onerror = () => res(null); });
+      return new Promise(res => {
+        req.onsuccess = () => res(req.result || null);
+        req.onerror   = () => res(null);
+      });
     } catch { return null; }
   }
-
   (async () => {
-    const local = await checkLocal();
+    const local = await getLocalBlob();
     if (local && audio) {
-      audio.src = window.URL.createObjectURL(local);
+      audio.src = URL.createObjectURL(local);
       if (dlBtn) { dlBtn.textContent = '✓ Disponible hors-ligne'; dlBtn.disabled = true; }
     }
   })();
-
   dlBtn?.addEventListener('click', async () => {
     if (!audioUrl) return;
     dlBtn.disabled = true; dlBtn.textContent = 'Téléchargement…';
@@ -233,7 +494,7 @@
       const tx   = db.transaction('blobs', 'readwrite');
       tx.objectStore('blobs').put(blob, TOKEN);
       await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
-      if (audio) audio.src = window.URL.createObjectURL(blob);
+      if (audio) audio.src = URL.createObjectURL(blob);
       dlBtn.textContent = '✓ Disponible hors-ligne';
     } catch {
       dlBtn.disabled = false; dlBtn.textContent = 'Réessayer';
