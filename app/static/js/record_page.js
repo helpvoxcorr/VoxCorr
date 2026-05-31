@@ -37,13 +37,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!text) { alert('La transcription est vide.'); return; }
 
     UI.setState('processing');
-    // Vide les inputs AVANT de collecter → Mistral remplira
-    UI.scoreInputs.forEach(inp => inp.value = '');
     try {
       const res = await api.saveCorrection(
         CTX.studentId, CTX.assignmentId, text, UI.collectScores()
       );
       correctionId = res.correction_id;
+      // Vide les inputs APRÈS envoi → Mistral remplira
+      UI.scoreInputs.forEach(inp => inp.value = '');
 
       // Upload audio en parallèle (non bloquant)
       if (audioBlob) api.uploadAudio(correctionId, audioBlob).catch(console.warn);

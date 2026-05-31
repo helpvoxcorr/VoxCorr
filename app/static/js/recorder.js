@@ -37,6 +37,7 @@ class VoxRecorder {
     this.isRecording=true; this.onStateChange("recording");
   }
   stop(bars=[]) {
+    this.isRecording=false;
     if(this.recognition){try{this.recognition.stop();}catch(_){}}
     if(this.mediaRec&&this.mediaRec.state!=="inactive") this.mediaRec.stop();
     if(this.stream) this.stream.getTracks().forEach(t=>t.stop());
