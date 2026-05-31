@@ -584,51 +584,54 @@ def save_correction():
             c = db.session.get(Correction, corr_id)
             if not c:
                 return
-            result = synthesize_with_mistral(c.raw_transcript, q_labels, q_max)
-            c.structured_text = result.get('formatted_text', c.raw_transcript)
+            try:
+                result = synthesize_with_mistral(c.raw_transcript, q_labels, q_max)
+                c.structured_text = result.get('formatted_text', c.raw_transcript)
 
-            # Scores déjà en base (pour éviter les doublons)
-            existing_qids = {qs.question_id for qs in c.scores}
+                existing_qids = {qs.question_id for qs in c.scores}
 
-            if scores_data:
-                # Scores saisis manuellement — on les honore
-                for idx, qid in enumerate(q_ids):
+                if scores_data:
+                    for idx, qid in enumerate(q_ids):
+                        if qid in existing_qids:
+                            continue
+                        raw_score = scores_data.get(str(qid)) or scores_data.get(idx)
+                        if raw_score is not None:
+                            safe_score = min(float(raw_score), q_max[idx])
+                            db.session.add(QuestionScore(
+                                correction_id=corr_id,
+                                question_id=qid,
+                                score=safe_score,
+                            ))
+                            existing_qids.add(qid)
+
+                grades = result.get('grades', [])
+                for ai_score in grades:
+                    idx = ai_score.get('question_index')
+                    if idx is None:
+                        idx = grades.index(ai_score)
+                    if idx is None or idx >= len(q_ids):
+                        continue
+                    qid = q_ids[idx]
                     if qid in existing_qids:
-                        continue  # déjà sauvegardé
-                    raw_score = scores_data.get(str(qid)) or scores_data.get(idx)
-                    if raw_score is not None:
-                        safe_score = min(float(raw_score), q_max[idx])
-                        db.session.add(QuestionScore(
-                            correction_id=corr_id,
-                            question_id=qid,
-                            score=safe_score,
-                        ))
-                        existing_qids.add(qid)
+                        continue
+                    raw_score = float(ai_score['score'])
+                    safe_score = min(raw_score, q_max[idx])
+                    db.session.add(QuestionScore(
+                        correction_id=corr_id,
+                        question_id=qid,
+                        score=safe_score,
+                    ))
+                    existing_qids.add(qid)
 
-            # Scores Mistral — uniquement pour les questions sans score
-            grades = result.get('grades', [])
-            for ai_score in grades:
-                idx = ai_score.get('question_index')
-                if idx is None:
-                    idx = grades.index(ai_score)
-                if idx is None or idx >= len(q_ids):
-                    continue
-                qid = q_ids[idx]
-                if qid in existing_qids:
-                    continue  # score manuel prioritaire, on ne touche pas
-                raw_score = float(ai_score['score'])
-                safe_score = min(raw_score, q_max[idx])
-                db.session.add(QuestionScore(
-                    correction_id=corr_id,
-                    question_id=qid,
-                    score=safe_score,
-                ))
-                existing_qids.add(qid)
+                db.session.flush()
+                c.compute_total()
+                c.status = 'draft'
+                db.session.commit()
 
-            db.session.flush()
-            c.compute_total()
-            c.status = 'draft'
-            db.session.commit()
+            except Exception as e:
+                # Écrit l'erreur en base pour debug sans logs
+                db.session.rollback()
+                c.structured_text = f"<p class='text-danger'>[DEBUG ERROR] {type(e).__name__}: {e}
 
 
 @teacher_bp.route('/api/correction/<int:correction_id>/status')
