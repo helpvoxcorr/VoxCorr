@@ -100,6 +100,10 @@
 
       <!-- Transcription -->
       <label class="vox-label text-white-50 mb-1">Transcription temps réel</label>
+      <p class="small mb-2" style="color:#a3a3a3">
+        <i class="bi bi-lightbulb me-1" style="color:var(--vox-neon)"></i>
+        Nommez chaque question explicitement ("Pour la question 1…", "Q2…") pour une extraction automatique plus fiable.
+      </p>
       <textarea class="vox-transcript mb-1" id="transcription"
                 placeholder="Votre dictée apparaîtra ici…">{{ existing.raw_transcript or '' }}</textarea>
       <div id="interim" class="text-white-50 small fst-italic mb-3" style="min-height:1.4em"></div>

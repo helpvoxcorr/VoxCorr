@@ -54,6 +54,11 @@ Règles :
   "zéro", "aucun point", "tu n'as rien"), attribue le score 0 à la question concernée.
 - Si tu ne peux pas identifier la question avec certitude, utilise l'ordre d'apparition.
 - Conserve le ton du professeur.
+- Si le prof dit "ma première réponse", "ta première réponse", "le premier" sans numéro explicite,
+  utilise UNIQUEMENT le contexte suivant (note mentionnée, max de la question) pour identifier
+  la question. Ne jamais supposer que "première" = question_index 0 si le max ne correspond pas.
+- En cas de doute sur l'attribution d'une note, préfère l'ordre d'apparition dans le transcript
+  plutôt que le numéro oral.
 """
 
 def normalize_transcript(text: str) -> str:
