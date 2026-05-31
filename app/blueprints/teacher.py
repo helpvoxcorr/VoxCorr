@@ -1031,3 +1031,19 @@ def correction_pdf(correction_id):
             'Content-Disposition': f'attachment; filename="correction-{student.alias}-{corr.assignment.title}.pdf"'
         }
     )
+
+@teacher_bp.route('/debug/class/<int:class_id>/students')
+@login_required
+def debug_class_students(class_id):
+    students = Student.query.filter_by(classroom_id=class_id).all()
+    return {
+        "students": [
+            {
+                "id": s.id,
+                "alias": s.alias,
+                "has_first": bool(s.encrypted_first_name),
+                "has_last": bool(s.encrypted_last_name),
+            }
+            for s in students
+        ]
+    }

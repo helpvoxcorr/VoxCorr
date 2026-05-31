@@ -35,11 +35,11 @@
 <div class="row g-3">
   {% for c in classrooms %}
   <div class="col-md-6 col-lg-4">
-    <div class="vox-card">
+    <div class="vox-card" style="position:relative">
+      <a href="/teacher/classes/{{ c.id }}"
+        class="stretched-link text-decoration-none" aria-label="Voir la classe {{ c.name }}"></a>
       <div class="d-flex justify-content-between align-items-start mb-2">
-        <a href="/teacher/classes/{{ c.id }}" class="fw-bold fs-5 text-decoration-none" style="color:inherit">
-          {{ c.name }}
-        </a>
+        <span class="fw-bold fs-5" style="color:inherit">{{ c.name }}</span>
         <span class="vox-badge">{{ c.students|length }}</span>
       </div>
       <div class="text-muted small mb-3">{{ c.subject or '—' }} · {{ c.school_year }}</div>
@@ -47,13 +47,16 @@
         <div class="text-muted small">
           <i class="bi bi-file-text me-1"></i>{{ c.assignments|length }} devoir(s)
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2" style="position:relative;z-index:2">
           <button type="button" class="btn btn-sm py-0 px-2 btn-trash"
                   onclick="showDeleteModal('{{ c.id }}','{{ c.name }}')"
                   title="Supprimer la classe">
             <i class="bi bi-trash"></i>
           </button>
-          <form method="POST" action="/teacher/classes/{{ c.id }}/delete" id="form-delete-{{ c.id }}" class="d-none"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
+          <form method="POST" action="/teacher/classes/{{ c.id }}/delete"
+                id="form-delete-{{ c.id }}" class="d-none">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          </form>
         </div>
       </div>
     </div>
