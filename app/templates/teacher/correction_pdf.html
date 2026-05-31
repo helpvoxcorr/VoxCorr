@@ -214,7 +214,7 @@
   <!-- QR Code -->
   {% if qr_b64 %}
   <div class="qr-section">
-    <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR Code">
+    <img src="{{ qr_b64 }}" alt="QR Code">
     <div class="qr-text">
       <strong>Accédez à votre correction audio en ligne</strong>
       Scannez ce QR code ou rendez-vous sur :<br>

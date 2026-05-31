@@ -1003,9 +1003,10 @@ def correction_pdf(correction_id):
             for qs in corr.scores
         ]
 
-        from app.services.qrcode import generate_qr_b64
+        from app.services.qrcode import make_qr
         qr_url = f"{current_app.config['APP_BASE_URL']}/c/{corr.public_token}"
-        qr_b64 = generate_qr_b64(qr_url) if corr.status == 'published' else None
+        qr_data = make_qr(corr.public_token) if corr.status == 'published' else None
+        qr_b64 = qr_data['png_b64'] if qr_data else None
 
         html_str = render_template(
             'teacher/correction_pdf.html',
