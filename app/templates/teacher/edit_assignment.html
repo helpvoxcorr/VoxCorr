@@ -9,11 +9,13 @@
       <p>{{ assignment.classroom.name }}</p>
     </div>
     <div class="vox-card">
-      <form method="POST">
+      <form method="POST" id="edit-assignment-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="mb-3">
           <label class="vox-label">Titre *</label>
-          <input type="text" name="title" class="vox-input" value="{{ assignment.title }}" required>
+          <input type="text" name="title" class="vox-input"
+                 value="{{ assignment.title }}" required>
         </div>
         <div class="row g-3 mb-3">
           <div class="col">
@@ -31,12 +33,103 @@
           <label class="vox-label">Description</label>
           <textarea name="description" class="vox-input" rows="2">{{ assignment.description or '' }}</textarea>
         </div>
-        <div class="d-flex gap-2">
-          <button type="submit" class="btn vox-btn-primary">Enregistrer</button>
-          <a href="/teacher/classes/{{ assignment.classroom_id }}" class="btn vox-btn-dark">Annuler</a>
+
+        <!-- Questions -->
+        <div class="fw-bold mb-3">Questions et barème</div>
+
+        {% for item in questions_data %}
+        {% set q = item.question %}
+        {% set count = item.corrections_count %}
+        <div class="vox-card mb-3" style="background:#f9fafb">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="fw-bold small" style="color:var(--vox-neon)">Q{{ loop.index }}</span>
+            {% if count > 0 %}
+            <span class="vox-badge vox-badge-grey" style="font-size:.7rem">
+              {{ count }} correction{{ 's' if count > 1 }}
+            </span>
+            {% endif %}
+          </div>
+          <div class="row g-2">
+            <div class="col-12 col-sm-5">
+              <label class="vox-label">Label</label>
+              <input type="text" name="q_label_{{ q.id }}" class="vox-input"
+                     value="{{ q.label }}">
+            </div>
+            <div class="col-6 col-sm-3">
+              <label class="vox-label">Max pts</label>
+              <input type="number" name="q_max_{{ q.id }}"
+                     class="vox-input q-max-input"
+                     data-original="{{ q.max_points }}"
+                     data-qid="{{ q.id }}"
+                     data-count="{{ count }}"
+                     value="{{ q.max_points }}" step="0.5" min="0">
+              <input type="hidden" name="q_clamp_{{ q.id }}"
+                     id="q_clamp_{{ q.id }}" value="0">
+            </div>
+            <div class="col-6 col-sm-4">
+              <label class="vox-label">Compétence</label>
+              <input type="text" name="q_competence_{{ q.id }}" class="vox-input"
+                     value="{{ q.competence or '' }}">
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+        <div class="d-flex gap-2 mt-2">
+          <button type="submit" class="btn vox-btn-primary" id="btn-save-assignment">
+            Enregistrer
+          </button>
+          <a href="/teacher/classes/{{ assignment.classroom_id }}"
+             class="btn vox-btn-dark">Annuler</a>
         </div>
       </form>
     </div>
   </div>
 </div>
+{% include "components/modals.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('btn-save-assignment').addEventListener('click', function(e) {
+  e.preventDefault();
+
+  // Cherche les questions dont le max a changé avec des corrections existantes
+  const changed = [];
+  document.querySelectorAll('.q-max-input').forEach(input => {
+    const original = parseFloat(input.dataset.original);
+    const newVal   = parseFloat(input.value);
+    const count    = parseInt(input.dataset.count);
+    if (newVal !== original && count > 0) {
+      changed.push({ input, original, newVal, count, qid: input.dataset.qid });
+    }
+  });
+
+  if (changed.length === 0) {
+    // Rien de risqué — on soumet directement
+    document.getElementById('edit-assignment-form').submit();
+    return;
+  }
+
+  // Construit le message d'avertissement
+  const lines = changed.map(c =>
+    `• Max de Q${[...document.querySelectorAll('.q-max-input')].indexOf(c.input) + 1} : ${c.original} → ${c.newVal} pts (${c.count} correction${c.count > 1 ? 's' : ''} affectée${c.count > 1 ? 's' : ''})`
+  ).join('\n');
+
+  VoxModal.confirm({
+    type:         'warning',
+    title:        'Points modifiés — corrections existantes',
+    body:         `${lines}\n\nLes scores dépassant le nouveau maximum seront ramenés au maximum. Continuer ?`,
+    confirmText:  'Reclamper et enregistrer',
+    confirmClass: 'btn-warning text-dark',
+    onConfirm: () => {
+      // Active le clamp pour chaque question modifiée
+      changed.forEach(c => {
+        document.getElementById(`q_clamp_${c.qid}`).value = '1';
+      });
+      document.getElementById('edit-assignment-form').submit();
+    }
+  });
+});
+</script>
 {% endblock %}
