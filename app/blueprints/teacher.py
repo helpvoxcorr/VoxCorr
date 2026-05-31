@@ -1003,7 +1003,7 @@ def correction_pdf(correction_id):
             for qs in corr.scores
         ]
 
-        from services.qrcode import generate_qr_b64
+        from app.services.qrcode import generate_qr_b64
         qr_url = f"{current_app.config['APP_BASE_URL']}/c/{corr.public_token}"
         qr_b64 = generate_qr_b64(qr_url) if corr.status == 'published' else None
 
