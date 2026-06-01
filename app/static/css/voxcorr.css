@@ -321,7 +321,7 @@ a.vox-card:hover{border-color:#0a0a0a}
 .dash-class-card {
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 14px; !important
+  border-radius: 14px;
   padding: 1.4rem;
   display: block;
   color: inherit;
