@@ -63,25 +63,29 @@
 </nav>
 {% endif %}
 {% if current_user and current_user.is_authenticated %}
-<div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:.5rem 0">
+<div class="vox-subheader">
   <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
-    <nav style="font-size:.78rem;display:flex;align-items:center;gap:.35rem">
-      <a href="/teacher/dashboard" style="color:#9ca3af;text-decoration:none"><i class="bi bi-house" style="font-size:.85rem"></i></a>
+    <nav class="vox-breadcrumb">
+      <a href="/teacher/dashboard" class="vox-breadcrumb-home">
+        <i class="bi bi-house-fill"></i>
+      </a>
       {% if breadcrumbs is defined and breadcrumbs %}
         {% for crumb in breadcrumbs %}
-        <span style="color:#d1d5db">/</span>
+        <span class="vox-breadcrumb-sep">›</span>
         {% if not loop.last and crumb.url %}
-          <a href="{{ crumb.url }}" style="color:#6b7280;text-decoration:none">{{ crumb.label }}</a>
+          <a href="{{ crumb.url }}" class="vox-breadcrumb-link">{{ crumb.label }}</a>
         {% else %}
-          <span style="color:#111;font-weight:600">{{ crumb.label }}</span>
+          <span class="vox-breadcrumb-current">{{ crumb.label }}</span>
         {% endif %}
         {% endfor %}
       {% else %}
-        <span style="color:#d1d5db">/</span>
-        <span style="color:#111;font-weight:600">Tableau de bord</span>
+        <span class="vox-breadcrumb-sep">›</span>
+        <span class="vox-breadcrumb-current">Tableau de bord</span>
       {% endif %}
     </nav>
-    <span style="font-size:.72rem;color:#9ca3af">{{ current_user.school or 'VoxCorr' }}</span>
+    <span class="vox-breadcrumb-school">
+      <i class="bi bi-building me-1"></i>{{ current_user.school or 'VoxCorr' }}
+    </span>
   </div>
 </div>
 {% endif %}
