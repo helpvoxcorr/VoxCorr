@@ -3,6 +3,7 @@
 
 {% block head %}
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -25,17 +26,23 @@
 <!-- Stats -->
 <div class="dash-stats">
   <div class="dash-stat">
-    <div class="dash-stat-icon"><i class="bi bi-people"></i></div>
+    <div class="dash-stat-icon">
+      <span class="material-symbols-outlined">diversity_3</span>
+    </div>
     <div class="dash-stat-val">{{ classrooms|length }}</div>
     <div class="dash-stat-lbl">Classes actives</div>
   </div>
   <div class="dash-stat">
-    <div class="dash-stat-icon"><i class="bi bi-person"></i></div>
+    <div class="dash-stat-icon">
+      <span class="material-symbols-outlined">person_raised_hand</span>
+    </div>
     <div class="dash-stat-val">{{ total_students }}</div>
     <div class="dash-stat-lbl">Élèves</div>
   </div>
   <div class="dash-stat">
-    <div class="dash-stat-icon"><i class="bi bi-file-text"></i></div>
+    <div class="dash-stat-icon">
+      <span class="material-symbols-outlined">library_books</span>
+    </div>
     <div class="dash-stat-val">{{ total_corrections }}</div>
     <div class="dash-stat-lbl">Devoirs</div>
   </div>
