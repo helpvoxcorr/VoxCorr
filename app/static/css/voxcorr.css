@@ -41,7 +41,22 @@ a{color:inherit;text-decoration:none}
 .text-neon{color:var(--vox-neon)}
 .vox-user-chip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:.3rem .85rem .3rem .5rem;display:flex;align-items:center;gap:.5rem;color:rgba(255,255,255,.75);font-size:.82rem}
 .vox-user-avatar{width:26px;height:26px;border-radius:50%;background:var(--vox-neon);display:flex;align-items:center;justify-content:center;color:var(--vox-black);font-weight:700;font-size:.7rem}
-
+/* Bouton déconnexion — hover animé */
+.vox-logout-btn {
+  transition: background .2s, border-color .2s, color .2s;
+}
+.vox-logout-btn:hover {
+  background: rgba(229,62,62,.08) !important;
+  border-color: #e53e3e !important;
+  color: #e53e3e !important;
+}
+.vox-logout-btn .bi-box-arrow-right {
+  display: inline-block;
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+.vox-logout-btn:hover .bi-box-arrow-right {
+  transform: rotate(90deg);
+}
 /* ── Boutons ── */
 .vox-btn-primary{background:var(--vox-neon);color:var(--vox-black);border:2px solid var(--vox-neon);border-radius:var(--vox-radius);font-weight:700;font-size:.875rem;padding:.55rem 1.35rem;transition:var(--vox-tr);cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;letter-spacing:.01em}
 .vox-btn-primary:hover{background:var(--vox-neon-d);border-color:var(--vox-neon-d);color:var(--vox-black);transform:translateY(-1px);box-shadow:0 4px 16px var(--vox-neon-glow)}
