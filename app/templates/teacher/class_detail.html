@@ -2,25 +2,33 @@
 {% set breadcrumbs = [{"label": "Classes", "url": "/teacher/classes"}, {"label": classroom.name, "url": None}] %}
 {% block title %}{{ classroom.name }} — VoxCorr{% endblock %}
 
+{% block head %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<div class="vox-page-hero mb-4">
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-    <div>
-      <h1>{{ classroom.name }}</h1>
-      <p>{{ classroom.subject or '—' }} · {{ classroom.school_year }}</p>
+
+<!-- Hero -->
+<div class="cls-hero">
+  <div>
+    <div class="cls-hero-number">{{ classroom.name }}</div>
+    <div class="cls-hero-sub">
+      <span>{{ classroom.subject or '—' }}</span> · {{ classroom.school_year }}
+      · <span style="color:rgba(255,255,255,.4)">{{ students|length }} élève{{ 's' if students|length > 1 }}</span>
     </div>
-    <div class="d-flex gap-2">
-      <a href="/teacher/assignments/new/{{ classroom.id }}" class="btn vox-btn-primary">
-        <i class="bi bi-plus-lg me-1"></i>Nouveau devoir
-      </a>
-      <form method="POST" action="/teacher/classes/{{ classroom.id }}/delete" onsubmit="return confirm('Supprimer la classe {{ classroom.name }} et tous ses élèves et devoirs ?')">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn vox-btn-outline btn-sm"
-                style="border-color:#e53e3e;color:#e53e3e;height:100%">
-          <i class="bi bi-trash me-1"></i>Supprimer
-        </button>
-      </form>
-    </div>
+  </div>
+  <div class="cls-hero-actions">
+    <a href="/teacher/assignments/new/{{ classroom.id }}" class="btn vox-btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>Nouveau devoir
+    </a>
+    <form method="POST" action="/teacher/classes/{{ classroom.id }}/delete"
+          onsubmit="return confirm('Supprimer la classe {{ classroom.name }} ?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn vox-btn-outline btn-sm"
+              style="border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.5);height:100%">
+        <i class="bi bi-trash me-1"></i>Supprimer
+      </button>
+    </form>
   </div>
 </div>
 
@@ -29,114 +37,106 @@
   <!-- Élèves -->
   <div class="col-lg-5">
     <div class="vox-card">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <span class="fw-bold">Élèves <span class="vox-badge ms-1">{{ students|length }}</span></span>
+      <div class="cls-section-title">
+        <i class="bi bi-people"></i>
+        Élèves
+        <span class="vox-badge ms-1">{{ students|length }}</span>
       </div>
 
       {% if students %}
-      <table class="vox-table">
-        <thead>
-          <tr>
-            <th>N°</th><th>Alias RGPD</th><th>Nom réel</th><th class="text-end">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for s in students %}
-          <tr>
-            <td class="text-muted small">{{ s.student_number }}</td>
-            <td><span class="vox-badge-grey vox-badge">{{ s.alias }}</span></td>
-            <td class="small">{{ s.display_last }}, {{ s.display_first }}</td>
-            <td class="text-end">
-              <a href="/teacher/classes/{{ classroom.id }}/students/{{ s.id }}/edit"
-                 class="btn vox-btn-outline btn-sm py-0 px-2 me-1" title="Modifier">
-                <i class="bi bi-pencil"></i>
-              </a>
-              <form method="POST"
-                    action="/teacher/classes/{{ classroom.id }}/students/{{ s.id }}/delete"
-                    class="d-inline"
-                    onsubmit="return confirm('Supprimer {{ s.alias }} ?')">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-danger btn-sm py-0 px-2" title="Supprimer">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div style="max-height:420px;overflow-y:auto;padding-right:.25rem">
+        {% for s in students %}
+        <div class="cls-student-row">
+          <span class="cls-student-num">{{ s.student_number }}</span>
+          <span class="cls-student-alias">{{ s.alias }}</span>
+          <span class="cls-student-name">{{ s.display_last }}, {{ s.display_first }}</span>
+          <div class="cls-student-actions">
+            <a href="/teacher/classes/{{ classroom.id }}/students/{{ s.id }}/edit"
+               class="cls-action-btn" title="Modifier">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form method="POST"
+                  action="/teacher/classes/{{ classroom.id }}/students/{{ s.id }}/delete"
+                  class="d-inline"
+                  onsubmit="return confirm('Supprimer {{ s.alias }} ?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="cls-action-btn danger" title="Supprimer">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
       {% else %}
       <p class="text-muted small mb-0">Aucun élève.</p>
       {% endif %}
 
       <!-- Ajout élève -->
-      <hr class="my-3">
-      <p class="fw-bold small mb-2">Ajouter un élève</p>
-      <form method="POST" action="/teacher/classes/{{ classroom.id }}/students/add">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="row g-2 mb-2">
-          <div class="col">
-            <input type="text" name="first_name" class="vox-input" placeholder="Prénom" required>
+      <div class="cls-add-form">
+        <p class="fw-bold small mb-2">Ajouter un élève</p>
+        <form method="POST" action="/teacher/classes/{{ classroom.id }}/students/add">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-2 mb-2">
+            <div class="col">
+              <input type="text" name="first_name" class="vox-input" placeholder="Prénom" required>
+            </div>
+            <div class="col">
+              <input type="text" name="last_name" class="vox-input" placeholder="Nom" required>
+            </div>
           </div>
-          <div class="col">
-            <input type="text" name="last_name" class="vox-input" placeholder="Nom" required>
-          </div>
-        </div>
-        <button type="submit" class="btn vox-btn-primary btn-sm w-100">
-          <i class="bi bi-person-plus me-1"></i>Ajouter
-        </button>
-      </form>
+          <button type="submit" class="btn vox-btn-primary btn-sm w-100">
+            <i class="bi bi-person-plus me-1"></i>Ajouter
+          </button>
+        </form>
+      </div>
     </div>
   </div>
 
   <!-- Devoirs -->
   <div class="col-lg-7">
     <div class="vox-card">
-      <div class="fw-bold mb-3">
-        Devoirs <span class="vox-badge ms-1">{{ assignments|length }}</span>
+      <div class="cls-section-title">
+        <i class="bi bi-file-text"></i>
+        Devoirs
+        <span class="vox-badge ms-1">{{ assignments|length }}</span>
       </div>
+
       {% if assignments %}
-      <table class="vox-table">
-        <thead>
-          <tr><th>Titre</th><th>Date</th><th>Barème</th><th class="text-end">Actions</th></tr>
-        </thead>
-        <tbody>
-          {% for a in assignments %}
-          <tr>
-            <td>
-              <a href="/teacher/assignments/{{ a.id }}/corrections" class="fw-500 text-decoration-none">
-                {{ a.title }}
-              </a>
-            </td>
-            <td class="text-muted small">{{ a.date.strftime('%d/%m/%Y') }}</td>
-            <td class="small">/ {{ a.total_points }} — {{ a.questions|length }} Q</td>
-            <td class="text-end">
-              <a href="/teacher/assignments/{{ a.id }}/corrections"
-                 class="btn vox-btn-primary btn-sm py-0 px-2 me-1" title="Corriger">
-                <i class="bi bi-mic-fill"></i>
-              </a>
-              <a href="/teacher/assignments/{{ a.id }}/edit"
-                 class="btn vox-btn-outline btn-sm py-0 px-2 me-1" title="Modifier">
-                <i class="bi bi-pencil"></i>
-              </a>
-              <form method="POST" action="/teacher/assignments/{{ a.id }}/delete"
-                    class="d-inline"
-                    onsubmit="return confirm('Supprimer « {{ a.title }} » et toutes ses corrections ?')">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-danger btn-sm py-0 px-2" title="Supprimer">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      {% for a in assignments %}
+      <div class="cls-assignment-row">
+        <a href="/teacher/assignments/{{ a.id }}/corrections"
+           class="cls-assignment-title">{{ a.title }}</a>
+        <span class="cls-assignment-meta">{{ a.date.strftime('%d/%m/%Y') }}</span>
+        <span class="cls-assignment-badge">/ {{ a.total_points }} · {{ a.questions|length }} Q</span>
+        <div class="cls-assignment-actions">
+          <a href="/teacher/assignments/{{ a.id }}/corrections"
+             class="cls-action-btn" title="Corriger"
+             style="background:var(--vox-neon);border-color:var(--vox-neon);color:var(--vox-black)">
+            <i class="bi bi-mic-fill"></i>
+          </a>
+          <a href="/teacher/assignments/{{ a.id }}/edit"
+             class="cls-action-btn" title="Modifier">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <form method="POST" action="/teacher/assignments/{{ a.id }}/delete"
+                class="d-inline"
+                onsubmit="return confirm('Supprimer « {{ a.title }} » ?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="cls-action-btn danger" title="Supprimer">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
       {% else %}
-      <p class="text-muted small">Aucun devoir. Créez-en un pour commencer.</p>
-      <a href="/teacher/assignments/new/{{ classroom.id }}" class="btn vox-btn-primary btn-sm">
-        Créer un devoir
-      </a>
+      <div class="text-center py-4">
+        <p class="text-muted small mb-3">Aucun devoir pour cette classe.</p>
+        <a href="/teacher/assignments/new/{{ classroom.id }}" class="btn vox-btn-primary btn-sm">
+          <i class="bi bi-plus-lg me-1"></i>Créer un devoir
+        </a>
+      </div>
       {% endif %}
     </div>
   </div>
