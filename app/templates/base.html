@@ -103,22 +103,6 @@
   {% endwith %}
 </div>
 
-{% if breadcrumbs is defined and breadcrumbs %}
-<nav aria-label="breadcrumb" class="container pt-3 pb-0">
-  <ol class="breadcrumb mb-0" style="font-size:.8rem">
-    <li class="breadcrumb-item">
-      <a href="/teacher/dashboard" class="text-muted"><i class="bi bi-house me-1"></i>Accueil</a>
-    </li>
-    {% for crumb in breadcrumbs %}
-    <li class="breadcrumb-item {% if loop.last %}active text-dark{% endif %}">
-      {% if not loop.last and crumb.url %}
-      <a href="{{ crumb.url }}" class="text-muted">{{ crumb.label }}</a>
-      {% else %}{{ crumb.label }}{% endif %}
-    </li>
-    {% endfor %}
-  </ol>
-</nav>
-{% endif %}
 <main class="{% block main_class %}container py-4{% endblock %}">
   {% block content %}{% endblock %}
 </main>
