@@ -1009,6 +1009,14 @@ def correction_pdf(correction_id):
         return redirect(url_for('teacher.dashboard'))
 
     student = corr.student
+
+    # Déchiffrement du vrai nom
+    try:
+        student_first = decrypt_name(student.encrypted_first_name)
+        student_last  = decrypt_name(student.encrypted_last_name)
+    except Exception:
+        student_first = student_last = '—'
+
     scores_detail = [
         {
             'label':      qs.question.label,
@@ -1019,6 +1027,12 @@ def correction_pdf(correction_id):
         for qs in corr.scores
     ]
 
+    # Date du devoir en français
+    MOIS_FR = ['janvier','février','mars','avril','mai','juin',
+               'juillet','août','septembre','octobre','novembre','décembre']
+    d = corr.assignment.date
+    assignment_date_fr = f"{d.day} {MOIS_FR[d.month - 1]} {d.year}"
+
     qr_url  = f"{current_app.config['APP_BASE_URL']}/c/{corr.public_token}"
     qr_data = make_qr(corr.public_token) if corr.status == 'published' else None
     qr_b64  = qr_data['png_b64'] if qr_data else None
@@ -1027,6 +1041,9 @@ def correction_pdf(correction_id):
         'teacher/correction_pdf.html',
         correction=corr,
         student=student,
+        student_first=student_first,
+        student_last=student_last,
+        assignment_date_fr=assignment_date_fr,
         scores=scores_detail,
         qr_b64=qr_b64,
         qr_url=qr_url if corr.status == 'published' else None,

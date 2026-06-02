@@ -11,8 +11,8 @@
       font-family: 'Inter', sans-serif;
       font-size: 11pt;
       color: #1a1a1a;
-      line-height: 1.6;
-      padding: 1.5cm 2cm;
+      line-height: 1.5;
+      padding: 1.2cm 1.8cm;
     }
 
     /* En-tête */
@@ -21,10 +21,10 @@
       justify-content: space-between;
       align-items: flex-start;
       border-bottom: 3px solid {{ teacher.theme_primary }};
-      padding-bottom: 1rem;
-      margin-bottom: 1.5rem;
+      padding-bottom: .8rem;
+      margin-bottom: 1rem;
     }
-    .header-left h1 { font-size: 16pt; font-weight: 700; }
+    .header-left h1 { font-size: 15pt; font-weight: 700; }
     .header-left p  { font-size: 9pt; color: #666; margin-top: .2rem; }
     .voxcorr-brand  { font-size: 9pt; color: #999; text-align: right; }
 
@@ -32,29 +32,29 @@
     .meta-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-      margin-bottom: 1rem;
+      gap: .8rem;
+      margin-bottom: .9rem;
     }
     .meta-card {
       border: 1px solid #e5e7eb;
       border-radius: 8px;
-      padding: .55rem .8rem;
+      padding: .45rem .75rem;
     }
     .meta-label {
-      font-size: 8pt;
+      font-size: 7.5pt;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: .06em;
       color: #999;
-      margin-bottom: .3rem;
+      margin-bottom: .25rem;
     }
-    .meta-value { font-weight: 600; font-size: 11pt; }
-    .meta-sub   { font-size: 9pt; color: #666; }
+    .meta-value { font-weight: 600; font-size: 10.5pt; }
+    .meta-sub   { font-size: 8.5pt; color: #666; }
 
     /* Appréciation générale */
     .appreciation-section {
-      margin-bottom: 1.1rem;
-      padding: .6rem .9rem;
+      margin-bottom: .9rem;
+      padding: .5rem .8rem;
       background: #f9f9f7;
       border: 1px solid #e5e7eb;
       border-left: 3px solid {{ teacher.theme_primary }};
@@ -66,20 +66,21 @@
       text-transform: uppercase;
       letter-spacing: .06em;
       color: #999;
-      margin-bottom: .35rem;
+      margin-bottom: .3rem;
     }
     .appreciation-body {
-      font-size: 9.5pt;
-      line-height: 1.6;
+      font-size: 9pt;
+      line-height: 1.55;
       color: #333;
     }
+    .appreciation-body p { margin-bottom: .3rem; }
 
     /* Tableau des notes */
-    .scores-section { margin-bottom: 1.1rem; }
+    .scores-section { margin-bottom: .9rem; }
     .scores-section h2 {
-      font-size: 11pt;
+      font-size: 10.5pt;
       font-weight: 700;
-      margin-bottom: .75rem;
+      margin-bottom: .5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -87,70 +88,74 @@
     .total-badge {
       background: {{ teacher.theme_primary }};
       color: #000;
-      font-size: 10pt;
+      font-size: 9.5pt;
       font-weight: 700;
-      padding: .2rem .7rem;
+      padding: .15rem .65rem;
       border-radius: 999px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 9.5pt;
+      font-size: 9pt;
     }
     th {
       text-align: left;
-      font-size: 8pt;
+      font-size: 7.5pt;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: .05em;
       color: #666;
       border-bottom: 2px solid #e5e7eb;
-      padding: .4rem .5rem;
+      padding: .3rem .5rem;
     }
     td {
-      padding: .25rem .5rem;
+      padding: .2rem .5rem;
       border-bottom: 1px solid #f3f4f6;
     }
     .score-val { font-weight: 700; }
 
     /* Synthèse */
-    .synth-section { margin-bottom: 1.1rem; }
+    .synth-section { margin-bottom: .9rem; }
     .synth-section h2 {
-      font-size: 11pt;
+      font-size: 10.5pt;
       font-weight: 700;
-      margin-bottom: .75rem;
+      margin-bottom: .6rem;
     }
     .synth-body {
-      font-size: 10.5pt;
-      line-height: 1.75;
+      font-size: 10pt;
+      line-height: 1.65;
     }
     .synth-body section {
-      margin-bottom: 1rem;
-      padding-left: .75rem;
+      margin-bottom: .8rem;
+      padding-left: .7rem;
       border-left: 3px solid {{ teacher.theme_primary }};
     }
     .synth-body .section-label {
-      font-size: 8pt;
+      font-size: 7.5pt;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: .06em;
       color: {{ teacher.theme_primary }};
-      margin-bottom: .3rem;
+      margin-bottom: .25rem;
+    }
+
+    /* Bloc synthèse+QR solidaire — ne se coupe jamais entre les deux */
+    .synth-qr-block {
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     /* QR Code */
     .qr-section {
-      margin-top: 1.5rem;
-      padding-top: 1rem;
+      margin-top: .8rem;
+      padding-top: .8rem;
       border-top: 1px solid #e5e7eb;
-      page-break-before: avoid;
-      break-before: avoid;
       display: flex;
       align-items: center;
-      gap: 1.5rem;
+      gap: 1.2rem;
     }
-    .qr-section img { width: 80px; height: 80px; }
-    .qr-text { font-size: 9pt; color: #666; }
+    .qr-section img { width: 72px; height: 72px; }
+    .qr-text { font-size: 8.5pt; color: #666; }
     .qr-text strong { display: block; margin-bottom: .2rem; color: #1a1a1a; }
 
     /* Pied de page */
@@ -188,7 +193,7 @@
     <div class="meta-card">
       <div class="meta-label">Devoir</div>
       <div class="meta-value">{{ correction.assignment.title }}</div>
-      <div class="meta-sub">{{ assignment_date_fr }} · /{{ correction.assignment.total_points }} pts</div>
+      <div class="meta-sub">{{ assignment_date_fr }} · Barème : {{ correction.assignment.total_points }} pts</div>
     </div>
   </div>
 
@@ -234,27 +239,30 @@
   </div>
   {% endif %}
 
-  <!-- Synthèse -->
-  {% if correction.structured_text %}
-  <div class="synth-section">
-    <h2>✦ Commentaires de votre enseignant</h2>
-    <div class="synth-body">
-      {{ correction.structured_text | safe }}
-    </div>
-  </div>
-  {% endif %}
+  <!-- Synthèse + QR dans un bloc solidaire -->
+  <div class="synth-qr-block">
 
-  <!-- QR Code -->
-  {% if qr_b64 %}
-  <div class="qr-section">
-    <img src="{{ qr_b64 }}" alt="QR Code">
-    <div class="qr-text">
-      <strong>Accédez à votre correction audio en ligne</strong>
-      Scannez ce QR code ou rendez-vous sur :<br>
-      <span style="color:#2563eb">{{ qr_url }}</span>
+    {% if correction.structured_text %}
+    <div class="synth-section">
+      <h2>✦ Commentaires de votre enseignant</h2>
+      <div class="synth-body">
+        {{ correction.structured_text | safe }}
+      </div>
     </div>
+    {% endif %}
+
+    {% if qr_b64 %}
+    <div class="qr-section">
+      <img src="{{ qr_b64 }}" alt="QR Code">
+      <div class="qr-text">
+        <strong>Accédez à votre correction audio en ligne</strong>
+        Scannez ce QR code ou rendez-vous sur :<br>
+        <span style="color:#2563eb">{{ qr_url }}</span>
+      </div>
+    </div>
+    {% endif %}
+
   </div>
-  {% endif %}
 
 </body>
 </html>
