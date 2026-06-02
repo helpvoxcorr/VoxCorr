@@ -12,7 +12,7 @@
       font-size: 11pt;
       color: #1a1a1a;
       line-height: 1.6;
-      padding: 2cm 2.5cm;
+      padding: 1.5cm 2cm;
     }
 
     /* En-tête */
@@ -33,12 +33,12 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
     }
     .meta-card {
       border: 1px solid #e5e7eb;
       border-radius: 8px;
-      padding: .75rem 1rem;
+      padding: .55rem .8rem;
     }
     .meta-label {
       font-size: 8pt;
@@ -48,11 +48,34 @@
       color: #999;
       margin-bottom: .3rem;
     }
-    .meta-value { font-weight: 600; font-size: 12pt; }
+    .meta-value { font-weight: 600; font-size: 11pt; }
     .meta-sub   { font-size: 9pt; color: #666; }
 
+    /* Appréciation générale */
+    .appreciation-section {
+      margin-bottom: 1.1rem;
+      padding: .6rem .9rem;
+      background: #f9f9f7;
+      border: 1px solid #e5e7eb;
+      border-left: 3px solid {{ teacher.theme_primary }};
+      border-radius: 6px;
+    }
+    .appreciation-label {
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #999;
+      margin-bottom: .35rem;
+    }
+    .appreciation-body {
+      font-size: 9.5pt;
+      line-height: 1.6;
+      color: #333;
+    }
+
     /* Tableau des notes */
-    .scores-section { margin-bottom: 1.5rem; }
+    .scores-section { margin-bottom: 1.1rem; }
     .scores-section h2 {
       font-size: 11pt;
       font-weight: 700;
@@ -85,13 +108,13 @@
       padding: .4rem .5rem;
     }
     td {
-      padding: .5rem .5rem;
+      padding: .35rem .5rem;
       border-bottom: 1px solid #f3f4f6;
     }
     .score-val { font-weight: 700; }
 
     /* Synthèse */
-    .synth-section { margin-bottom: 1.5rem; }
+    .synth-section { margin-bottom: 1.1rem; }
     .synth-section h2 {
       font-size: 11pt;
       font-weight: 700;
@@ -166,6 +189,14 @@
       <div class="meta-sub">{{ correction.assignment.date.strftime('%d %B %Y') }} · /{{ correction.assignment.total_points }} pts</div>
     </div>
   </div>
+
+  <!-- Appréciation générale de la classe -->
+  {% if correction.assignment.class_appreciation %}
+  <div class="appreciation-section">
+    <div class="appreciation-label">Appréciation générale de la classe</div>
+    <div class="appreciation-body">{{ correction.assignment.class_appreciation }}</div>
+  </div>
+  {% endif %}
 
   <!-- Notes -->
   {% if scores %}
