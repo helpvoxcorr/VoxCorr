@@ -343,9 +343,10 @@
     st.textContent = 'Enregistrement…';
 
     // 1. Sauvegarde texte
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
     const r1 = await fetch(`/teacher/assignments/${assignmentId}/appreciation`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
       body:    JSON.stringify({ text }),
     });
     if (!r1.ok) { st.textContent = '✗ Erreur texte'; return; }
@@ -375,9 +376,10 @@
     st.innerHTML = '<span class="text-warning">⏳ Mistral reformule…</span>';
     document.getElementById('btn-synthesize-appreciation').disabled = true;
     try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
       const r = await fetch(`/teacher/assignments/${assignmentId}/appreciation/synthesize`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
         body:    JSON.stringify({ text }),
       });
       const data = await r.json();
