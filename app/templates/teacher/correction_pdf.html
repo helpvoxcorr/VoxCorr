@@ -194,7 +194,7 @@
   {% if correction.assignment.class_appreciation %}
   <div class="appreciation-section">
     <div class="appreciation-label">Appréciation générale de la classe</div>
-    <div class="appreciation-body">{{ correction.assignment.class_appreciation }}</div>
+    <div class="appreciation-body">{{ correction.assignment.class_appreciation | safe }}</div>
   </div>
   {% endif %}
 
