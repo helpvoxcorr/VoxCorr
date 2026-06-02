@@ -86,7 +86,14 @@
   <div class="dash-classes">
     {% for c in classes %}
     {% set nb_assignments = c.assignments|length %}
-    {% set progress_pct = [[(nb_assignments / 5 * 100)|int, 100]|min, 0]|max %}
+    {# Devoirs non entièrement corrigés #}
+    {% set incomplete = [] %}
+    {% for a in c.assignments %}
+      {% set stat = assign_stats.get(a.id, {'done': 0, 'total': 0, 'pct': 0}) %}
+      {% if stat.pct < 100 %}
+        {% set _ = incomplete.append({'a': a, 'stat': stat}) %}
+      {% endif %}
+    {% endfor %}
     <div class="dash-class-card" onclick="window.location='/teacher/classes/{{ c.id }}'">
       <div class="dash-card-top">
         <div>
@@ -96,9 +103,31 @@
         </div>
         <span class="dash-badge-students">{{ c.students|length }}</span>
       </div>
-      <div class="dash-card-progress">
-        <div class="dash-card-progress-fill" style="width:{{ progress_pct }}%"></div>
-      </div>
+
+      {% if nb_assignments == 0 %}
+        {# Pas encore de devoir : aucun indicateur #}
+      {% elif incomplete|length == 0 %}
+        <div class="dash-assign-all-done">
+          <i class="bi bi-check-circle-fill"></i> Tous les devoirs corrigés
+        </div>
+      {% else %}
+        <div class="dash-assign-list">
+          {% for item in incomplete %}
+            {% set filled = (item.stat.pct / 10) | int %}
+            <div class="dash-assign-row"
+                 title="{{ item.stat.done }}/{{ item.stat.total }} élèves — {{ item.a.title }}">
+              <span class="dash-assign-name">{{ item.a.title }}</span>
+              <span class="dash-assign-dots">
+                {% for i in range(10) %}
+                  <span class="dash-dot {% if i < filled %}on{% endif %}"></span>
+                {% endfor %}
+              </span>
+              <span class="dash-assign-pct">{{ item.stat.pct }}%</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
       <div class="dash-card-footer">
         <div class="dash-card-meta">
           <i class="bi bi-file-text"></i>

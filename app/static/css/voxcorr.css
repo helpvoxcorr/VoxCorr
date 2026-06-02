@@ -398,18 +398,56 @@ a.vox-card:hover{border-color:#0a0a0a}
   border-radius: 100px;
   flex-shrink: 0;
 }
-.dash-card-progress {
-  height: 3px;
-  background: #f3f4f6;
-  border-radius: 2px;
+/* Progression des corrections par devoir (dots) */
+.dash-assign-list {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
   margin-bottom: .85rem;
-  overflow: hidden;
 }
-.dash-card-progress-fill {
-  height: 100%;
-  background: var(--vox-neon);
-  border-radius: 2px;
-  transition: width .6s ease;
+.dash-assign-row {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+.dash-assign-name {
+  font-size: .7rem;
+  color: #999;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-assign-dots {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.dash-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+.dash-dot.on { background: var(--vox-neon); }
+.dash-assign-pct {
+  font-family: 'DM Mono', monospace;
+  font-size: .68rem;
+  color: #aaa;
+  width: 26px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.dash-assign-all-done {
+  font-size: .7rem;
+  color: var(--vox-neon);
+  font-weight: 600;
+  margin-bottom: .85rem;
+  display: flex;
+  align-items: center;
+  gap: .3rem;
 }
 .dash-card-footer {
   display: flex;

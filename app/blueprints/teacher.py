@@ -26,6 +26,22 @@ def dashboard():
     classrooms     = Classroom.query.filter_by(teacher_id=current_user.id).all()
     total_students = sum(len(c.students)    for c in classrooms)
     total_devoirs  = sum(len(c.assignments) for c in classrooms)
+    # Calcul du taux de correction par devoir
+    assign_stats = {}
+    for c in classrooms:
+        total = len(c.students)
+        for a in c.assignments:
+            done = Correction.query.filter_by(
+                assignment_id=a.id, status='published'
+            ).count()
+            pct = int(done / total * 100) if total > 0 else 0
+            assign_stats[a.id] = {'done': done, 'total': total, 'pct': pct}
+
+    return render_template('teacher/dashboard.html',
+        classrooms=classrooms,
+        assign_stats=assign_stats,
+        # ... tes autres variables existantes
+    )
     return render_template('teacher/dashboard.html',
                            classrooms=classrooms,
                            total_students=total_students,
