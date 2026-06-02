@@ -95,7 +95,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 10pt;
+      font-size: 9.5pt;
     }
     th {
       text-align: left;
@@ -108,7 +108,7 @@
       padding: .4rem .5rem;
     }
     td {
-      padding: .35rem .5rem;
+      padding: .25rem .5rem;
       border-bottom: 1px solid #f3f4f6;
     }
     .score-val { font-weight: 700; }
@@ -143,6 +143,8 @@
       margin-top: 1.5rem;
       padding-top: 1rem;
       border-top: 1px solid #e5e7eb;
+      page-break-before: avoid;
+      break-before: avoid;
       display: flex;
       align-items: center;
       gap: 1.5rem;
@@ -167,7 +169,7 @@
   <!-- En-tête -->
   <div class="header">
     <div class="header-left">
-      <h1>Correction — {{ student.alias }}</h1>
+      <h1>Correction — {{ student_last }} {{ student_first }}</h1>
       <p>{{ correction.assignment.title }} · {{ correction.assignment.date.strftime('%d/%m/%Y') }}</p>
     </div>
     <div class="voxcorr-brand">
@@ -180,13 +182,13 @@
   <div class="meta-grid">
     <div class="meta-card">
       <div class="meta-label">Élève</div>
-      <div class="meta-value">{{ student.alias }}</div>
-      <div class="meta-sub">{{ correction.assignment.classroom.name }}{% if correction.assignment.classroom.subject %} · {{ correction.assignment.classroom.subject }}{% endif %}</div>
+      <div class="meta-value">{{ student_last }} {{ student_first }}</div>
+      <div class="meta-sub">{{ student.alias }} · {{ correction.assignment.classroom.name }}{% if correction.assignment.classroom.subject %} · {{ correction.assignment.classroom.subject }}{% endif %}</div>
     </div>
     <div class="meta-card">
       <div class="meta-label">Devoir</div>
       <div class="meta-value">{{ correction.assignment.title }}</div>
-      <div class="meta-sub">{{ correction.assignment.date.strftime('%d %B %Y') }} · /{{ correction.assignment.total_points }} pts</div>
+      <div class="meta-sub">{{ assignment_date_fr }} · /{{ correction.assignment.total_points }} pts</div>
     </div>
   </div>
 
