@@ -16,6 +16,8 @@ csrf = CSRFProtect()
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 limiter = Limiter(key_func=get_remote_address, default_limits=[])
+from flask_socketio import SocketIO
+socketio = SocketIO()
 
 login_manager.login_view             = 'auth.login'
 login_manager.login_message          = 'Connectez-vous pour accéder à cette page.'
@@ -32,6 +34,7 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
+    socketio.init_app(app, cors_allowed_origins="*")
 
     from app import models
     from app.blueprints.auth    import auth_bp
@@ -103,7 +106,7 @@ def create_app(config_class=Config):
     #         app.logger.info('[migrate] flask db upgrade OK')
     #     except Exception as e:
     #         app.logger.error(f'[migrate] Erreur : {e}')
-    return app  # ← INDISPENSABLE
+    return app, socketio
 
 
 def _run_purge(app):
