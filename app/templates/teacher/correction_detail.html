@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% set breadcrumbs = [
-  {"label": "Classes",                 "url": "/teacher/classes"},
+  {"label": "Classes", "url": "/teacher/classes"},
   {"label": correction.assignment.classroom.name, "url": "/teacher/classes/" ~ correction.assignment.classroom_id},
-  {"label": correction.assignment.title,          "url": "/teacher/assignments/" ~ correction.assignment_id ~ "/corrections"},
-  {"label": student.alias,             "url": None}
+  {"label": correction.assignment.title, "url": "/teacher/assignments/" ~ correction.assignment_id ~ "/corrections"},
+  {"label": student.alias, "url": None}
 ] %}
 {% block title %}Correction {{ student.alias }} — {{ correction.assignment.title }}{% endblock %}
 
@@ -143,49 +143,27 @@
     {% if correction.audio_url %}
     <div class="vox-card mb-3">
       <div class="fw-bold mb-2"><i class="bi bi-volume-up me-2"></i>Correction audio</div>
+      
+      <!-- Lecteur audio simple -->
       <audio controls src="{{ correction.audio_url }}"
-            style="width:100%;accent-color:var(--vox-neon)" preload="none"></audio>
+             style="width:100%;accent-color:var(--vox-neon)" preload="none"></audio>
       {% if correction.audio_duration %}
       <div class="text-muted small mt-1">
         Durée : {{ (correction.audio_duration // 60)|int }}min {{ (correction.audio_duration % 60)|int }}s
       </div>
       {% endif %}
 
-      {# ── WAVEFORM ÉDITEUR ── #}
+      <!-- Éditeur waveform -->
       <div class="mt-3">
         <div id="waveform-container" style="margin: 15px 0;"></div>
-        <div class="d-flex gap-2">
-          <button id="waveform-play" class="btn btn-sm vox-btn-primary">▶ Lecture</button>
-          <button id="waveform-pause" class="btn btn-sm vox-btn-outline">⏸ Pause</button>
-          <button id="waveform-zoom" class="btn btn-sm vox-btn-outline">🔍 Zoom +</button>
-          <button id="waveform-reset" class="btn btn-sm vox-btn-outline">⟲ Réinitialiser</button>
+        <div class="d-flex gap-2 flex-wrap">
+          <button id="waveform-play" class="btn btn-sm vox-btn-primary" disabled>▶ Lecture</button>
+          <button id="waveform-pause" class="btn btn-sm vox-btn-outline" disabled>⏸ Pause</button>
+          <button id="waveform-zoom" class="btn btn-sm vox-btn-outline" disabled>🔍 Zoom +</button>
+          <button id="waveform-reset" class="btn btn-sm vox-btn-outline" disabled>⟲ Réinitialiser</button>
         </div>
       </div>
     </div>
-    {% endif %}
-
-    {% if correction.audio_url %}
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        if (typeof WaveSurfer !== 'undefined') {
-          const wavesurfer = WaveSurfer.create({
-            container: '#waveform-container',
-            waveColor: '#4F4A85',
-            progressColor: '#39FF14',
-            cursorColor: '#FF0000',
-            barWidth: 2,
-            barRadius: 3,
-            height: 100,
-            responsive: true,
-            url: '{{ correction.audio_url }}'
-          });
-          document.getElementById('waveform-play')?.addEventListener('click', () => wavesurfer.play());
-          document.getElementById('waveform-pause')?.addEventListener('click', () => wavesurfer.pause());
-          document.getElementById('waveform-zoom')?.addEventListener('click', () => wavesurfer.zoom(100));
-          document.getElementById('waveform-reset')?.addEventListener('click', () => wavesurfer.zoom(0));
-        }
-      });
-    </script>
     {% endif %}
 
     {# Synthèse Mistral #}
@@ -339,7 +317,6 @@ document.getElementById('btn-delete-corr-confirm')?.addEventListener('click', as
   let _polling = null;
 
   function startPolling() {
-    // Poll /api/correction/<id>/status toutes les 3s
     _polling = setInterval(async () => {
       try {
         const res = await fetch('/teacher/api/correction/{{ correction.id }}/status')
@@ -355,7 +332,6 @@ document.getElementById('btn-delete-corr-confirm')?.addEventListener('click', as
   btn.addEventListener('click', async function () {
     this.disabled = true;
     this.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Recalcul en cours…';
-
     const statusBar = document.getElementById('resynth-status');
     statusBar?.classList.remove('d-none');
 
@@ -364,7 +340,6 @@ document.getElementById('btn-delete-corr-confirm')?.addEventListener('click', as
         method:  'POST',
         headers: { 'X-CSRFToken': _csrf() },
       }).then(r => r.json());
-
       if (res.ok) {
         startPolling();
       } else {
@@ -379,6 +354,58 @@ document.getElementById('btn-delete-corr-confirm')?.addEventListener('click', as
       this.innerHTML = '<i class="bi bi-stars me-1"></i>Recalculer la synthèse';
       alert('Erreur réseau.');
     }
+  });
+})();
+
+// ── Éditeur audio waveform ──────────────────────────────────────────────────
+(function() {
+  const audioUrl = '{{ correction.audio_url }}';
+  if (!audioUrl) return;
+
+  // Attendre que WaveSurfer soit chargé
+  function waitForWaveSurfer(cb, attempts = 0) {
+    if (typeof WaveSurfer !== 'undefined') {
+      cb();
+    } else if (attempts < 30) {
+      setTimeout(() => waitForWaveSurfer(cb, attempts + 1), 200);
+    } else {
+      console.error('WaveSurfer non chargé après 6 secondes');
+      document.getElementById('waveform-container').innerHTML = '<div class="text-muted">Éditeur audio indisponible</div>';
+    }
+  }
+
+  waitForWaveSurfer(() => {
+    const container = document.getElementById('waveform-container');
+    if (!container) return;
+    const wavesurfer = WaveSurfer.create({
+      container: '#waveform-container',
+      waveColor: '#4F4A85',
+      progressColor: '#39FF14',
+      cursorColor: '#FF0000',
+      barWidth: 2,
+      barRadius: 3,
+      height: 100,
+      responsive: true,
+      url: audioUrl
+    });
+
+    wavesurfer.on('ready', () => {
+      console.log('Waveform prêt');
+      document.getElementById('waveform-play').disabled = false;
+      document.getElementById('waveform-pause').disabled = false;
+      document.getElementById('waveform-zoom').disabled = false;
+      document.getElementById('waveform-reset').disabled = false;
+    });
+
+    wavesurfer.on('error', (err) => {
+      console.error('WaveSurfer error', err);
+      container.innerHTML = '<div class="text-danger small">Impossible de charger la forme d\'onde</div>';
+    });
+
+    document.getElementById('waveform-play')?.addEventListener('click', () => wavesurfer.play());
+    document.getElementById('waveform-pause')?.addEventListener('click', () => wavesurfer.pause());
+    document.getElementById('waveform-zoom')?.addEventListener('click', () => wavesurfer.zoom(100));
+    document.getElementById('waveform-reset')?.addEventListener('click', () => wavesurfer.zoom(0));
   });
 })();
 </script>
