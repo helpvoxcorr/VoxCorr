@@ -40,12 +40,9 @@ def dashboard():
     return render_template('teacher/dashboard.html',
         classrooms=classrooms,
         assign_stats=assign_stats,
-        # ... tes autres variables existantes
+        total_students=total_students,
+        total_corrections=total_devoirs,
     )
-    return render_template('teacher/dashboard.html',
-                           classrooms=classrooms,
-                           total_students=total_students,
-                           total_corrections=total_devoirs)
 
 
 # ── Classes ───────────────────────────────────────────────────────────────────
