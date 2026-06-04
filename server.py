@@ -1,4 +1,4 @@
-# server.py
 from app import create_app
 
-application = create_app()
+app, _ = create_app()
+application = app
