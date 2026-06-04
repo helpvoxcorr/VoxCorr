@@ -489,6 +489,11 @@ def assignment_corrections(assignment_id):
 @login_required
 def record(student_id, assignment_id):
     student    = Student.query.get_or_404(student_id)
+    try:
+        student_first = decrypt_name(student.encrypted_first_name)
+        student_last  = decrypt_name(student.encrypted_last_name)
+    except Exception:
+        student_first = student_last = '—'
     assignment = Assignment.query.get_or_404(assignment_id)
     if assignment.classroom.teacher_id != current_user.id:
         flash('Accès non autorisé.', 'danger')
@@ -530,6 +535,8 @@ def record(student_id, assignment_id):
                            has_prev_correction=_has_correction(prev_id),
                            has_next_correction=_has_correction(next_id),
                            student_index=idx + 1,
+                           student_first=student_first,
+                           student_last=student_last,
                            student_total=len(ids))
 
 
