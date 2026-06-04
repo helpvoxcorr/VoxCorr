@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Mes corrections{% endblock %}
+{% block content %}
+<div class="vox-page-hero mb-4">
+  <h1>Mes corrections</h1>
+  <p>Bienvenue {{ pupil.student.alias }}</p>
+</div>
+<div class="vox-card">
+  {% if corrections %}
+    {% for corr in corrections %}
+    <div class="mb-3 border-bottom pb-2">
+      <div class="fw-bold">{{ corr.assignment.title }} ({{ corr.assignment.date.strftime('%d/%m/%Y') }})</div>
+      <div>Note : {{ '%.1f'|format(corr.total_score) if corr.total_score else '—' }} / {{ corr.assignment.total_points }}</div>
+      <a href="{{ url_for('student.view_correction', correction_id=corr.id) }}" class="btn vox-btn-primary btn-sm mt-1">Voir détail</a>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p>Aucune correction publiée pour l'instant.</p>
+  {% endif %}
+</div>
+{% endblock %}

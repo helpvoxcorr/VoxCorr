@@ -41,7 +41,9 @@ def create_app(config_class=Config):
     from app.blueprints.teacher import teacher_bp
     from app.blueprints.public  import public_bp
     from app.blueprints.pages   import pages_bp
-
+    from app.blueprints.student import student_bp
+    
+    app.register_blueprint(student_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(teacher_bp)
     app.register_blueprint(public_bp)

@@ -86,7 +86,19 @@ class Student(db.Model):
     corrections = db.relationship('Correction',  back_populates='student',
                                   cascade='all, delete-orphan', lazy='select')
  
- 
+class Pupil(db.Model):
+    __tablename__ = 'pupils'
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False, unique=True)
+    access_code = db.Column(db.String(8), unique=True, nullable=False, index=True)
+    last_login = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    student = db.relationship('Student', backref='pupil', uselist=False)
+    
+    @staticmethod
+    def generate_access_code():
+        import secrets
+        return secrets.token_hex(4).upper()
+
 class Assignment(db.Model):
     __tablename__ = 'assignments'
  

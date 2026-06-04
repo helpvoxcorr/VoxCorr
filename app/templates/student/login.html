@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Accès élève - VoxCorr{% endblock %}
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center" style="background:var(--vox-grey)">
+  <div class="vox-card" style="width:100%;max-width:400px">
+    <h3 class="text-center mb-3">Accès élève</h3>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-3">
+        <label class="vox-label">Code d'accès</label>
+        <input type="text" name="access_code" class="vox-input" placeholder="ex: 1A2B3C4D" required>
+      </div>
+      <button type="submit" class="btn vox-btn-primary w-100">Voir mes corrections</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
