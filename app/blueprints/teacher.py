@@ -452,6 +452,23 @@ def delete_assignment(assignment_id):
     return redirect(url_for('teacher.class_detail', class_id=class_id))
 
 
+# ── STATISTIQUES ELEVES ───────────────────────────────────────────────
+@teacher_bp.route('/api/stats/class/<int:class_id>')
+@login_required
+def class_stats(class_id):
+    classroom = Classroom.query.filter_by(id=class_id, teacher_id=current_user.id).first_or_404()
+    # Récupérer tous les devoirs avec leurs corrections
+    data = {
+        'labels': [],
+        'scores': [],
+        'competences': {}
+    }
+    for assignment in classroom.assignments:
+        data['labels'].append(assignment.title)
+        avg_score = sum(c.total_score or 0 for c in assignment.corrections) / max(len(assignment.corrections),1)
+        data['scores'].append(avg_score)
+    return jsonify(data)
+
 # ── Vue corrections d'un devoir ───────────────────────────────────────────────
 
 @teacher_bp.route('/assignments/<int:assignment_id>/corrections')

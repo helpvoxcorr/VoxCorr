@@ -53,6 +53,23 @@
   </div>
 </div>
 
+<!-- Graphique de progression de la classe -->
+<div class="vox-card mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="fw-bold">📈 Progression moyenne de la classe</div>
+    <select id="class-selector-stats" class="form-select form-select-sm w-auto">
+      {% for c in classrooms %}
+      <option value="{{ c.id }}">{{ c.name }} ({{ c.subject or '—' }})</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div id="stats-chart" style="height: 50vh; min-height: 250px; width: 100%;"></div>
+  <div id="stats-loading" class="text-center text-muted py-5 d-none">
+    <div class="spinner-border text-neon" role="status"></div>
+    <p class="mt-2">Chargement des statistiques...</p>
+  </div>
+</div>
+
 <!-- Classes par discipline -->
 {% if classrooms %}
 
@@ -199,6 +216,52 @@ function showDeleteModal(classId, className) {
 }
 document.getElementById('modal-confirm-delete').addEventListener('click', function () {
   if (_deleteFormId) document.getElementById(_deleteFormId).submit();
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const select = document.getElementById('class-selector-stats');
+  const chartDiv = document.getElementById('stats-chart');
+  const loadingDiv = document.getElementById('stats-loading');
+  let currentChart = null;
+
+  function loadStats(classId) {
+    loadingDiv.classList.remove('d-none');
+    chartDiv.classList.add('d-none');
+    fetch(`/teacher/api/stats/class/${classId}`)
+      .then(r => r.json())
+      .then(data => {
+        loadingDiv.classList.add('d-none');
+        chartDiv.classList.remove('d-none');
+        if (currentChart) Plotly.purge(chartDiv);
+        const trace = {
+          x: data.labels,
+          y: data.scores,
+          type: 'scatter',
+          mode: 'lines+markers',
+          name: 'Moyenne classe',
+          line: { color: '#39FF14', width: 3 },
+          marker: { size: 8, color: '#0a0a0a' }
+        };
+        const layout = {
+          title: { text: 'Évolution des moyennes', font: { size: 14 } },
+          xaxis: { title: 'Devoirs' },
+          yaxis: { title: 'Note moyenne /20', range: [0, 20] },
+          plot_bgcolor: '#fff',
+          paper_bgcolor: '#fff'
+        };
+        currentChart = Plotly.newPlot(chartDiv, [trace], layout);
+      })
+      .catch(err => {
+        loadingDiv.classList.add('d-none');
+        chartDiv.classList.remove('d-none');
+        chartDiv.innerHTML = '<div class="alert alert-danger">Erreur chargement stats.</div>';
+        console.error(err);
+      });
+  }
+
+  select.addEventListener('change', () => loadStats(select.value));
+  if (select.options.length) loadStats(select.value);
 });
 </script>
 {% endblock %}
