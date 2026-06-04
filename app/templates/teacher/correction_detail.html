@@ -16,7 +16,8 @@
     {# Carte élève #}
     <div class="vox-card mb-3">
       <div class="text-muted small text-uppercase fw-bold mb-2" style="letter-spacing:.07em">Élève</div>
-      <div class="fw-bold fs-5">{{ student.alias }}</div>
+      <div class="fw-bold fs-5">{{ student.display_last }} {{ student.display_first }}</div>
+      <div class="text-muted small fw-500">{{ student.alias }}</div>
       <div class="text-muted small">
         {{ correction.assignment.classroom.name }}
         {% if correction.assignment.classroom.subject %} · {{ correction.assignment.classroom.subject }}{% endif %}
@@ -204,7 +205,7 @@
         <div class="alert alert-danger py-2 small mb-3">
           <strong>Action irréversible.</strong>
           L'audio, la synthèse et les notes de
-          <strong>{{ student.alias }}</strong> seront définitivement supprimés.
+          <strong>{{ student.display_last }} {{ student.display_first }}</strong> ({{ student.alias }}) seront définitivement supprimés.
         </div>
         <div class="mb-3">
           <label class="vox-label">Mot de passe pour confirmer</label>
