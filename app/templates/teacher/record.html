@@ -5,9 +5,17 @@
 {% block head %}
 <script>
   window.VC = {
-    studentId:    {{ student.id }},
-    assignmentId: {{ assignment.id }},
-    correctionId: {{ existing.id if existing else 'null' }},
+    studentId:         {{ student.id }},
+    assignmentId:      {{ assignment.id }},
+    correctionId:      {{ existing.id if existing else 'null' }},
+    prevStudentId:     {{ prev_student_id or 'null' }},
+    nextStudentId:     {{ next_student_id or 'null' }},
+    hasPrevCorrection: {{ 'true' if has_prev_correction else 'false' }},
+    hasNextCorrection: {{ 'true' if has_next_correction else 'false' }},
+    studentIndex:      {{ student_index }},
+    studentTotal:      {{ student_total }},
+    correctionListUrl: '/teacher/assignments/{{ assignment.id }}/corrections',
+    recordBaseUrl:     '/teacher/record',
   };
 </script>
 {% endblock %}
@@ -19,7 +27,10 @@
   <div class="col-lg-4">
     <div class="vox-card mb-3">
       <div class="text-muted small text-uppercase fw-bold mb-2" style="letter-spacing:.07em">Élève</div>
-      <div class="fw-bold fs-5">{{ student.alias }}</div>
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="fw-bold fs-5">{{ student.alias }}</div>
+        <span class="text-muted small">{{ student_index }} / {{ student_total }}</span>
+      </div>
       <div class="text-muted small">{{ assignment.classroom.name }} · {{ assignment.classroom.subject or '' }}</div>
     </div>
 
@@ -117,6 +128,31 @@
           <i class="bi bi-qr-code me-1"></i>Publier et générer QR
         </button>
       </div>
+
+      <!-- Navigation inter-élèves (visible après publication) -->
+      <div id="nav-correction" class="d-none mt-4 pt-3" style="border-top:1px solid rgba(255,255,255,.1)">
+        <div class="text-white-50 small mb-3">
+          <i class="bi bi-check-circle-fill me-1" style="color:var(--vox-neon)"></i>
+          Correction publiée. Que voulez-vous faire ?
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          {% if prev_student_id %}
+          <button class="btn vox-btn-dark" id="btn-prev-student" style="min-height:44px">
+            <i class="bi bi-arrow-left me-1"></i>Élève précédent
+          </button>
+          {% endif %}
+          {% if next_student_id %}
+          <button class="btn vox-btn-primary" id="btn-next-student" style="min-height:44px">
+            Élève suivant<i class="bi bi-arrow-right ms-1"></i>
+          </button>
+          {% else %}
+          <a href="/teacher/assignments/{{ assignment.id }}/corrections"
+             class="btn vox-btn-primary" style="min-height:44px">
+            <i class="bi bi-list-check me-1"></i>Voir toutes les corrections
+          </a>
+          {% endif %}
+        </div>
+      </div>
     </div>
 
     <!-- Synthèse Mistral -->
@@ -184,5 +220,88 @@ window.voxShowError = function(title, message) {
   document.getElementById('vox-error-body').textContent  = message;
   new bootstrap.Modal(document.getElementById('vox-error-modal')).show();
 };
+</script>
+
+<!-- Modale : correction déjà présente -->
+<div class="modal fade" id="vox-nav-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+      <div class="modal-header border-0 pb-0" style="background:#fff">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:36px;height:36px;border-radius:8px;background:#fff8e1;display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;font-size:1rem"></i>
+          </div>
+          <h5 class="modal-title fw-bold mb-0">Correction déjà présente</h5>
+        </div>
+      </div>
+      <div class="modal-body pt-2" style="background:#fff">
+        <p class="text-muted mb-0" style="font-size:.9rem;line-height:1.6">
+          Cet élève a déjà une correction enregistrée.<br>
+          Voulez-vous la <strong>modifier</strong> ou <strong>passer</strong> cet élève ?
+        </p>
+      </div>
+      <div class="modal-footer border-0 gap-2" style="background:#fff">
+        <button type="button" class="btn vox-btn-dark" id="vox-nav-skip" style="min-height:44px">
+          <i class="bi bi-skip-forward me-1"></i>Passer
+        </button>
+        <button type="button" class="btn vox-btn-primary" id="vox-nav-edit" style="min-height:44px">
+          <i class="bi bi-pencil me-1"></i>Modifier
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const VC = window.VC || {};
+  let _pendingUrl  = null;
+  let _skipUrl     = null;  // URL après "Passer" (élève d'après le cible)
+  let _navModal    = null;
+
+  function getNavModal() {
+    if (!_navModal) _navModal = new bootstrap.Modal(document.getElementById('vox-nav-modal'));
+    return _navModal;
+  }
+
+  function navigateTo(studentId, hasCorrection) {
+    const url = `${VC.recordBaseUrl}/${studentId}/${VC.assignmentId}`;
+    if (hasCorrection) {
+      _pendingUrl = url;
+      // "Passer" redirige vers la liste si c'est le dernier, sinon vers l'élève suivant
+      _skipUrl = null;
+      getNavModal().show();
+    } else {
+      window.location.href = url;
+    }
+  }
+
+  const btnNext = document.getElementById('btn-next-student');
+  if (btnNext) {
+    btnNext.addEventListener('click', () => navigateTo(VC.nextStudentId, VC.hasNextCorrection));
+  }
+
+  const btnPrev = document.getElementById('btn-prev-student');
+  if (btnPrev) {
+    btnPrev.addEventListener('click', () => navigateTo(VC.prevStudentId, VC.hasPrevCorrection));
+  }
+
+  // "Modifier" → on ouvre quand même la page de correction
+  document.getElementById('vox-nav-edit')?.addEventListener('click', () => {
+    getNavModal().hide();
+    if (_pendingUrl) window.location.href = _pendingUrl;
+  });
+
+  // "Passer" → on reste sur la liste des corrections du devoir
+  document.getElementById('vox-nav-skip')?.addEventListener('click', () => {
+    getNavModal().hide();
+    window.location.href = VC.correctionListUrl;
+  });
+
+  // Appelé par record_page.js après publication
+  window.voxShowNavButtons = function() {
+    document.getElementById('nav-correction')?.classList.remove('d-none');
+  };
+})();
 </script>
 {% endblock %}

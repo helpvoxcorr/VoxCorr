@@ -79,6 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await api.publish(correctionId);
       UI.setState('published', res);
+      // Affiche les boutons de navigation inter-élèves
+      if (typeof window.voxShowNavButtons === 'function') window.voxShowNavButtons();
     } catch (err) {
       alert('Erreur publication : ' + err.message);
     }

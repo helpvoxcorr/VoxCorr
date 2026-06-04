@@ -496,9 +496,41 @@ def record(student_id, assignment_id):
     existing = Correction.query.filter_by(
         student_id=student_id, assignment_id=assignment_id
     ).first()
+
+    # Tri alphabétique par nom de famille déchiffré (ordre Pronote)
+    all_students = Student.query.filter_by(classroom_id=assignment.classroom_id).all()
+    def _sort_key(s):
+        try:
+            return decrypt_name(s.encrypted_last_name).lower()
+        except Exception:
+            return s.alias.lower()
+    all_students.sort(key=_sort_key)
+
+    ids = [s.id for s in all_students]
+    try:
+        idx = ids.index(student_id)
+    except ValueError:
+        idx = 0
+
+    prev_id = ids[idx - 1] if idx > 0 else None
+    next_id = ids[idx + 1] if idx < len(ids) - 1 else None
+
+    def _has_correction(sid):
+        if sid is None:
+            return False
+        return Correction.query.filter_by(
+            student_id=sid, assignment_id=assignment_id
+        ).first() is not None
+
     return render_template('teacher/record.html',
                            student=student, assignment=assignment,
-                           questions=assignment.questions, existing=existing)
+                           questions=assignment.questions, existing=existing,
+                           prev_student_id=prev_id,
+                           next_student_id=next_id,
+                           has_prev_correction=_has_correction(prev_id),
+                           has_next_correction=_has_correction(next_id),
+                           student_index=idx + 1,
+                           student_total=len(ids))
 
 
 
@@ -1009,14 +1041,6 @@ def correction_pdf(correction_id):
         return redirect(url_for('teacher.dashboard'))
 
     student = corr.student
-
-    # Déchiffrement du vrai nom
-    try:
-        student_first = decrypt_name(student.encrypted_first_name)
-        student_last  = decrypt_name(student.encrypted_last_name)
-    except Exception:
-        student_first = student_last = '—'
-
     scores_detail = [
         {
             'label':      qs.question.label,
@@ -1027,12 +1051,6 @@ def correction_pdf(correction_id):
         for qs in corr.scores
     ]
 
-    # Date du devoir en français
-    MOIS_FR = ['janvier','février','mars','avril','mai','juin',
-               'juillet','août','septembre','octobre','novembre','décembre']
-    d = corr.assignment.date
-    assignment_date_fr = f"{d.day} {MOIS_FR[d.month - 1]} {d.year}"
-
     qr_url  = f"{current_app.config['APP_BASE_URL']}/c/{corr.public_token}"
     qr_data = make_qr(corr.public_token) if corr.status == 'published' else None
     qr_b64  = qr_data['png_b64'] if qr_data else None
@@ -1041,9 +1059,6 @@ def correction_pdf(correction_id):
         'teacher/correction_pdf.html',
         correction=corr,
         student=student,
-        student_first=student_first,
-        student_last=student_last,
-        assignment_date_fr=assignment_date_fr,
         scores=scores_detail,
         qr_b64=qr_b64,
         qr_url=qr_url if corr.status == 'published' else None,
