@@ -9,6 +9,7 @@ from app.services.ai import synthesize_with_mistral, synthesize_appreciation
 from app.services.storage       import upload_audio
 from app.services.qrcode        import make_qr, qr_png_bytes
 from app.services.background    import run_in_background
+from app.services.tts import generate_tts_audio
 from datetime import datetime
 import io
 import csv, io as _io
@@ -1102,4 +1103,20 @@ def correction_pdf(correction_id):
         headers={
             'Content-Disposition': f'attachment; filename="correction-{student.alias}-{corr.assignment.title}.pdf"'
         }
+    )
+
+@teacher_bp.route('/api/tts/<int:correction_id>')
+@login_required
+def tts_correction(correction_id):
+    corr = Correction.query.get_or_404(correction_id)
+    if corr.assignment.classroom.teacher_id != current_user.id:
+        abort(403)
+    if not corr.structured_text:
+        return jsonify({'error': 'Aucune synthèse disponible'}), 404
+    audio_bytes = generate_tts_audio(corr.structured_text)
+    return send_file(
+        io.BytesIO(audio_bytes),
+        mimetype='audio/mpeg',
+        as_attachment=False,
+        download_name=f'correction_{correction_id}.mp3'
     )

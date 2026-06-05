@@ -1,7 +1,9 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash, session, abort
+from flask import Blueprint, render_template, redirect, url_for, request, flash, session, abort, jsonify, send_file
 from app import db
 from app.models import Pupil, Correction
 from app.services.anonymization import decrypt_name
+from app.services.tts import generate_tts_audio
+import io
 
 student_bp = Blueprint('student', __name__, url_prefix='/student')
 
@@ -35,6 +37,24 @@ def view_correction(correction_id):
     first = decrypt_name(correction.student.encrypted_first_name)
     last = decrypt_name(correction.student.encrypted_last_name)
     return render_template('student/correction.html', correction=correction, first=first, last=last)
+
+@student_bp.route('/api/tts/<int:correction_id>')
+def tts_correction(correction_id):
+    if 'pupil_id' not in session:
+        return jsonify({'error': 'Non autorisé'}), 401
+    pupil = Pupil.query.get(session['pupil_id'])
+    correction = Correction.query.get_or_404(correction_id)
+    if correction.student_id != pupil.student_id:
+        abort(403)
+    if not correction.structured_text:
+        return jsonify({'error': 'Aucune synthèse'}), 404
+    audio_bytes = generate_tts_audio(correction.structured_text)
+    return send_file(
+        io.BytesIO(audio_bytes),
+        mimetype='audio/mpeg',
+        as_attachment=False,
+        download_name=f'correction_{correction_id}.mp3'
+    )
 
 @student_bp.route('/logout')
 def logout():

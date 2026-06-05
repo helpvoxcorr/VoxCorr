@@ -184,6 +184,14 @@
     </div>
     {% endif %}
 
+    {# Synthèse vocale (TTS) #}
+    <div class="vox-card mb-3">
+      <div class="fw-bold mb-2"><i class="bi bi-headphones me-2"></i>Écouter la synthèse</div>
+      <button id="listen-tts" class="btn vox-btn-outline btn-sm">
+        <i class="bi bi-play-circle"></i> Lire la correction (voix synthétique)
+      </button>
+    </div>
+
     {# QR Code #}
     {% if correction.status == 'published' %}
     <div class="vox-card text-center">
