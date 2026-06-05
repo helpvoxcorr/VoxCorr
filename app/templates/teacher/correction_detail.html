@@ -424,5 +424,21 @@ document.getElementById('btn-delete-corr-confirm')?.addEventListener('click', as
     document.getElementById('waveform-reset')?.addEventListener('click', () => wavesurfer.zoom(0));
   });
 })();
+
+  // ── Synthèse vocale (TTS) ─────────────────────────────────────────────
+  document.getElementById('listen-tts')?.addEventListener('click', function() {
+    fetch('/teacher/api/tts/{{ correction.id }}')
+      .then(response => {
+        if (!response.ok) throw new Error('Erreur TTS');
+        return response.blob();
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.play();
+        audio.onended = () => URL.revokeObjectURL(url);
+      })
+      .catch(err => alert('Impossible de générer l\'audio : ' + err.message));
+  });
 </script>
 {% endblock %}
