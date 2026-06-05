@@ -128,6 +128,7 @@ class Question(db.Model):
     label         = db.Column(db.String(200), nullable=False)
     max_points    = db.Column(db.Float,       nullable=False)
     competence_id = db.Column(db.Integer, db.ForeignKey('competences.id'), nullable=True)
+    competence = db.relationship('Competence', backref='questions')
     order         = db.Column(db.Integer,     default=0)
  
     assignment = db.relationship('Assignment', back_populates='questions')
@@ -178,13 +179,13 @@ class Correction(db.Model):
 class QuestionScore(db.Model):
     __tablename__ = 'question_scores'
  
-    id            = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     correction_id = db.Column(db.Integer, db.ForeignKey('corrections.id'),  nullable=False)
-    question_id   = db.Column(db.Integer, db.ForeignKey('questions.id'),    nullable=False)
-    score         = db.Column(db.Float)
- 
+    question_id = db.Column(db.Integer, db.ForeignKey('questions.id'),    nullable=False)
+    score = db.Column(db.Float)
+    advice = db.Column(db.Text, nullable=True)
     correction = db.relationship('Correction', back_populates='scores')
-    question   = db.relationship('Question',   back_populates='scores')
+    question = db.relationship('Question',   back_populates='scores')
  
  
 class AccessLog(db.Model):

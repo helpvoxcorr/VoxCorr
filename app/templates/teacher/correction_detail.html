@@ -45,19 +45,27 @@
         </span>
       </div>
       {% for q in correction.assignment.questions %}
-      {% set score = correction.scores | selectattr('question_id','eq',q.id) | map(attribute='score') | first | default(None) %}
-      <div class="d-flex align-items-center gap-2 mb-2">
-        <div class="flex-grow-1">
-          <div class="small fw-500">{{ q.label }}</div>
-          {% if q.competence %}
-          <div class="text-muted" style="font-size:.75rem">{{ q.competence }}</div>
+        {% set score_obj = correction.scores | selectattr('question_id','eq',q.id) | first %}
+        {% set score = score_obj.score if score_obj else None %}
+        <div class="mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <div class="flex-grow-1">
+              <div class="small fw-500">{{ q.label }}</div>
+              {% if q.competence %}
+              <div class="text-muted" style="font-size:.75rem">{{ q.competence }}</div>
+              {% endif %}
+            </div>
+            <span class="fw-bold small">
+              {% if score is not none %}{{ '%.1f'|format(score) }}{% else %}<span class="text-muted">—</span>{% endif %}
+            </span>
+            <span class="text-muted small">/{{ q.max_points }}</span>
+          </div>
+          {% if score_obj and score_obj.advice %}
+          <div class="small text-muted mt-1">
+            <i class="bi bi-lightbulb"></i> Conseil : {{ score_obj.advice }}
+          </div>
           {% endif %}
         </div>
-        <span class="fw-bold small">
-          {% if score is not none %}{{ '%.1f'|format(score) }}{% else %}<span class="text-muted">—</span>{% endif %}
-        </span>
-        <span class="text-muted small">/{{ q.max_points }}</span>
-      </div>
       {% endfor %}
     </div>
 

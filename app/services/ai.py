@@ -15,11 +15,7 @@ IMPORTANT — format des notes en français oral :
 - "un sur deux" = 1/2  |  "deux sur quatre" = 2/4
 - Toujours extraire le nombre réel, jamais un format heure.
 
-Ta mission :
-1. Réécrire la correction en français professionnel et structuré.
-2. Extraire toutes les notes mentionnées et les associer à la bonne question.
-
-Tu reçois la liste des questions du devoir avec leur position (index 0, 1, 2…).
+Tu reçois la liste des questions du devoir avec leur label et leur note maximale.
 L'enseignant peut les corriger dans n'importe quel ordre à l'oral.
 Tu dois identifier à quelle question chaque note correspond, en te basant sur le nom
 ou le numéro mentionné à l'oral ("question 2", "Q2", "deuxième question", etc.).
@@ -33,16 +29,28 @@ RÈGLES D'IDENTIFICATION DES QUESTIONS — priorité décroissante :
 4. Ne jamais réordonner les sections dans formatted_text : respecte toujours l'ordre
    question_index 0, 1, 2… quelle que soit l'ordre oral du prof.
 
+Pour chaque question identifiée, tu dois :
+- Attribuer une note (score) sur la base des commentaires du professeur.
+- Identifier la compétence évaluée (parmi : Rédaction, Orthographe, Grammaire, Calcul, Raisonnement, Analyse, Synthèse, ou une autre pertinente si non listée).
+- Fournir un conseil personnalisé (une phrase courte) pour aider l'élève à progresser. Si aucun conseil n'est donné, mets une chaîne vide.
+
 Réponds UNIQUEMENT avec un objet JSON valide :
 {
   "formatted_text": "<p>Texte HTML structuré…</p>",
   "grades": [
-    {"question_index": 0, "question": "Q1", "score": 3.5, "max_score": 4}
+    {
+      "question_index": 0,
+      "question": "Q1",
+      "score": 3.5,
+      "max_score": 4,
+      "competence": "Calcul",
+      "advice": "Revois les tables de multiplication."
+    }
   ]
 }
 
-Règles :
-- formatted_text : HTML simple uniquement — balises autorisées : section, p, ul, li, strong.
+Règles supplémentaires pour formatted_text :
+- HTML simple uniquement — balises autorisées : section, p, ul, li, strong.
 - Structure le formatted_text en blocs <section> :
   • Remarques générales avant la première question → <section data-qi="intro">…</section>
   • Commentaire de chaque question N → <section data-qi="N">…</section>  (N = question_index, commence à 0)
@@ -56,8 +64,7 @@ Règles :
   • Omets les sections vides.
   • Les sections doivent toujours apparaître dans l'ordre croissant des question_index,
     indépendamment de l'ordre oral du prof.
-- grades : score toujours en nombre décimal (3.5, pas "3h30"). Le score ne peut JAMAIS dépasser le max indiqué entre crochets.
-- question_index : position de la question dans la liste fournie (commence à 0).
+- formatted_text ne doit pas contenir les notes ni les conseils (ils sont dans grades).
 - Extraction des notes implicites : si le prof dit "je te mets un point", "je mets deux points",
   "tu as tout juste" sans nommer explicitement la question, attribue la note à la question
   dont il vient de parler dans le contexte immédiat.
@@ -65,6 +72,12 @@ Règles :
   "zéro", "aucun point", "tu n'as rien"), attribue le score 0 à la question concernée.
 - Si tu ne peux pas identifier la question avec certitude, utilise l'ordre d'apparition.
 - Conserve le ton du professeur.
+
+Pour les grades :
+- score : nombre décimal (3.5, pas "3h30"). Ne dépasse jamais max_score.
+- question_index : position de la question dans la liste fournie (commence à 0).
+- competence : chaîne de caractères (ex: "Rédaction", "Calcul").
+- advice : phrase courte, ou chaîne vide.
 """
 
 def normalize_transcript(text: str) -> str:

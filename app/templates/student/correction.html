@@ -4,15 +4,40 @@
 <div class="vox-card">
   <h2>{{ correction.assignment.title }}</h2>
   <p>{{ first }} {{ last }} · {{ correction.assignment.date.strftime('%d/%m/%Y') }}</p>
+
   {% if correction.audio_url %}
   <audio controls src="{{ correction.audio_url }}" style="width:100%"></audio>
   {% endif %}
+
   <div class="mt-3">
     <h5>Synthèse</h5>
     <div>{{ correction.structured_text|safe }}</div>
   </div>
+
   {% if correction.total_score %}
   <div class="mt-3 fw-bold">Note : {{ '%.1f'|format(correction.total_score) }} / {{ correction.assignment.total_points }}</div>
   {% endif %}
+
+  {# Affichage des notes détaillées et conseils #}
+  <div class="mt-4">
+    <h5>Détail des notes</h5>
+    {% for q in correction.assignment.questions %}
+      {% set score_obj = correction.scores | selectattr('question_id','eq',q.id) | first %}
+      {% set score = score_obj.score if score_obj else None %}
+      <div class="mb-3">
+        <div class="d-flex justify-content-between">
+          <span>{{ q.label }}</span>
+          <span class="fw-bold">
+            {% if score is not none %}{{ '%.1f'|format(score) }}{% else %}—{% endif %} / {{ q.max_points }}
+          </span>
+        </div>
+        {% if score_obj and score_obj.advice %}
+        <div class="small text-muted mt-1">
+          <i class="bi bi-lightbulb"></i> {{ score_obj.advice }}
+        </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
 </div>
 {% endblock %}

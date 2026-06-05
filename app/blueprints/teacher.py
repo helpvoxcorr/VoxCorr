@@ -693,10 +693,9 @@ def save_correction():
                 result = synthesize_with_mistral(c.raw_transcript, q_labels, q_max)
                 c.structured_text = result.get('formatted_text', c.raw_transcript)
 
-                # Scores déjà en base (saisis manuellement avant le thread)
-                existing_qids = {qs.question_id for qs in c.scores}
+                # Récupère les scores déjà existants (saisis manuellement avant le thread)
+                existing_scores = {qs.question_id: qs for qs in c.scores}
 
-                # Ajoute uniquement les scores Mistral pour les questions sans score
                 grades = result.get('grades', [])
                 for ai_score in grades:
                     idx = ai_score.get('question_index')
@@ -705,16 +704,21 @@ def save_correction():
                     if idx is None or idx >= len(q_ids):
                         continue
                     qid = q_ids[idx]
-                    if qid in existing_qids:
-                        continue  # score manuel prioritaire
+                    # Si un score existe déjà pour cette question (manuel), on ne l'écrase pas
+                    if qid in existing_scores:
+                        continue
                     raw_score = float(ai_score['score'])
                     safe_score = min(raw_score, q_max[idx])
-                    db.session.add(QuestionScore(
+                    advice_text = ai_score.get('advice', '')
+                    # Création du nouveau score
+                    qs = QuestionScore(
                         correction_id=corr_id,
                         question_id=qid,
                         score=safe_score,
-                    ))
-                    existing_qids.add(qid)
+                        advice=advice_text
+                    )
+                    db.session.add(qs)
+                    existing_scores[qid] = qs  # mise à jour du dict
 
                 db.session.flush()
                 c.compute_total()
@@ -725,9 +729,8 @@ def save_correction():
                 db.session.rollback()
                 c.status = 'draft'
                 db.session.commit()
-
-    run_in_background(_synthesize)
-    return jsonify({'ok': True, 'correction_id': corr_id, 'token': corr.public_token})
+                # Optionnel : log de l'erreur
+                print(f"[Mistral] Erreur dans _synthesize: {e}")
 
 @teacher_bp.route('/api/correction/<int:correction_id>/status')
 @login_required
