@@ -119,7 +119,21 @@ class Assignment(db.Model):
                                   order_by='Question.order', lazy='select')
     corrections = db.relationship('Correction',  back_populates='assignment',
                                   cascade='all, delete-orphan', lazy='select')
- 
+
+
+class CompetenceScore(db.Model):
+    __tablename__ = 'competence_scores'
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+    #competence_id = db.Column(db.Integer, db.ForeignKey('competences.id'), nullable=False)
+    assignment_id = db.Column(db.Integer, db.ForeignKey('assignments.id'), nullable=False)
+    score = db.Column(db.Float)  # moyenne des notes pour cette compétence dans ce devoir
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    student = db.relationship('Student')
+    #competence = db.relationship('Competence')
+    assignment = db.relationship('Assignment')
+
  
 class Question(db.Model):
     __tablename__ = 'questions'
@@ -128,26 +142,14 @@ class Question(db.Model):
     assignment_id = db.Column(db.Integer, db.ForeignKey('assignments.id'), nullable=False)
     label         = db.Column(db.String(200), nullable=False)
     max_points    = db.Column(db.Float,       nullable=False)
-    competence_id = db.Column(db.Integer, db.ForeignKey('competences.id'), nullable=True)
-    competence = db.relationship('Competence', backref='questions')
+    #competence_id = db.Column(db.Integer, db.ForeignKey('competences.id'), nullable=True)
+    #competence = db.relationship('Competence', backref='questions')
     order         = db.Column(db.Integer,     default=0)
  
     assignment = db.relationship('Assignment', back_populates='questions')
     scores     = db.relationship('QuestionScore', back_populates='question',
                                  cascade='all, delete-orphan', lazy='select')
  
-class CompetenceScore(db.Model):
-    __tablename__ = 'competence_scores'
-    id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
-    competence_id = db.Column(db.Integer, db.ForeignKey('competences.id'), nullable=False)
-    assignment_id = db.Column(db.Integer, db.ForeignKey('assignments.id'), nullable=False)
-    score = db.Column(db.Float)  # moyenne des notes pour cette compétence dans ce devoir
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    
-    student = db.relationship('Student')
-    competence = db.relationship('Competence')
-    assignment = db.relationship('Assignment')
 
 class Correction(db.Model):
     __tablename__ = 'corrections'
