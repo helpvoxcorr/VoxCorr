@@ -1357,7 +1357,16 @@ def import_competences():
     
     try:
         # Lire et décoder le fichier
-        content = file.read().decode('utf-8-sig')
+        raw_data = file.read()
+        # Essayer plusieurs encodages
+        for encoding in ['utf-8-sig', 'latin-1', 'cp1252', 'iso-8859-1']:
+            try:
+                content = raw_data.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            raise Exception("Impossible de décoder le fichier (encodage non supporté)")
         reader = csv.DictReader(content.splitlines(), delimiter='\t')
         
         created = 0
