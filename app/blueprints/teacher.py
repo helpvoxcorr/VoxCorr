@@ -1186,34 +1186,29 @@ def student_prediction(student_id):
     })
 
 # ── Admin ─────────────────────────────────────────────────────────────────────
-@teacher_bp.route('/admin')
+@teacher_bp.route('/admin', methods=['GET', 'POST'])
 @login_required
 def admin():
-    if not session.get('admin_unlocked') or not is_admin_session_valid():
-        return redirect(url_for('teacher.admin_unlock'))
-    classrooms = Classroom.query.filter_by(teacher_id=current_user.id)\
-                                .order_by(Classroom.name).all()
-    lock_error = session.pop('admin_lock_error', None)
-    return render_template('teacher/admin.html',
-                           classrooms=classrooms,
-                           lock_error=lock_error)
- 
- 
-@teacher_bp.route('/admin/unlock', methods=['GET', 'POST'])
-@login_required
-def admin_unlock():
+    # POST = tentative de déverrouillage
     if request.method == 'POST':
         password = request.form.get('password', '')
         if current_user.check_password(password):
             session['admin_unlocked'] = True
             session['admin_unlocked_at'] = datetime.now(timezone.utc).isoformat()
-            return redirect(url_for('teacher.admin'))
         else:
             session['admin_lock_error'] = 'Mot de passe incorrect.'
-            return redirect(url_for('teacher.admin'))
-    
-    # GET : afficher le formulaire de mot de passe
-    return render_template('teacher/admin_unlock.html')
+        return redirect(url_for('teacher.admin'))
+
+    # GET = affichage
+    lock_error = session.pop('admin_lock_error', None)
+    classrooms = []
+    if session.get('admin_unlocked') and is_admin_session_valid():
+        classrooms = Classroom.query.filter_by(teacher_id=current_user.id)\
+                                    .order_by(Classroom.name).all()
+
+    return render_template('teacher/admin.html',
+                           classrooms=classrooms,
+                           lock_error=lock_error)
  
  
 @teacher_bp.route('/admin/lock')
