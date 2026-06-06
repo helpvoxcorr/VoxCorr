@@ -804,7 +804,6 @@ def correction_scores(correction_id):
 
 @teacher_bp.route('/api/correction/<int:correction_id>/audio', methods=['POST'])
 @login_required
-@csrf.protect
 def upload_audio_route(correction_id):
     corr = db.session.get(Correction, correction_id)
     if not corr or corr.assignment.classroom.teacher_id != current_user.id:
@@ -833,7 +832,6 @@ def upload_audio_route(correction_id):
 
 @teacher_bp.route('/api/correction/<int:correction_id>/publish', methods=['POST'])
 @login_required
-@csrf.protect
 def publish_correction(correction_id):
     corr = db.session.get(Correction, correction_id)
     if not corr or corr.assignment.classroom.teacher_id != current_user.id:
@@ -863,7 +861,6 @@ def download_qr(correction_id):
 
 @teacher_bp.route('/api/correction/<int:correction_id>/delete', methods=['POST'])
 @login_required
-@csrf.protect
 def delete_correction(correction_id):
     """Suppression définitive d'une correction (unitaire).
     Body JSON : { "password": "..." }
@@ -884,7 +881,6 @@ def delete_correction(correction_id):
 
 @teacher_bp.route('/api/corrections/delete-bulk', methods=['POST'])
 @login_required
-@csrf.protect
 def delete_corrections_bulk():
     """Suppression groupée de plusieurs corrections.
     Body JSON : { "ids": [1, 2, 3], "password": "..." }
@@ -949,7 +945,6 @@ def resynthesize_correction(correction_id):
 
 @teacher_bp.route('/assignments/<int:assignment_id>/appreciation', methods=['POST'])
 @login_required
-@csrf.protect
 def save_appreciation(assignment_id):
     a = db.session.get(Assignment, assignment_id)
     if not a:
@@ -1002,7 +997,6 @@ def add_teacher_to_class(class_id):
 
 @teacher_bp.route('/classes/<int:class_id>/group/add', methods=['POST'])
 @login_required
-@csrf.protect
 def add_group(class_id):
     classroom = db.session.get(Classroom, class_id)
     if not classroom or classroom.teacher_id != current_user.id:
@@ -1017,7 +1011,6 @@ def add_group(class_id):
 
 @teacher_bp.route('/classes/<int:class_id>/group/<int:group_id>/delete', methods=['POST'])
 @login_required
-@csrf.protect
 def delete_group(class_id, group_id):
     classroom = db.session.get(Classroom, class_id)
     if not classroom or classroom.teacher_id != current_user.id:
@@ -1034,7 +1027,6 @@ def delete_group(class_id, group_id):
 
 @teacher_bp.route('/classes/<int:class_id>/group/<int:group_id>/edit', methods=['GET', 'POST'])
 @login_required
-@csrf.protect
 def edit_group(class_id, group_id):
     classroom = db.session.get(Classroom, class_id)
     if not classroom or classroom.teacher_id != current_user.id:
