@@ -122,9 +122,14 @@ class Assignment(db.Model):
 
 class Competence(db.Model):
     __tablename__ = 'competences'
-    id         = db.Column(db.Integer, primary_key=True)
-    label      = db.Column(db.String(100), nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)          # nom de la compétence (ex: "Pratiquer des démarches scientifiques")
+    label = db.Column(db.String(100), nullable=True)          # gardé pour compatibilité
+    domain = db.Column(db.String(10))                         # D1, D2, D3, D4, D5
+    subject = db.Column(db.String(50))                        # matière (SVT, Sciences, Technologie)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=True)  # NULL = compétence socle
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    teacher = db.relationship('Teacher', backref='competences')
 
 
 class CompetenceScore(db.Model):

@@ -167,7 +167,19 @@
   <div class="admin-zone-body">
     <div class="row g-3">
 
-      {# Import Pronote #}
+      {# Import CSV Pronote (compétences) #}
+      <div class="col-md-6">
+          <div class="admin-card" data-bs-toggle="modal" data-bs-target="#modal-import-competences">
+              <div class="admin-card-icon green"><i class="bi bi-file-spreadsheet"></i></div>
+              <div>
+                  <div class="admin-card-label">Importer des compétences (CSV Pronote)</div>
+                  <div class="admin-card-desc">Ajoute ou met à jour les compétences évaluables</div>
+              </div>
+              <i class="bi bi-chevron-right admin-card-arrow"></i>
+          </div>
+      </div>
+
+      {# Import CSV Pronote (Classe entiere) #}
       <div class="col-md-6">
         <div class="admin-card" data-bs-toggle="modal" data-bs-target="#modal-import-pronote">
           <div class="admin-card-icon green"><i class="bi bi-cloud-upload"></i></div>
@@ -410,6 +422,40 @@
       </div>
     </div>
   </div>
+</div>
+
+<!-- MODALE : Import compétences -->
+<div class="modal fade" id="modal-import-competences" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px;overflow:hidden">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-file-spreadsheet me-2 text-success"></i>Importer des compétences
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="/teacher/admin/import-competences"
+                      enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="vox-label">Discipline / Matière</label>
+                        <input type="text" name="subject" class="vox-input" 
+                               placeholder="ex: SVT, Sciences, Technologie" required>
+                        <div class="text-muted small mt-1">Ces compétences seront associées à cette matière.</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="vox-label">Fichier CSV (export Pronote)</label>
+                        <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+                        <div class="text-muted small mt-1">Format : export des compétences depuis Pronote (onglet Évaluations).</div>
+                    </div>
+                    <button type="submit" class="btn vox-btn-primary w-100">
+                        <i class="bi bi-upload me-1"></i>Importer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 {% endif %}

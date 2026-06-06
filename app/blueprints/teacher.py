@@ -3,7 +3,7 @@ from flask import (Blueprint, render_template, redirect, url_for,
 from flask_login import login_required, current_user
 from app import db, csrf, limiter
 from app.models import (Classroom, Student, Assignment, Question,
-                        Correction, QuestionScore, ClassroomTeacher, Group, GroupStudent, Teacher)
+                        Correction, QuestionScore, ClassroomTeacher, Group, GroupStudent, Teacher, Competence)
 from app.services.anonymization import generate_alias, encrypt_name, decrypt_name
 from app.services.ai import synthesize_with_mistral, synthesize_appreciation
 from app.services.storage       import upload_audio
@@ -398,7 +398,7 @@ def new_assignment(class_id):
                         assignment_id = a.id,
                         label         = lbl.strip(),
                         max_points    = float(mx or 1),
-                        competence    = comp.strip(),
+                        competence_id    = comp.strip(),
                         order         = i,
                     ))
             db.session.commit()
@@ -1328,6 +1328,104 @@ def admin_export_notes():
         as_attachment=True,
         download_name=filename,
     )
+
+# ______________________ IMPORT COMPETENCES PRONOTE __________________________
+@teacher_bp.route('/admin/import-competences', methods=['POST'])
+@login_required
+def import_competences():
+    # Vérification session admin
+    if not session.get('admin_unlocked') or not is_admin_session_valid():
+        flash('Accès non autorisé.', 'danger')
+        return redirect(url_for('teacher.admin'))
+    
+    # Vérification fichier
+    if 'csv_file' not in request.files:
+        flash('Aucun fichier sélectionné.', 'danger')
+        return redirect(url_for('teacher.admin'))
+    
+    file = request.files['csv_file']
+    if file.filename == '':
+        flash('Fichier vide.', 'danger')
+        return redirect(url_for('teacher.admin'))
+    
+    if not file.filename.lower().endswith('.csv'):
+        flash('Seuls les fichiers CSV sont acceptés.', 'danger')
+        return redirect(url_for('teacher.admin'))
+    
+    subject = request.form.get('subject', '').strip()
+    if not subject:
+        flash('La matière est obligatoire.', 'danger')
+        return redirect(url_for('teacher.admin'))
+    
+    try:
+        # Lire et décoder le fichier
+        content = file.read().decode('utf-8-sig')
+        reader = csv.DictReader(content.splitlines(), delimiter='\t')
+        
+        created = 0
+        updated = 0
+        
+        for row in reader:
+            # Nettoyer les noms de colonnes (enlever les guillemets et BOM)
+            col1 = list(row.keys())[0].strip('"').strip()
+            name = row[col1].strip().strip('"')
+            domain_raw = row.get('"Domaines du socle pour les bilans de cycle"', '').strip().strip('"')
+            
+            if not name:
+                continue
+            
+            # Nettoyer le domaine (extraire D1, D2, etc.)
+            domain = None
+            if domain_raw:
+                # Cherche D1, D2, D3, D4, D5 dans la chaîne
+                import re
+                match = re.search(r'D[1-5]', domain_raw)
+                if match:
+                    domain = match.group(0)
+            
+            # Upsert : chercher par name + subject + teacher_id (ou teacher_id IS NULL pour compétences socle)
+            existing = Competence.query.filter_by(
+                name=name,
+                subject=subject,
+                teacher_id=current_user.id
+            ).first()
+            
+            if existing:
+                if existing.domain != domain:
+                    existing.domain = domain
+                    updated += 1
+                # Sinon, pas de changement
+            else:
+                # Vérifier si une compétence socle existe avec ce nom (teacher_id NULL)
+                socle = Competence.query.filter_by(
+                    name=name,
+                    subject=subject,
+                    teacher_id=None
+                ).first()
+                if socle:
+                    # On la transforme en compétence personnelle
+                    socle.teacher_id = current_user.id
+                    socle.domain = domain
+                    updated += 1
+                else:
+                    comp = Competence(
+                        name=name,
+                        domain=domain,
+                        subject=subject,
+                        teacher_id=current_user.id
+                    )
+                    db.session.add(comp)
+                    created += 1
+        
+        db.session.commit()
+        flash(f'Import terminé : {created} compétence(s) créée(s), {updated} mise(s) à jour.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Import CSV competences error: {e}")
+        flash("Erreur lors de l'import. Vérifiez le format du fichier.", 'danger')
+    
+    return redirect(url_for('teacher.admin'))
 
 # ______________________ EXPORT PDF CORRECTION __________________________
 
