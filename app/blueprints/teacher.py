@@ -19,13 +19,11 @@ teacher_bp = Blueprint('teacher', __name__, url_prefix='/teacher')
 
 # ── Assainissement des données importées ─────────────────────────────────────────────────────────────────
 def sanitize_csv_field(value):
-    """Protège contre les injections de formules Excel/CSV"""
     if not value:
         return value
     value = str(value)
-    # Si la valeur commence par =, +, -, @, la préfixer avec un espace/tabulation
     if value.startswith(('=', '+', '-', '@')):
-        return "'" + value  # Ajoute un apostrophe (Excel le traite comme texte)
+        return "\t" + value  # Tabulation
     return value
 
 # ── Vérification Timestamp ─────────────────────────────────────────────────────────────────
@@ -253,7 +251,8 @@ def import_csv_class(class_id):
         flash(f'{added} élève(s) importé(s). {skipped} doublon(s) ignoré(s).', 'success')
 
     except Exception as e:
-        flash(f'Erreur lors de l\'import : {e}', 'danger')
+        current_app.logger.error(f'Import CSV error: {e}')
+        flash("Erreur lors de l'import. Vérifiez le format du fichier.", 'danger')
 
     return redirect(url_for('teacher.class_detail', class_id=class_id))
 
@@ -693,6 +692,11 @@ def save_correction():
         abort(404)
     if assignment.classroom.teacher_id != current_user.id:
         return jsonify({'error': 'Non autorisé'}), 403
+    
+    # Vérifier que l'élève appartient bien à la classe du devoir
+    student = db.session.get(Student, student_id)
+    if not student or student.classroom_id != assignment.classroom_id:
+        return jsonify({'error': 'Élève invalide pour cette classe'}), 404
 
     corr = Correction.query.filter_by(
         student_id=student_id, assignment_id=assignment_id
@@ -778,8 +782,8 @@ def save_correction():
 @login_required
 def correction_status(correction_id):
     corr = db.session.get(Correction, correction_id)
-    if not corr:
-        return jsonify({'error': 'Introuvable'}), 404
+    if not corr or corr.assignment.classroom.teacher_id != current_user.id:
+        return jsonify({'error': 'Non autorisé'}), 404
     return jsonify({
         'status':          corr.status,
         'structured_text': corr.structured_text or '',
@@ -790,7 +794,7 @@ def correction_status(correction_id):
 @login_required
 def correction_scores(correction_id):
     corr = db.session.get(Correction, correction_id)
-    if not corr:
+    if not corr or corr.assignment.classroom.teacher_id != current_user.id:
         return jsonify([])
     return jsonify([
         {'question_id': s.question_id, 'score': s.score}
@@ -1288,15 +1292,9 @@ def admin_export_notes():
 
     output = _io.StringIO()
     writer = csv.writer(output)
-    writer.writerow([
-        sanitize_csv_field(classroom.name),
-        sanitize_csv_field(name),
-        sanitize_csv_field(assignment.title),
-        sanitize_csv_field(assignment.date.strftime('%d/%m/%Y') if assignment.date else ''),
-        sanitize_csv_field(correction.total_score if correction.total_score is not None else ''),
-        sanitize_csv_field(assignment.total_points),
-        sanitize_csv_field(correction.status),
-    ])
+    
+    # Écrire l'en-tête une seule fois (avec des chaînes littérales, pas des variables)
+    writer.writerow(['Classe', 'Élève', 'Devoir', 'Date', 'Note', 'Sur', 'Statut'])
 
     for classroom in classrooms:
         for assignment in classroom.assignments:
