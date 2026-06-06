@@ -376,33 +376,41 @@ def import_pronote_file():
 def new_assignment(class_id):
     c = Classroom.query.filter_by(id=class_id, teacher_id=current_user.id).first_or_404()
     if request.method == 'POST':
-        a = Assignment(
-            classroom_id = class_id,
-            title        = request.form['title'].strip(),
-            description  = request.form.get('description', ''),
-            date         = datetime.strptime(request.form['date'], '%Y-%m-%d').date(),
-            total_points = float(request.form.get('total_points', 20)),
-        )
-        db.session.add(a)
-        db.session.flush()
-        labels = request.form.getlist('q_label')
-        maxpts = request.form.getlist('q_max')
-        comps  = request.form.getlist('q_competence')
-        for i, (lbl, mx, comp) in enumerate(zip(labels, maxpts, comps)):
-            if lbl.strip():
-                db.session.add(Question(
-                    assignment_id = a.id,
-                    label         = lbl.strip(),
-                    max_points    = float(mx or 1),
-                    competence    = comp.strip(),
-                    order         = i,
-                ))
-        db.session.commit()
-        flash(f'Devoir « {a.title} » créé.', 'success')
-        # Redirige vers la vue corrections du devoir (lien micro par élève)
-        return redirect(url_for('teacher.assignment_corrections', assignment_id=a.id))
-    return render_template('teacher/new_assignment.html',
-                           classroom=c, now=datetime.today())
+        try:
+            date_str = request.form.get('date', '').strip()
+            date_val = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else None
+
+            a = Assignment(
+                classroom_id = class_id,
+                title        = request.form.get('title', '').strip(),
+                description  = request.form.get('description', ''),
+                date         = date_val,
+                total_points = float(request.form.get('total_points', 20)),
+            )
+            db.session.add(a)
+            db.session.flush()
+            labels = request.form.getlist('q_label')
+            maxpts = request.form.getlist('q_max')
+            comps  = request.form.getlist('q_competence')
+            for i, (lbl, mx, comp) in enumerate(zip(labels, maxpts, comps)):
+                if lbl.strip():
+                    db.session.add(Question(
+                        assignment_id = a.id,
+                        label         = lbl.strip(),
+                        max_points    = float(mx or 1),
+                        competence    = comp.strip(),
+                        order         = i,
+                    ))
+            db.session.commit()
+            flash(f'Devoir « {a.title} » créé.', 'success')
+            return redirect(url_for('teacher.assignment_corrections', assignment_id=a.id))
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'[new_assignment] {e}')
+            flash("Erreur lors de la création du devoir.", 'danger')
+            return render_template('teacher/new_assignment.html', classroom=c, now=datetime.today())
+
+    return render_template('teacher/new_assignment.html', classroom=c, now=datetime.today())
 
 
 @teacher_bp.route('/assignments/<int:assignment_id>/edit', methods=['GET', 'POST'])
