@@ -40,15 +40,34 @@
         </div>
 
         <div id="questions-list">
-          <div class="question-row row g-2 mb-2 align-items-center">
-            <div class="col-5">
-              <input type="text" name="q_label" class="vox-input" placeholder="ex : Analyser un document">
+          <div class="question-row row g-2 mb-3 align-items-start">
+            <div class="col-12 col-md-5">
+              <input type="text" name="q_label" class="vox-input" placeholder="Libellé de la question" required>
             </div>
-            <div class="col-3">
-              <input type="number" name="q_max" class="vox-input" placeholder="pts" step="0.5" min="0">
+            <div class="col-12 col-md-2">
+              <input type="number" name="q_max" class="vox-input" placeholder="Points" step="0.5" min="0" required>
             </div>
-            <div class="col-4">
-              <input type="text" name="q_competence" class="vox-input" placeholder="Compétence (opt.)">
+            <div class="col-12 col-md-4">
+              <div class="row g-1">
+                <div class="col-6">
+                  <select name="q_domain" class="vox-input domain-select" data-row-index="0">
+                    <option value="">Domaine</option>
+                    {% for domain, comps in competences_by_domain.items() %}
+                    <option value="{{ domain }}">{{ domain }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-6">
+                  <select name="q_competence_id" class="vox-input competence-select" data-row-index="0" disabled>
+                    <option value="">Compétence</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-1 text-end">
+              <button type="button" class="btn btn-danger btn-sm remove-question" title="Supprimer cette question">
+                <i class="bi bi-trash"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -73,6 +92,75 @@
     const row = document.querySelector('.question-row').cloneNode(true);
     row.querySelectorAll('input').forEach(i => i.value = '');
     document.getElementById('questions-list').appendChild(row);
+  });
+</script>
+<script>
+  // Données des compétences par domaine (injectées depuis Flask)
+  const competencesData = {{ competences_by_domain_json|safe }};
+
+  function populateCompetenceSelect(domainSelect, competenceSelect) {
+    const selectedDomain = domainSelect.value;
+    competenceSelect.innerHTML = '<option value="">Compétence</option>';
+    competenceSelect.disabled = !selectedDomain;
+    
+    if (selectedDomain && competencesData[selectedDomain]) {
+      competencesData[selectedDomain].forEach(comp => {
+        const option = document.createElement('option');
+        option.value = comp.id;
+        option.textContent = comp.name;
+        competenceSelect.appendChild(option);
+      });
+    }
+  }
+
+  // Initialiser les selects pour une nouvelle ligne
+  function initRowSelects(row) {
+    const domainSelect = row.querySelector('.domain-select');
+    const competenceSelect = row.querySelector('.competence-select');
+    
+    domainSelect.addEventListener('change', () => populateCompetenceSelect(domainSelect, competenceSelect));
+    
+    // Si un domaine est déjà sélectionné (cas du clone), on le gère
+    if (domainSelect.value) {
+      populateCompetenceSelect(domainSelect, competenceSelect);
+    }
+  }
+
+  // Ajouter une nouvelle ligne
+  document.getElementById('add-question').addEventListener('click', () => {
+    const originalRow = document.querySelector('.question-row');
+    const newRow = originalRow.cloneNode(true);
+    
+    // Reset des valeurs
+    newRow.querySelectorAll('input').forEach(i => i.value = '');
+    const domainSelect = newRow.querySelector('.domain-select');
+    const competenceSelect = newRow.querySelector('.competence-select');
+    domainSelect.value = '';
+    competenceSelect.innerHTML = '<option value="">Compétence</option>';
+    competenceSelect.disabled = true;
+    
+    // Mettre à jour les index (optionnel)
+    const newIndex = document.querySelectorAll('.question-row').length;
+    domainSelect.dataset.rowIndex = newIndex;
+    competenceSelect.dataset.rowIndex = newIndex;
+    
+    document.getElementById('questions-list').appendChild(newRow);
+    initRowSelects(newRow);
+  });
+
+  // Initialiser les lignes existantes
+  document.querySelectorAll('.question-row').forEach(row => initRowSelects(row));
+
+  // Supprimer une ligne
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-question')) {
+      const row = e.target.closest('.question-row');
+      if (document.querySelectorAll('.question-row').length > 1) {
+        row.remove();
+      } else {
+        alert('Il doit y avoir au moins une question.');
+      }
+    }
   });
 </script>
 {% endblock %}

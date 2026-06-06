@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Mes compétences — VoxCorr{% endblock %}
+{% block content %}
+<div class="vox-page-hero mb-4">
+  <h1>Compétences évaluables</h1>
+  <p>Compétences importées depuis Pronote ({{ competences|length }})</p>
+</div>
+
+<div class="vox-card">
+  <table class="vox-table">
+    <thead>
+      <tr><th>Nom</th><th>Domaine</th><th>Matière</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for c in competences %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td>{% if c.domain %}{{ c.domain }}{% else %}—{% endif %}</td>
+        <td>{{ c.subject }}</td>
+        <td>
+          <form method="POST" action="/teacher/competences/{{ c.id }}/delete" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Supprimer cette compétence ?')">Supprimer</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

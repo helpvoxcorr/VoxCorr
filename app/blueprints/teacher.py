@@ -12,7 +12,7 @@ from app.services.background    import run_in_background
 from app.services.tts import generate_tts_audio
 import io
 import csv, io as _io
-from flask import session
+from flask import session, json
 from datetime import datetime, timezone, timedelta
 
 teacher_bp = Blueprint('teacher', __name__, url_prefix='/teacher')
@@ -375,6 +375,26 @@ def import_pronote_file():
 @login_required
 def new_assignment(class_id):
     c = Classroom.query.filter_by(id=class_id, teacher_id=current_user.id).first_or_404()
+    
+    # Récupérer les compétences de l'enseignant pour cette matière
+    competences = Competence.query.filter_by(
+        teacher_id=current_user.id,
+        subject=c.subject
+    ).order_by(Competence.domain, Competence.name).all()
+    
+    # Organiser les compétences par domaine pour le formulaire
+    competences_by_domain = {}
+    for comp in competences:
+        domain = comp.domain or 'Socle'
+        if domain not in competences_by_domain:
+            competences_by_domain[domain] = []
+        competences_by_domain[domain].append({
+            'id': comp.id,
+            'name': comp.name
+        })
+    
+    competences_by_domain_json = json.dumps(competences_by_domain, ensure_ascii=False)
+    
     if request.method == 'POST':
         try:
             date_str = request.form.get('date', '').strip()
@@ -389,28 +409,40 @@ def new_assignment(class_id):
             )
             db.session.add(a)
             db.session.flush()
+            
             labels = request.form.getlist('q_label')
             maxpts = request.form.getlist('q_max')
-            comps  = request.form.getlist('q_competence')
-            for i, (lbl, mx, comp) in enumerate(zip(labels, maxpts, comps)):
+            competence_ids = request.form.getlist('q_competence_id')
+            
+            for i, (lbl, mx, comp_id) in enumerate(zip(labels, maxpts, competence_ids)):
                 if lbl.strip():
                     db.session.add(Question(
                         assignment_id = a.id,
                         label         = lbl.strip(),
                         max_points    = float(mx or 1),
-                        competence_id    = comp.strip(),
+                        competence_id = int(comp_id) if comp_id and comp_id.isdigit() else None,
                         order         = i,
                     ))
+            
             db.session.commit()
             flash(f'Devoir « {a.title} » créé.', 'success')
             return redirect(url_for('teacher.assignment_corrections', assignment_id=a.id))
+            
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f'[new_assignment] {e}')
             flash("Erreur lors de la création du devoir.", 'danger')
-            return render_template('teacher/new_assignment.html', classroom=c, now=datetime.today())
-
-    return render_template('teacher/new_assignment.html', classroom=c, now=datetime.today())
+            return render_template('teacher/new_assignment.html', 
+                                   classroom=c, 
+                                   now=datetime.today(),
+                                   competences_by_domain=competences_by_domain,
+                                   competences_by_domain_json=competences_by_domain_json)
+    
+    return render_template('teacher/new_assignment.html', 
+                           classroom=c, 
+                           now=datetime.today(),
+                           competences_by_domain=competences_by_domain,
+                           competences_by_domain_json=competences_by_domain_json)
 
 
 @teacher_bp.route('/assignments/<int:assignment_id>/edit', methods=['GET', 'POST'])
@@ -1504,3 +1536,20 @@ def tts_correction(correction_id):
         as_attachment=False,
         download_name=f'correction_{correction_id}.mp3'
     )
+
+@teacher_bp.route('/competences')
+@login_required
+def list_competences():
+    competences = Competence.query.filter_by(teacher_id=current_user.id).order_by(Competence.name).all()
+    return render_template('teacher/competences.html', competences=competences)
+
+@teacher_bp.route('/competences/<int:comp_id>/delete', methods=['POST'])
+@login_required
+def delete_competence(comp_id):
+    comp = Competence.query.get_or_404(comp_id)
+    if comp.teacher_id != current_user.id:
+        abort(403)
+    db.session.delete(comp)
+    db.session.commit()
+    flash('Compétence supprimée.', 'success')
+    return redirect(url_for('teacher.list_competences'))
