@@ -1,15 +1,25 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash
+from flask import Blueprint, render_template, redirect, url_for, request, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
 from app import db, limiter
 from app.models import Teacher
 from app.services.email import send_verification_email
+from urllib.parse import urlparse, urljoin
+from werkzeug.security import generate_password_hash, check_password_hash
 import re
 
+# Dummy hash précalculé pour protection timing attack
+_DUMMY_HASH = generate_password_hash("dummy")
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 PASSWORD_PATTERN = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]).{10,}$'
 EMAIL_PATTERN    = r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$'
 
+def is_safe_url(target):
+    if not target:
+        return False
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 @limiter.limit("10 per minute; 50 per hour")
@@ -23,12 +33,22 @@ def login():
         remember = bool(request.form.get('remember'))
 
         teacher = Teacher.query.filter_by(email=email).first()
-
-        if teacher and teacher.check_password(password):
+        
+        if teacher:
+            password_valid = teacher.check_password(password)
+        else:
+            # Consomme le même temps que check_password (hash précalculé)
+            check_password_hash(_DUMMY_HASH, password)
+            password_valid = False
+        
+        if teacher and password_valid:
             # ── Utilisateur vérifié : connexion normale ──────────────────────
             if teacher.email_verified:
                 login_user(teacher, remember=remember)
+                session.permanent = True
                 next_page = request.args.get('next')
+                if not is_safe_url(next_page):
+                    next_page = None
                 return redirect(next_page or url_for('teacher.dashboard'))
 
             # ── Utilisateur non vérifié : message explicite ──────────────────
@@ -130,6 +150,7 @@ def verify_email(token):
     db.session.commit()
 
     login_user(teacher)
+    session.permanent = True
     flash(f'Email confirmé ! Bienvenue, {teacher.first_name} 🎉', 'success')
     return redirect(url_for('teacher.dashboard'))
 

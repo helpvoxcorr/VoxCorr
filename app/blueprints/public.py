@@ -8,18 +8,18 @@ public_bp = Blueprint('public', __name__)
 
 @public_bp.route('/c/<token>')
 def student_view(token):
-    """
-    Page publique de correction élève.
-    Accessible via QR code — aucun compte requis.
-    Chaque visite est loggée (IP hashée, jamais en clair).
-    """
     corr = Correction.query.filter_by(
         public_token=token, status='published'
     ).first_or_404()
 
-    # Log de consultation RGPD : IP hashée SHA-256
-    ip      = request.headers.get('X-Forwarded-For', request.remote_addr or 'unknown')
-    ip      = ip.split(',')[0].strip()   # X-Forwarded-For peut valoir "ip1, ip2, ..."
+    # Récupérer l'IP réelle derrière le reverse proxy
+    ip = request.remote_addr
+    # Si Render utilise X-Forwarded-For, ne prendre que la première IP (celle du client)
+    forwarded = request.headers.get('X-Forwarded-For')
+    if forwarded:
+        # X-Forwarded-For = "client, proxy1, proxy2" → prendre le premier
+        ip = forwarded.split(',')[0].strip()
+    
     ip_hash = hash_ip(ip)
     db.session.add(AccessLog(
         correction_id = corr.id,

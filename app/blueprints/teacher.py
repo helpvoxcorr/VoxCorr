@@ -1,9 +1,9 @@
 from flask import (Blueprint, render_template, redirect, url_for,
                    request, jsonify, flash, send_file, current_app)
 from flask_login import login_required, current_user
-from app import db
+from app import db, csrf
 from app.models import (Classroom, Student, Assignment, Question,
-                        Correction, QuestionScore, ClassroomTeacher, Group, GroupStudent)
+                        Correction, QuestionScore, ClassroomTeacher, Group, GroupStudent, Teacher)
 from app.services.anonymization import generate_alias, encrypt_name, decrypt_name
 from app.services.ai import synthesize_with_mistral, synthesize_appreciation
 from app.services.storage       import upload_audio
@@ -17,6 +17,28 @@ from datetime import datetime, timezone, timedelta
 
 teacher_bp = Blueprint('teacher', __name__, url_prefix='/teacher')
 
+# ── Assainissement des données importées ─────────────────────────────────────────────────────────────────
+def sanitize_csv_field(value):
+    """Protège contre les injections de formules Excel/CSV"""
+    if not value:
+        return value
+    value = str(value)
+    # Si la valeur commence par =, +, -, @, la préfixer avec un espace/tabulation
+    if value.startswith(('=', '+', '-', '@')):
+        return "'" + value  # Ajoute un apostrophe (Excel le traite comme texte)
+    return value
+
+# ── Vérification Timestamp ─────────────────────────────────────────────────────────────────
+def is_admin_session_valid():
+    """Vérifie que la session admin a moins de 30 minutes"""
+    unlocked_at = session.get('admin_unlocked_at')
+    if not unlocked_at:
+        return False
+    try:
+        unlocked_dt = datetime.fromisoformat(unlocked_at)
+        return datetime.now(timezone.utc) - unlocked_dt < timedelta(minutes=30)
+    except Exception:
+        return False
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
@@ -343,8 +365,8 @@ def import_pronote_file():
 
     except Exception as e:
         import traceback
-        print(traceback.format_exc())
-        flash(f'Erreur : {e}', 'danger')
+        current_app.logger.error(traceback.format_exc())
+        flash('Une erreur est survenue lors de l\'import. Vérifiez le format du fichier.', 'danger')
 
     return redirect(url_for('teacher.admin'))
 
@@ -387,7 +409,9 @@ def new_assignment(class_id):
 @teacher_bp.route('/assignments/<int:assignment_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_assignment(assignment_id):
-    a = Assignment.query.get_or_404(assignment_id)
+    a = db.session.get(Assignment, assignment_id)
+    if not a:
+        abort(404)
     if a.classroom.teacher_id != current_user.id:
         flash('Accès non autorisé.', 'danger')
         return redirect(url_for('teacher.dashboard'))
@@ -441,7 +465,9 @@ def edit_assignment(assignment_id):
 @teacher_bp.route('/assignments/<int:assignment_id>/delete', methods=['POST'])
 @login_required
 def delete_assignment(assignment_id):
-    a = Assignment.query.get_or_404(assignment_id)
+    a = db.session.get(Assignment, assignment_id)
+    if not a:
+        abort(404)
     if a.classroom.teacher_id != current_user.id:
         flash('Accès non autorisé.', 'danger')
         return redirect(url_for('teacher.dashboard'))
@@ -478,7 +504,9 @@ def assignment_corrections(assignment_id):
     Vue centrale post-création devoir.
     Liste tous les élèves + statut correction + bouton micro direct.
     """
-    a = Assignment.query.get_or_404(assignment_id)
+    a = db.session.get(Assignment, assignment_id)
+    if not a:
+        abort(404)
     if a.classroom.teacher_id != current_user.id:
         flash('Accès non autorisé.', 'danger')
         return redirect(url_for('teacher.dashboard'))
@@ -502,17 +530,26 @@ def assignment_corrections(assignment_id):
 @teacher_bp.route('/record/<int:student_id>/<int:assignment_id>')
 @login_required
 def record(student_id, assignment_id):
-    student    = Student.query.get_or_404(student_id)
+    student = db.session.get(Student, student_id)
+    if not student:
+        abort(404)
     try:
         student_first = decrypt_name(student.encrypted_first_name)
         student_last  = decrypt_name(student.encrypted_last_name)
     except Exception:
         student_first = student_last = '—'
-    assignment = Assignment.query.get_or_404(assignment_id)
+    assignment = db.session.get(Assignment, assignment_id)
+    if not assignment:
+        abort(404)
     if assignment.classroom.teacher_id != current_user.id:
-        flash('Accès non autorisé.', 'danger')
-        return redirect(url_for('teacher.dashboard'))
-    existing = Correction.query.filter_by(
+        return jsonify({'error': 'Non autorisé'}), 403
+    
+    # Vérifier que l'élève appartient bien à la classe du devoir
+    student = db.session.get(Student, student_id)
+    if not student or student.classroom_id != assignment.classroom_id:
+        return jsonify({'error': 'Élève non trouvé dans cette classe'}), 404
+    
+    corr = Correction.query.filter_by(
         student_id=student_id, assignment_id=assignment_id
     ).first()
 
@@ -558,7 +595,9 @@ def record(student_id, assignment_id):
 @teacher_bp.route("/assignments/<int:assignment_id>/print")
 @login_required
 def print_corrections(assignment_id):
-    a = Assignment.query.get_or_404(assignment_id)
+    a = db.session.get(Assignment, assignment_id)
+    if not a:
+        abort(404)
     if a.classroom.teacher_id != current_user.id:
         flash("Accès non autorisé.", "danger")
         return redirect(url_for("teacher.dashboard"))
@@ -641,6 +680,7 @@ def preview_correction(correction_id):
 
 @teacher_bp.route('/api/correction/save', methods=['POST'])
 @login_required
+@limiter.limit("10 per minute; 50 per hour")
 def save_correction():
     data          = request.get_json()
     student_id    = data['student_id']
@@ -648,7 +688,9 @@ def save_correction():
     transcript    = data.get('transcript', '')
     scores_data   = data.get('scores', [])
 
-    assignment = Assignment.query.get_or_404(assignment_id)
+    assignment = db.session.get(Assignment, assignment_id)
+    if not assignment:
+        abort(404)
     if assignment.classroom.teacher_id != current_user.id:
         return jsonify({'error': 'Non autorisé'}), 403
 
@@ -758,6 +800,7 @@ def correction_scores(correction_id):
 
 @teacher_bp.route('/api/correction/<int:correction_id>/audio', methods=['POST'])
 @login_required
+@csrf.protect
 def upload_audio_route(correction_id):
     corr = db.session.get(Correction, correction_id)
     if not corr or corr.assignment.classroom.teacher_id != current_user.id:
@@ -765,6 +808,13 @@ def upload_audio_route(correction_id):
     audio_file = request.files.get('audio')
     if not audio_file:
         return jsonify({'error': 'Fichier manquant'}), 400
+    
+    # Validation du type de fichier (sans python-magic)
+    ALLOWED_EXTENSIONS = {'webm', 'mp3', 'wav', 'm4a', 'ogg'}
+    extension = audio_file.filename.rsplit('.', 1)[-1].lower() if '.' in audio_file.filename else ''
+    if extension not in ALLOWED_EXTENSIONS:
+        return jsonify({'error': f'Extension .{extension} non autorisée. Types acceptés: webm, mp3, wav, m4a, ogg'}), 400
+    
     try:
         result = upload_audio(audio_file.read(),
                               public_id=f'corr_{corr.public_token}',
@@ -779,6 +829,7 @@ def upload_audio_route(correction_id):
 
 @teacher_bp.route('/api/correction/<int:correction_id>/publish', methods=['POST'])
 @login_required
+@csrf.protect
 def publish_correction(correction_id):
     corr = db.session.get(Correction, correction_id)
     if not corr or corr.assignment.classroom.teacher_id != current_user.id:
@@ -808,6 +859,7 @@ def download_qr(correction_id):
 
 @teacher_bp.route('/api/correction/<int:correction_id>/delete', methods=['POST'])
 @login_required
+@csrf.protect
 def delete_correction(correction_id):
     """Suppression définitive d'une correction (unitaire).
     Body JSON : { "password": "..." }
@@ -828,6 +880,7 @@ def delete_correction(correction_id):
 
 @teacher_bp.route('/api/corrections/delete-bulk', methods=['POST'])
 @login_required
+@csrf.protect
 def delete_corrections_bulk():
     """Suppression groupée de plusieurs corrections.
     Body JSON : { "ids": [1, 2, 3], "password": "..." }
@@ -837,6 +890,9 @@ def delete_corrections_bulk():
         return jsonify({'error': 'Mot de passe incorrect'}), 403
 
     ids = data.get('ids', [])
+    # Limiter à 100 suppressions par requête (évite DoS)
+    if len(ids) > 100:
+        return jsonify({'error': 'Trop de corrections sélectionnées (max 100)'}), 400
     if not ids:
         return jsonify({'error': 'Aucune correction sélectionnée'}), 400
 
@@ -852,6 +908,7 @@ def delete_corrections_bulk():
 
 @teacher_bp.route('/api/correction/<int:correction_id>/resynthesize', methods=['POST'])
 @login_required
+@limiter.limit("5 per minute; 20 per hour")
 def resynthesize_correction(correction_id):
     """Relance Mistral sur le raw_transcript existant, sans toucher à l'audio ni aux scores."""
     corr = db.session.get(Correction, correction_id)
@@ -888,8 +945,11 @@ def resynthesize_correction(correction_id):
 
 @teacher_bp.route('/assignments/<int:assignment_id>/appreciation', methods=['POST'])
 @login_required
+@csrf.protect
 def save_appreciation(assignment_id):
-    a = Assignment.query.get_or_404(assignment_id)
+    a = db.session.get(Assignment, assignment_id)
+    if not a:
+        abort(404)
     if a.classroom.teacher_id != current_user.id:
         return jsonify({'error': 'Non autorisé'}), 403
     a.class_appreciation = request.get_json().get('text', '').strip() or None
@@ -899,8 +959,11 @@ def save_appreciation(assignment_id):
 @teacher_bp.route('/assignments/<int:assignment_id>/appreciation/synthesize',
                   methods=['POST'])
 @login_required
+@limiter.limit("5 per minute; 20 per hour")
 def synthesize_appreciation_route(assignment_id):
-    a = Assignment.query.get_or_404(assignment_id)
+    a = db.session.get(Assignment, assignment_id)
+    if not a:
+        abort(404)
     if a.classroom.teacher_id != current_user.id:
         return jsonify({'error': 'Non autorisé'}), 403
     raw = request.get_json().get('text', '').strip()
@@ -935,8 +998,11 @@ def add_teacher_to_class(class_id):
 
 @teacher_bp.route('/classes/<int:class_id>/group/add', methods=['POST'])
 @login_required
+@csrf.protect
 def add_group(class_id):
-    classroom = Classroom.query.filter_by(id=class_id, teacher_id=current_user.id).first_or_404()
+    classroom = db.session.get(Classroom, class_id)
+    if not classroom or classroom.teacher_id != current_user.id:
+        abort(404)
     name = request.form.get('group_name', '').strip()
     if name:
         group = Group(classroom_id=class_id, name=name)
@@ -947,9 +1013,14 @@ def add_group(class_id):
 
 @teacher_bp.route('/classes/<int:class_id>/group/<int:group_id>/delete', methods=['POST'])
 @login_required
+@csrf.protect
 def delete_group(class_id, group_id):
-    classroom = Classroom.query.filter_by(id=class_id, teacher_id=current_user.id).first_or_404()
-    group = Group.query.get_or_404(group_id)
+    classroom = db.session.get(Classroom, class_id)
+    if not classroom or classroom.teacher_id != current_user.id:
+        abort(404)
+    group = db.session.get(Group, group_id)
+    if not group:
+        abort(404)
     if group.classroom_id != class_id:
         abort(403)
     db.session.delete(group)
@@ -959,9 +1030,14 @@ def delete_group(class_id, group_id):
 
 @teacher_bp.route('/classes/<int:class_id>/group/<int:group_id>/edit', methods=['GET', 'POST'])
 @login_required
+@csrf.protect
 def edit_group(class_id, group_id):
-    classroom = Classroom.query.filter_by(id=class_id, teacher_id=current_user.id).first_or_404()
-    group = Group.query.get_or_404(group_id)
+    classroom = db.session.get(Classroom, class_id)
+    if not classroom or classroom.teacher_id != current_user.id:
+        abort(404)
+    group = db.session.get(Group, group_id)
+    if not group:
+        abort(404)
     if group.classroom_id != class_id:
         abort(403)
     if request.method == 'POST':
@@ -1110,6 +1186,8 @@ def student_prediction(student_id):
 @teacher_bp.route('/admin')
 @login_required
 def admin():
+    if not session.get('admin_unlocked') or not is_admin_session_valid():
+        return redirect(url_for('teacher.admin_login'))
     classrooms = Classroom.query.filter_by(teacher_id=current_user.id)\
                                 .order_by(Classroom.name).all()
     lock_error = session.pop('admin_lock_error', None)
@@ -1142,7 +1220,7 @@ def admin_lock():
 @teacher_bp.route('/admin/theme', methods=['POST'])
 @login_required
 def admin_theme():
-    if not session.get('admin_unlocked'):
+    if not session.get('admin_unlocked') or not is_admin_session_valid():
         return redirect(url_for('teacher.admin'))
     themes = {
         'neon':    {'primary': '#39FF14', 'secondary': '#0a0a0a', 'bg': '#ffffff'},
@@ -1164,7 +1242,7 @@ def admin_theme():
 @teacher_bp.route('/admin/delete-account', methods=['POST'])
 @login_required
 def admin_delete_account():
-    if not session.get('admin_unlocked'):
+    if not session.get('admin_unlocked') or not is_admin_session_valid():
         return redirect(url_for('teacher.admin'))
     confirm  = request.form.get('confirm', '')
     password = request.form.get('password', '')
@@ -1184,7 +1262,7 @@ def admin_delete_account():
 @teacher_bp.route('/admin/export/notes', methods=['POST'])
 @login_required
 def admin_export_notes():
-    if not session.get('admin_unlocked'):
+    if not session.get('admin_unlocked') or not is_admin_session_valid():
         return redirect(url_for('teacher.admin'))
 
     class_ids = request.form.getlist('class_ids', type=int)
@@ -1210,7 +1288,15 @@ def admin_export_notes():
 
     output = _io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Classe', 'Élève', 'Devoir', 'Date', 'Note', 'Sur', 'Statut'])
+    writer.writerow([
+        sanitize_csv_field(classroom.name),
+        sanitize_csv_field(name),
+        sanitize_csv_field(assignment.title),
+        sanitize_csv_field(assignment.date.strftime('%d/%m/%Y') if assignment.date else ''),
+        sanitize_csv_field(correction.total_score if correction.total_score is not None else ''),
+        sanitize_csv_field(assignment.total_points),
+        sanitize_csv_field(correction.status),
+    ])
 
     for classroom in classrooms:
         for assignment in classroom.assignments:
@@ -1227,13 +1313,13 @@ def admin_export_notes():
                 except Exception:
                     name = correction.student.alias
                 writer.writerow([
-                    classroom.name,
-                    name,
-                    assignment.title,
-                    assignment.date.strftime('%d/%m/%Y') if assignment.date else '',
-                    correction.total_score if correction.total_score is not None else '',
-                    assignment.total_points,
-                    correction.status,
+                    sanitize_csv_field(classroom.name),
+                    sanitize_csv_field(name),
+                    sanitize_csv_field(assignment.title),
+                    sanitize_csv_field(assignment.date.strftime('%d/%m/%Y') if assignment.date else ''),
+                    sanitize_csv_field(correction.total_score if correction.total_score is not None else ''),
+                    sanitize_csv_field(assignment.total_points),
+                    sanitize_csv_field(correction.status),
                 ])
 
     output.seek(0)
@@ -1301,7 +1387,9 @@ def correction_pdf(correction_id):
 @teacher_bp.route('/api/tts/<int:correction_id>')
 @login_required
 def tts_correction(correction_id):
-    corr = Correction.query.get_or_404(correction_id)
+    corr = db.session.get(Correction, correction_id)
+    if not corr:
+        abort(404)
     if corr.assignment.classroom.teacher_id != current_user.id:
         abort(403)
     if not corr.structured_text:

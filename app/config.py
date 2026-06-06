@@ -5,7 +5,9 @@ load_dotenv()
 
 class Config:
     # ── Flask ──────────────────────────────────────────────────────────────────
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key-CHANGE-IN-PRODUCTION'
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        raise RuntimeError("SECRET_KEY non définie dans les variables d'environnement")
 
     # ── Base de données ────────────────────────────────────────────────────────
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///voxcorr_dev.db'
@@ -33,6 +35,8 @@ class Config:
 
     # ── RGPD — chiffrement noms élèves ─────────────────────────────────────────
     ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY')
+    if not ENCRYPTION_KEY:
+        raise RuntimeError("ENCRYPTION_KEY non définie dans les variables d'environnement")
 
     # ── URL publique ───────────────────────────────────────────────────────────
     APP_BASE_URL = os.environ.get('APP_BASE_URL', 'http://localhost:5000')
@@ -44,3 +48,7 @@ class Config:
     SENDGRID_API_KEY    = os.environ.get('SENDGRID_API_KEY')
     SENDGRID_FROM_EMAIL = os.environ.get('SENDGRID_FROM_EMAIL', 'help.voxcorr@gmail.com')
     SENDGRID_FROM_NAME  = os.environ.get('SENDGRID_FROM_NAME',  'VoxCorr Team')
+
+    # ── Session ───────────────────────────────────────────────────────────────
+    PERMANENT_SESSION_LIFETIME = 60 * 60 * 24  # 24h pour élèves
+    SESSION_COOKIE_SECURE = True  # HTTPS uniquement (en prod)

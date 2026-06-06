@@ -47,7 +47,7 @@
         </div>
 
         <!-- Barre de force -->
-        <div class="mt-2 mb-1">
+        <div class="mt-2 mb-2">
           <div style="height:4px;border-radius:2px;background:#e5e7eb;overflow:hidden">
             <div id="strength-bar" style="height:100%;width:0;transition:width .3s,background .3s;border-radius:2px"></div>
           </div>
@@ -55,12 +55,12 @@
         </div>
 
         <!-- Critères -->
-        <ul class="list-unstyled mb-0" style="font-size:.75rem" id="criteria">
-          <li id="c-len"    class="crit">✗ 10 caractères minimum</li>
-          <li id="c-upper"  class="crit">✗ Une majuscule</li>
-          <li id="c-lower"  class="crit">✗ Une minuscule</li>
-          <li id="c-digit"  class="crit">✗ Un chiffre</li>
-          <li id="c-special"class="crit">✗ Un caractère spécial (!@#$...)</li>
+        <ul class="list-unstyled mb-0" style="font-size:.75rem;display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px!important" id="criteria">
+          <li id="c-len"    class="crit badge bg-light text-dark">🔘 10 caractères</li>
+          <li id="c-upper"  class="crit badge bg-light text-dark">🔘 Une majuscule</li>
+          <li id="c-lower"  class="crit badge bg-light text-dark">🔘 Une minuscule</li>
+          <li id="c-digit"  class="crit badge bg-light text-dark">🔘 Un chiffre</li>
+          <li id="c-special"class="crit badge bg-light text-dark">🔘 Caractère spécial (!@#$...)</li>
         </ul>
       </div>
 
@@ -96,8 +96,17 @@
   padding:4px; line-height:1;
 }
 .btn-eye:hover { color: var(--vox-neon); }
-.crit { color: #9ca3af; transition: color .2s; }
-.crit.ok { color: #22c55e; }
+.crit {
+  transition: all .2s;
+}
+.crit.valid {
+  background-color: #22c55e !important;
+  color: white !important;
+}
+.crit.invalid {
+  background-color: #e5e7eb !important;
+  color: #6b7280 !important;
+}
 </style>
 
 <script>
@@ -122,19 +131,40 @@ function checkPassword(val) {
     'c-special': /[!@#$%^&*()\-_=+\[\]{};:'",.<>/?\\|`~]/.test(val),
   };
   const labels = {
-    'c-len':     '10 caractères minimum',
-    'c-upper':   'Une majuscule',
-    'c-lower':   'Une minuscule',
-    'c-digit':   'Un chiffre',
-    'c-special': 'Un caractère spécial (!@#$...)',
+    'c-len':     '🔘 10 caractères',
+    'c-upper':   '🔘 Une majuscule',
+    'c-lower':   '🔘 Une minuscule',
+    'c-digit':   '🔘 Un chiffre',
+    'c-special': '🔘 Caractère spécial (!@#$...)'
+  };
+  const validIcons = {
+    'c-len':     '✅ 10 caractères',
+    'c-upper':   '✅ Une majuscule',
+    'c-lower':   '✅ Une minuscule',
+    'c-digit':   '✅ Un chiffre',
+    'c-special': '✅ Caractère spécial (!@#$...)'
+  };
+  const invalidIcons = {
+    'c-len':     '❌ 10 caractères',
+    'c-upper':   '❌ Une majuscule',
+    'c-lower':   '❌ Une minuscule',
+    'c-digit':   '❌ Un chiffre',
+    'c-special': '❌ Caractère spécial (!@#$...)'
   };
 
   let score = 0;
   for (const [id, ok] of Object.entries(rules)) {
     const el = document.getElementById(id);
-    el.textContent = (ok ? '✓ ' : '✗ ') + labels[id];
-    el.classList.toggle('ok', ok);
-    if (ok) score++;
+    if (ok) {
+      el.textContent = validIcons[id];
+      el.classList.remove('invalid');
+      el.classList.add('valid');
+      score++;
+    } else {
+      el.textContent = invalidIcons[id];
+      el.classList.remove('valid');
+      el.classList.add('invalid');
+    }
   }
 
   const bar   = document.getElementById('strength-bar');

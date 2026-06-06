@@ -6,6 +6,7 @@ from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from app.config import Config
 import threading
+import os
 
 from datetime import datetime, timezone, timedelta
 db = SQLAlchemy()
@@ -32,9 +33,12 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    app.config['SESSION_COOKIE_SECURE'] = not app.debug
     csrf.init_app(app)
     limiter.init_app(app)
-    socketio.init_app(app, cors_allowed_origins="*")
+    # En production, restreindre aux domaines autorisés
+    allowed_origins = os.environ.get('SOCKETIO_CORS_ALLOWED', 'http://localhost:5000')
+    socketio.init_app(app, cors_allowed_origins=allowed_origins.split(','))
 
     from app import models
     from app.blueprints.auth    import auth_bp
