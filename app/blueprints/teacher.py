@@ -1,7 +1,7 @@
 from flask import (Blueprint, render_template, redirect, url_for,
                    request, jsonify, flash, send_file, current_app)
 from flask_login import login_required, current_user
-from app import db, csrf
+from app import db, csrf, limiter
 from app.models import (Classroom, Student, Assignment, Question,
                         Correction, QuestionScore, ClassroomTeacher, Group, GroupStudent, Teacher)
 from app.services.anonymization import generate_alias, encrypt_name, decrypt_name
