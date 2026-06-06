@@ -143,6 +143,62 @@
       {% endif %}
     </div>
   </div>
+</div>
 
+<!-- Collaborateurs -->
+<div class="vox-card mb-3">
+  <div class="fw-bold mb-2">Enseignants partageant cette classe</div>
+  {% for ct in classroom.shared_with %}
+  <div class="d-flex justify-content-between align-items-center mb-1">
+    <span>{{ ct.teacher.full_name }} ({{ ct.role }})</span>
+    {% if ct.teacher_id != classroom.teacher_id %}
+    <form method="POST" action="/teacher/classes/{{ classroom.id }}/remove-teacher/{{ ct.teacher_id }}" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-outline-danger">Retirer</button>
+    </form>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="text-muted small">Aucun autre enseignant.</p>
+  {% endfor %}
+  <hr>
+  <form method="POST" action="/teacher/classes/{{ classroom.id }}/add-teacher" class="row g-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col">
+      <input type="email" name="email" class="vox-input" placeholder="Email de l'enseignant" required>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn vox-btn-primary btn-sm">Inviter</button>
+    </div>
+  </form>
+</div>
+
+<!-- Groupes d'élèves -->
+<div class="vox-card mb-3">
+  <div class="fw-bold mb-2">Groupes d'élèves</div>
+  {% for group in classroom.groups %}
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <span>{{ group.name }} ({{ group.students|length }} élèves)</span>
+    <div>
+      <a href="/teacher/classes/{{ classroom.id }}/group/{{ group.id }}/edit" class="btn btn-sm btn-outline-secondary">Modifier</a>
+      <form method="POST" action="/teacher/classes/{{ classroom.id }}/group/{{ group.id }}/delete" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <p class="text-muted small">Aucun groupe.</p>
+  {% endfor %}
+  <hr>
+  <form method="POST" action="/teacher/classes/{{ classroom.id }}/group/add" class="row g-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col">
+      <input type="text" name="group_name" class="vox-input" placeholder="Nom du groupe (ex: Groupe A)" required>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn vox-btn-primary btn-sm">Créer groupe</button>
+    </div>
+  </form>
 </div>
 {% endblock %}
