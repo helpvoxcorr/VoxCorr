@@ -120,25 +120,24 @@ class Assignment(db.Model):
     corrections = db.relationship('Correction',  back_populates='assignment',
                                   cascade='all, delete-orphan', lazy='select')
 
-#class Competence(db.Model):
-#    __tablename__ = 'competences'
-#    id         = db.Column(db.Integer, primary_key=True)
-#   label      = db.Column(db.String(100), nullable=False)
-#   created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+class Competence(db.Model):
+    __tablename__ = 'competences'
+    id         = db.Column(db.Integer, primary_key=True)
+    label      = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
 
-#class CompetenceScore(db.Model):
-#     __tablename__ = 'competence_scores'
-#     id = db.Column(db.Integer, primary_key=True)
-#     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
-#     #competence_id = db.Column(db.Integer, db.ForeignKey('competences.id'), nullable=False)
-#     assignment_id = db.Column(db.Integer, db.ForeignKey('assignments.id'), nullable=False)
-#     score = db.Column(db.Float)
-#     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-#     
-#     student = db.relationship('Student')
-#     #competence = db.relationship('Competence')
-#     assignment = db.relationship('Assignment')
+class CompetenceScore(db.Model):
+     __tablename__ = 'competence_scores'
+     id = db.Column(db.Integer, primary_key=True)
+     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+     competence_id = db.Column(db.Integer, db.ForeignKey('competences.id'), nullable=False)
+     assignment_id = db.Column(db.Integer, db.ForeignKey('assignments.id'), nullable=False)
+     score = db.Column(db.Float)
+     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc)) 
+     student = db.relationship('Student')
+     competence = db.relationship('Competence')
+     assignment = db.relationship('Assignment')
 
  
 class Question(db.Model):
