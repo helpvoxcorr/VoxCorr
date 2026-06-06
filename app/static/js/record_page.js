@@ -37,25 +37,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!text) { alert('La transcription est vide.'); return; }
 
     UI.setState('processing');
+    UI.scoreInputs.forEach(inp => inp.value = '');
+    
+    const correctionData = {
+      student_id: CTX.studentId,
+      assignment_id: CTX.assignmentId,
+      transcript: text,
+      scores: UI.collectScores()
+    };
+    
+    // Si pas de connexion, sauvegarde locale
+    if (!navigator.onLine) {
+      const pendingId = await window.saveCorrectionOffline(correctionData, audioBlob);
+      alert(`⚠️ Pas de connexion. La correction sera envoyée automatiquement quand Internet reviendra. (ID: ${pendingId})`);
+      UI.setState('idle');
+      return;
+    }
+    
     try {
       const res = await api.saveCorrection(
         CTX.studentId, CTX.assignmentId, text, UI.collectScores()
       );
       correctionId = res.correction_id;
-      // Vide les inputs APRÈS envoi → Mistral remplira
-      UI.scoreInputs.forEach(inp => inp.value = '');
 
-      // Upload audio en parallèle (non bloquant)
       if (audioBlob) api.uploadAudio(correctionId, audioBlob).catch(console.warn);
 
-      // Poll Mistral toutes les 2 s
       pollTimer = setInterval(async () => {
         const data = await api.getStatus(correctionId).catch(() => null);
         if (!data) return;
         if (data.status === 'draft' || data.status === 'published') {
           clearInterval(pollTimer);
           UI.setState('done', data);
-          // Injection des notes extraites par Mistral (GET — pas de CSRF requis)
           fetch('/teacher/api/correction/' + correctionId + '/scores')
             .then(r => r.json())
             .then(scores => {

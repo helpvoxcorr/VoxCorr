@@ -1,25 +1,77 @@
-/* VoxCorr Service Worker
- * RÈGLE : on ne met JAMAIS en cache les fichiers audio Cloudinary.
- * Quota iOS Safari : ~50 Mo/domaine. L'audio est streamé à la demande.
- */
-const CACHE = 'voxcorr-v1';
-const AUDIO_HOSTS = ['res.cloudinary.com', 'cloudinary.com'];
-const PRECACHE = [
+// VoxCorr Service Worker v2
+const CACHE_NAME = 'voxcorr-v2';
+const urlsToCache = [
+  '/',
   '/static/css/voxcorr.css',
   '/static/js/recorder.js',
+  '/static/js/modules/api.js',
+  '/static/js/modules/ui.js',
+  '/static/js/record_page.js',
+  '/static/manifest.json',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
+  'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
+  'https://unpkg.com/wavesurfer.js@7.4.0/dist/wavesurfer.min.js',
+  'https://cdn.plot.ly/plotly-3.1.0.min.js',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
-self.addEventListener('install',  e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE))); self.skipWaiting(); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
+      .then(() => self.skipWaiting())
+  );
+});
 
-self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
-  if (AUDIO_HOSTS.some(h => url.hostname.includes(h))) { e.respondWith(fetch(e.request)); return; }
-  if (url.pathname.startsWith('/auth/') || url.pathname.startsWith('/teacher/api/')) { e.respondWith(fetch(e.request)); return; }
-  if (url.pathname.startsWith('/c/')) {
-    e.respondWith(fetch(e.request).then(r => { const c = r.clone(); caches.open(CACHE).then(cache => cache.put(e.request, c)); return r; }).catch(() => caches.match(e.request)));
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+  
+  // Exclure les requêtes API et audio (ne pas cacher)
+  if (url.pathname.startsWith('/teacher/api/') ||
+      url.pathname.startsWith('/student/api/') ||
+      url.pathname.includes('/api/') ||
+      url.pathname.startsWith('/c/') ||
+      url.hostname.includes('cloudinary.com') ||
+      url.pathname.endsWith('.mp3') ||
+      url.pathname.endsWith('.webm')) {
+    event.respondWith(fetch(event.request));
     return;
   }
-  e.respondWith(caches.match(e.request).then(cached => cached || fetch(e.request).then(r => { if (r?.status === 200) { const c = r.clone(); caches.open(CACHE).then(cache => cache.put(e.request, c)); } return r; })));
+  
+  // Stratégie : cache d'abord, puis réseau
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        if (response) {
+          return response;
+        }
+        return fetch(event.request).then(
+          response => {
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                cache.put(event.request, responseToCache);
+              });
+            return response;
+          }
+        );
+      })
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
 });

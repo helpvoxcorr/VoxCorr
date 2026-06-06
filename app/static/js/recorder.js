@@ -49,3 +49,92 @@ class VoxRecorder {
   }
 }
 window.VoxRecorder=VoxRecorder;
+
+// Sauvegarde locale pour mode hors-ligne
+window.pendingCorrections = [];
+
+async function saveCorrectionOffline(correctionData, audioBlob) {
+  const pending = {
+    id: Date.now(),
+    data: correctionData,
+    audio: audioBlob,
+    timestamp: new Date().toISOString()
+  };
+  window.pendingCorrections.push(pending);
+  
+  // Stocker dans localStorage
+  localStorage.setItem('pendingCorrections', JSON.stringify(
+    window.pendingCorrections.map(p => ({
+      id: p.id,
+      data: p.data,
+      timestamp: p.timestamp
+    }))
+  ));
+  
+  // Stocker l'audio séparément (trop gros pour localStorage)
+  const audioKey = `pending_audio_${pending.id}`;
+  const reader = new FileReader();
+  reader.onload = function() {
+    localStorage.setItem(audioKey, reader.result);
+  };
+  reader.readAsDataURL(audioBlob);
+  
+  return pending.id;
+}
+
+async function syncPendingCorrections() {
+  if (!navigator.onLine) return;
+  
+  const pendingList = JSON.parse(localStorage.getItem('pendingCorrections') || '[]');
+  if (pendingList.length === 0) return;
+  
+  for (const pending of pendingList) {
+    try {
+      const audioKey = `pending_audio_${pending.id}`;
+      const audioDataURL = localStorage.getItem(audioKey);
+      
+      // Reconstruire le blob audio
+      const audioBlob = audioDataURL ? await (await fetch(audioDataURL)).blob() : null;
+      
+      // Envoyer au serveur
+      const formData = new FormData();
+      formData.append('student_id', pending.data.student_id);
+      formData.append('assignment_id', pending.data.assignment_id);
+      formData.append('transcript', pending.data.transcript);
+      formData.append('scores', JSON.stringify(pending.data.scores));
+      if (audioBlob) {
+        formData.append('audio', audioBlob, 'correction.webm');
+      }
+      
+      const response = await fetch('/teacher/api/correction/save', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (response.ok) {
+        // Supprimer du stockage local
+        localStorage.removeItem(`pending_audio_${pending.id}`);
+        localStorage.removeItem(`pending_audio_${pending.id}_status`);
+        window.pendingCorrections = window.pendingCorrections.filter(p => p.id !== pending.id);
+        localStorage.setItem('pendingCorrections', JSON.stringify(
+          window.pendingCorrections.map(p => ({
+            id: p.id,
+            data: p.data,
+            timestamp: p.timestamp
+          }))
+        ));
+        console.log(`Correction ${pending.id} synchronisée`);
+      }
+    } catch (err) {
+      console.error('Erreur synchronisation', err);
+    }
+  }
+}
+
+// Écouter le retour en ligne
+window.addEventListener('online', () => {
+  syncPendingCorrections();
+});
+
+// Vérifier au chargement
+setTimeout(syncPendingCorrections, 3000);

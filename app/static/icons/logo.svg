@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img">
+  <title>VoxCorr</title>
+  <desc>Logo VoxCorr : V blanc avec barres d'égaliseur vertes sur fond noir</desc>
+
+  <!-- Fond -->
+  <rect width="512" height="512" rx="96" ry="96" fill="#111111"/>
+
+  <!-- Barres égaliseur gauche -->
+  <rect x="58"  y="196" width="22" height="90"  rx="11" fill="#39FF14"/>
+  <rect x="90"  y="161" width="22" height="160" rx="11" fill="#39FF14"/>
+  <rect x="122" y="136" width="22" height="210" rx="11" fill="#39FF14"/>
+
+  <!-- V central blanc -->
+  <path d="M165 130 L256 370 L347 130" fill="none" stroke="#FFFFFF" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Point vert à la pointe du V -->
+  <circle cx="256" cy="370" r="14" fill="#39FF14"/>
+
+  <!-- Barres égaliseur droite -->
+  <rect x="368" y="136" width="22" height="210" rx="11" fill="#39FF14"/>
+  <rect x="400" y="161" width="22" height="160" rx="11" fill="#39FF14"/>
+  <rect x="432" y="196" width="22" height="90"  rx="11" fill="#39FF14"/>
+</svg>

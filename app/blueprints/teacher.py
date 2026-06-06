@@ -3,14 +3,13 @@ from flask import (Blueprint, render_template, redirect, url_for,
 from flask_login import login_required, current_user
 from app import db
 from app.models import (Classroom, Student, Assignment, Question,
-                        Correction, QuestionScore)
+                        Correction, QuestionScore, ClassroomTeacher, Group, GroupStudent)
 from app.services.anonymization import generate_alias, encrypt_name, decrypt_name
 from app.services.ai import synthesize_with_mistral, synthesize_appreciation
 from app.services.storage       import upload_audio
 from app.services.qrcode        import make_qr, qr_png_bytes
 from app.services.background    import run_in_background
 from app.services.tts import generate_tts_audio
-from datetime import datetime
 import io
 import csv, io as _io
 from flask import session
@@ -911,6 +910,200 @@ def synthesize_appreciation_route(assignment_id):
     # Appel synchrone (texte court, rapide)
     result = synthesize_appreciation(raw)
     return jsonify({'ok': True, 'text': result})
+
+@teacher_bp.route('/classes/<int:class_id>/add-teacher', methods=['POST'])
+@login_required
+def add_teacher_to_class(class_id):
+    classroom = Classroom.query.filter_by(id=class_id, teacher_id=current_user.id).first_or_404()
+    email = request.form.get('email', '').strip().lower()
+    teacher = Teacher.query.filter_by(email=email).first()
+    if not teacher:
+        flash('Enseignant non trouvé.', 'danger')
+        return redirect(url_for('teacher.class_detail', class_id=class_id))
+    if teacher.id == current_user.id:
+        flash('Vous ne pouvez pas vous ajouter vous-même.', 'warning')
+        return redirect(url_for('teacher.class_detail', class_id=class_id))
+    existing = ClassroomTeacher.query.filter_by(classroom_id=class_id, teacher_id=teacher.id).first()
+    if existing:
+        flash('Cet enseignant est déjà dans la classe.', 'warning')
+    else:
+        ct = ClassroomTeacher(classroom_id=class_id, teacher_id=teacher.id, role='editor')
+        db.session.add(ct)
+        db.session.commit()
+        flash(f'{teacher.full_name} ajouté à la classe.', 'success')
+    return redirect(url_for('teacher.class_detail', class_id=class_id))
+
+@teacher_bp.route('/classes/<int:class_id>/group/add', methods=['POST'])
+@login_required
+def add_group(class_id):
+    classroom = Classroom.query.filter_by(id=class_id, teacher_id=current_user.id).first_or_404()
+    name = request.form.get('group_name', '').strip()
+    if name:
+        group = Group(classroom_id=class_id, name=name)
+        db.session.add(group)
+        db.session.commit()
+        flash(f'Groupe "{name}" créé.', 'success')
+    return redirect(url_for('teacher.class_detail', class_id=class_id))
+
+@teacher_bp.route('/classes/<int:class_id>/group/<int:group_id>/delete', methods=['POST'])
+@login_required
+def delete_group(class_id, group_id):
+    classroom = Classroom.query.filter_by(id=class_id, teacher_id=current_user.id).first_or_404()
+    group = Group.query.get_or_404(group_id)
+    if group.classroom_id != class_id:
+        abort(403)
+    db.session.delete(group)
+    db.session.commit()
+    flash('Groupe supprimé.', 'success')
+    return redirect(url_for('teacher.class_detail', class_id=class_id))
+
+@teacher_bp.route('/classes/<int:class_id>/group/<int:group_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_group(class_id, group_id):
+    classroom = Classroom.query.filter_by(id=class_id, teacher_id=current_user.id).first_or_404()
+    group = Group.query.get_or_404(group_id)
+    if group.classroom_id != class_id:
+        abort(403)
+    if request.method == 'POST':
+        group.name = request.form.get('name', '').strip()
+        # Mise à jour des membres
+        student_ids = request.form.getlist('student_ids', type=int)
+        GroupStudent.query.filter_by(group_id=group_id).delete()
+        for sid in student_ids:
+            db.session.add(GroupStudent(group_id=group_id, student_id=sid))
+        db.session.commit()
+        flash('Groupe mis à jour.', 'success')
+        return redirect(url_for('teacher.class_detail', class_id=class_id))
+    students = Student.query.filter_by(classroom_id=class_id).all()
+    members = {gs.student_id for gs in group.students}
+    return render_template('teacher/edit_group.html', classroom=classroom, group=group, students=students, members=members)
+
+@teacher_bp.route('/api/student/<int:student_id>/competence-stats')
+@login_required
+def student_competence_stats(student_id):
+    student = Student.query.get_or_404(student_id)
+    if student.classroom.teacher_id != current_user.id:
+        return jsonify({'error': 'Non autorisé'}), 403
+    
+    # Récupère toutes les corrections publiées de l'élève
+    corrections = Correction.query.filter_by(
+        student_id=student_id, 
+        status='published'
+    ).order_by(Correction.created_at).all()
+    
+    if not corrections:
+        return jsonify({'competences': [], 'evolution': []})
+    
+    # Dictionnaire pour stocker les scores par compétence et par devoir
+    # Structure: {competence_name: {assignment_title: score, ...}}
+    comp_scores = {}
+    evolution = []
+    
+    for corr in corrections:
+        assignment_title = corr.assignment.title
+        evolution.append({'devoir': assignment_title, 'note': corr.total_score})
+        
+        for qs in corr.scores:
+            if not qs.question.competence:
+                continue
+            comp_name = qs.question.competence
+            if comp_name not in comp_scores:
+                comp_scores[comp_name] = {}
+            comp_scores[comp_name][assignment_title] = qs.score
+    
+    # Calcul de la moyenne par compétence
+    competence_stats = []
+    for comp_name, scores in comp_scores.items():
+        avg = sum(scores.values()) / len(scores) if scores else 0
+        # Tendance (dernier score vs avant-dernier)
+        values = list(scores.values())
+        trend = values[-1] - values[-2] if len(values) >= 2 else 0
+        competence_stats.append({
+            'name': comp_name,
+            'average': round(avg, 1),
+            'trend': round(trend, 1),
+            'scores': scores
+        })
+    
+    # Tri par moyenne décroissante
+    competence_stats.sort(key=lambda x: x['average'], reverse=True)
+    
+    return jsonify({
+        'competences': competence_stats,
+        'evolution': evolution,
+        'student_name': f"{student.alias}"
+    })
+
+@teacher_bp.route('/api/student/<int:student_id>/prediction')
+@login_required
+def student_prediction(student_id):
+    student = Student.query.get_or_404(student_id)
+    if student.classroom.teacher_id != current_user.id:
+        return jsonify({'error': 'Non autorisé'}), 403
+    
+    # Récupère les 5 dernières corrections
+    corrections = Correction.query.filter_by(
+        student_id=student_id, 
+        status='published'
+    ).order_by(Correction.created_at.desc()).limit(5).all()
+    
+    if len(corrections) < 3:
+        return jsonify({
+            'risk': 'insuffisant',
+            'message': 'Pas assez de données (minimum 3 corrections)',
+            'color': 'gray'
+        })
+    
+    # Calcul de la moyenne des notes
+    scores = [c.total_score or 0 for c in corrections]
+    avg_score = sum(scores) / len(scores)
+    last_score = scores[0] if scores else 0
+    
+    # Tendance (moyenne glissante)
+    if len(scores) >= 2:
+        prev_avg = sum(scores[1:]) / len(scores[1:])
+        trend = last_score - prev_avg
+    else:
+        trend = 0
+    
+    # Seuils (à ajuster selon ton barème)
+    if avg_score < 10:
+        risk = 'élevé'
+        message = "L'élève a des difficultés persistantes. Intervention recommandée."
+        color = 'red'
+    elif avg_score < 12:
+        if trend < -2:
+            risk = 'élevé'
+            message = "Baisse récente préoccupante. À surveiller."
+            color = 'orange'
+        else:
+            risk = 'moyen'
+            message = "Résultats fragiles. Travail à consolider."
+            color = 'orange'
+    elif avg_score < 15:
+        risk = 'faible'
+        message = "Bonnes performances générales. Continuer ainsi."
+        color = 'green'
+    else:
+        risk = 'très faible'
+        message = "Excellent niveau. Peut viser plus haut."
+        color = 'green'
+    
+    # Si tendance négative forte, on alerte même si moyenne correcte
+    if trend < -3 and avg_score >= 12:
+        risk = 'moyen'
+        message = "Baisse récente inhabituelle. Vérifier la compréhension."
+        color = 'orange'
+    
+    return jsonify({
+        'risk': risk,
+        'message': message,
+        'color': color,
+        'avg_score': round(avg_score, 1),
+        'last_score': round(last_score, 1),
+        'trend': round(trend, 1),
+        'corrections_count': len(corrections)
+    })
 
 # ── Admin ─────────────────────────────────────────────────────────────────────
  

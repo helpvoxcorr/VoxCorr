@@ -7,6 +7,18 @@
 
 {% block head %}
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+.risk-badge {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+.risk-text {
+  font-size: 0.75rem;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -49,24 +61,36 @@
       {% if students %}
       <div style="max-height:420px;overflow-y:auto;padding-right:.25rem">
         {% for s in students %}
-        <div class="cls-student-row">
-          <span class="cls-student-num">{{ s.student_number }}</span>
-          <span class="cls-student-alias">{{ s.alias }}</span>
-          <span class="cls-student-name">{{ s.display_last }}, {{ s.display_first }}</span>
-          <div class="cls-student-actions">
-            <a href="/teacher/classes/{{ classroom.id }}/students/{{ s.id }}/edit"
-               class="cls-action-btn" title="Modifier">
-              <i class="bi bi-pencil"></i>
-            </a>
-            <form method="POST"
-                  action="/teacher/classes/{{ classroom.id }}/students/{{ s.id }}/delete"
-                  class="d-inline"
-                  onsubmit="return confirm('Supprimer {{ s.alias }} ?')">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="cls-action-btn danger" title="Supprimer">
-                <i class="bi bi-trash"></i>
-              </button>
-            </form>
+        <div class="cls-student-row" style="flex-wrap:wrap;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;width:100%;">
+            <span class="cls-student-num">{{ s.student_number }}</span>
+            <span class="cls-student-alias">{{ s.alias }}</span>
+            <span class="cls-student-name">{{ s.display_last }}, {{ s.display_first }}</span>
+            <div class="cls-student-actions">
+              <a href="/teacher/classes/{{ classroom.id }}/students/{{ s.id }}/edit"
+                 class="cls-action-btn" title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <button type="button" class="cls-action-btn" title="Statistiques"
+                    data-bs-toggle="modal" data-bs-target="#statsModal"
+                    data-student-id="{{ s.id }}" data-student-name="{{ s.alias }}">
+              <i class="bi bi-graph-up"></i>
+            </button>
+              <form method="POST"
+                    action="/teacher/classes/{{ classroom.id }}/students/{{ s.id }}/delete"
+                    class="d-inline"
+                    onsubmit="return confirm('Supprimer {{ s.alias }} ?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="cls-action-btn danger" title="Supprimer">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+          <!-- Ligne prédiction risque -->
+          <div class="risk-cell mt-1" data-student-id="{{ s.id }}" style="width:100%;font-size:0.7rem;padding-left:40px;">
+            <span class="risk-badge"></span>
+            <span class="risk-text text-muted">Chargement...</span>
           </div>
         </div>
         {% endfor %}
@@ -201,4 +225,136 @@
     </div>
   </form>
 </div>
+
+<!-- Modal Statistiques élève -->
+<div class="modal fade" id="statsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="statsModalTitle">Statistiques</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="stats-loading" class="text-center py-4">
+          <div class="spinner-border text-neon"></div>
+          <p class="mt-2">Chargement...</p>
+        </div>
+        <div id="stats-content" style="display:none;">
+          <canvas id="evolutionChart" width="400" height="200" style="max-height:300px;"></canvas>
+          <hr>
+          <h6>Compétences</h6>
+          <div id="competence-list"></div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn vox-btn-dark" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Chargement des prédictions pour chaque élève
+document.addEventListener('DOMContentLoaded', function() {
+  const riskCells = document.querySelectorAll('.risk-cell');
+  riskCells.forEach(cell => {
+    const studentId = cell.dataset.studentId;
+    fetch(`/teacher/api/student/${studentId}/prediction`)
+      .then(res => res.json())
+      .then(data => {
+        const badge = cell.querySelector('.risk-badge');
+        const textSpan = cell.querySelector('.risk-text');
+        if (data.risk === 'insuffisant') {
+          badge.style.backgroundColor = '#9ca3af';
+          textSpan.innerHTML = '⚠️ ' + data.message;
+          textSpan.classList.add('text-muted');
+        } else {
+          const colors = { 'red': '#ef4444', 'orange': '#f59e0b', 'green': '#22c55e', 'gray': '#9ca3af' };
+          badge.style.backgroundColor = colors[data.color] || '#9ca3af';
+          textSpan.innerHTML = `${data.message} (moy: ${data.avg_score}/20)`;
+          if (data.color === 'red') textSpan.style.color = '#ef4444';
+          else if (data.color === 'orange') textSpan.style.color = '#f59e0b';
+          else textSpan.style.color = '#22c55e';
+        }
+      })
+      .catch(err => {
+        console.error('Erreur chargement prédiction', err);
+        const badge = cell.querySelector('.risk-badge');
+        const textSpan = cell.querySelector('.risk-text');
+        badge.style.backgroundColor = '#9ca3af';
+        textSpan.innerHTML = '⚠️ Données insuffisantes';
+      });
+  });
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Modal statistiques élève
+const statsModal = document.getElementById('statsModal');
+if (statsModal) {
+  statsModal.addEventListener('show.bs.modal', async function(event) {
+    const button = event.relatedTarget;
+    const studentId = button.dataset.studentId;
+    const studentName = button.dataset.studentName;
+    document.getElementById('statsModalTitle').innerHTML = `Statistiques - ${studentName}`;
+    document.getElementById('stats-loading').style.display = 'block';
+    document.getElementById('stats-content').style.display = 'none';
+    
+    try {
+      const res = await fetch(`/teacher/api/student/${studentId}/competence-stats`);
+      const data = await res.json();
+      
+      document.getElementById('stats-loading').style.display = 'none';
+      document.getElementById('stats-content').style.display = 'block';
+      
+      // Graphique évolution
+      const ctx = document.getElementById('evolutionChart').getContext('2d');
+      if (window.evolutionChart) window.evolutionChart.destroy();
+      window.evolutionChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.evolution.map(e => e.devoir),
+          datasets: [{
+            label: 'Note /20',
+            data: data.evolution.map(e => e.note),
+            borderColor: '#39FF14',
+            backgroundColor: 'rgba(57,255,20,0.1)',
+            tension: 0.2,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          scales: { y: { min: 0, max: 20, title: { display: true, text: 'Note' } } }
+        }
+      });
+      
+      // Liste compétences
+      const compList = document.getElementById('competence-list');
+      compList.innerHTML = '';
+      data.competences.forEach(comp => {
+        const trendClass = comp.trend > 0 ? 'text-success' : (comp.trend < 0 ? 'text-danger' : 'text-muted');
+        compList.innerHTML += `
+          <div class="d-flex justify-content-between align-items-center mb-2 p-2" style="border-bottom:1px solid #e5e7eb;">
+            <div>
+              <strong>${comp.name}</strong>
+              <div class="small text-muted">Moyenne: ${comp.average}/20</div>
+            </div>
+            <div class="${trendClass}">
+              ${comp.trend > 0 ? '↑' : (comp.trend < 0 ? '↓' : '→')} ${Math.abs(comp.trend)} pts
+            </div>
+          </div>
+        `;
+      });
+      if (data.competences.length === 0) {
+        compList.innerHTML = '<p class="text-muted">Aucune compétence renseignée.</p>';
+      }
+    } catch (err) {
+      console.error(err);
+      document.getElementById('stats-loading').innerHTML = '<div class="alert alert-danger">Erreur chargement</div>';
+    }
+  });
+}
+</script>
 {% endblock %}

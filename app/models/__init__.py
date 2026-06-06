@@ -69,6 +69,7 @@ class Classroom(db.Model):
                                   cascade='all, delete-orphan', lazy='select')
     assignments = db.relationship('Assignment', back_populates='classroom',
                                   cascade='all, delete-orphan', lazy='select')
+    shared_with = db.relationship('ClassroomTeacher', backref='classroom', cascade='all, delete-orphan')
  
  
 class Student(db.Model):
@@ -135,10 +136,18 @@ class Question(db.Model):
     scores     = db.relationship('QuestionScore', back_populates='question',
                                  cascade='all, delete-orphan', lazy='select')
  
-class Competence(db.Model):
-    __tablename__ = 'competences'
+class CompetenceScore(db.Model):
+    __tablename__ = 'competence_scores'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+    competence_id = db.Column(db.Integer, db.ForeignKey('competences.id'), nullable=False)
+    assignment_id = db.Column(db.Integer, db.ForeignKey('assignments.id'), nullable=False)
+    score = db.Column(db.Float)  # moyenne des notes pour cette compétence dans ce devoir
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    student = db.relationship('Student')
+    competence = db.relationship('Competence')
+    assignment = db.relationship('Assignment')
 
 class Correction(db.Model):
     __tablename__ = 'corrections'
@@ -198,3 +207,29 @@ class AccessLog(db.Model):
     user_agent    = db.Column(db.String(255))
  
     correction = db.relationship('Correction', back_populates='access_logs')
+
+# Association teacher-classroom (collaboration)
+class ClassroomTeacher(db.Model):
+    __tablename__ = 'classroom_teachers'
+    classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), primary_key=True)
+    teacher_id   = db.Column(db.Integer, db.ForeignKey('teachers.id'), primary_key=True)
+    role         = db.Column(db.String(20), default='editor')  # editor, viewer, admin
+    created_at   = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+# Groupes d'élèves
+class Group(db.Model):
+    __tablename__ = 'groups'
+    id          = db.Column(db.Integer, primary_key=True)
+    classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=False)
+    name        = db.Column(db.String(100), nullable=False)
+    created_at  = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    classroom   = db.relationship('Classroom', backref='groups')
+    students    = db.relationship('GroupStudent', back_populates='group', cascade='all, delete-orphan')
+
+class GroupStudent(db.Model):
+    __tablename__ = 'group_students'
+    group_id    = db.Column(db.Integer, db.ForeignKey('groups.id'), primary_key=True)
+    student_id  = db.Column(db.Integer, db.ForeignKey('students.id'), primary_key=True)
+    created_at  = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    group       = db.relationship('Group', back_populates='students')
+    student     = db.relationship('Student')
