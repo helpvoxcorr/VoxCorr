@@ -197,8 +197,9 @@ function selectComp(compId, compName, subject, domain) {
   const badge = domain
     ? `<span class="badge bg-secondary bg-opacity-25 text-secondary me-1">${domain}</span>`
     : '';
+  activeCompBtn.title = compName;
   activeCompBtn.querySelector('.comp-label').innerHTML =
-    `${badge}<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; display:inline-block;">${compName}</span>`;
+      `${badge}<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; display:inline-block;">${compName}</span>`;
   activeCompBtn.querySelector('.bi-chevron-down').style.display = 'none';
   activeCompBtn.insertAdjacentHTML('afterend',
     `<button type="button" class="comp-clear btn btn-sm text-muted p-0 mt-1"
