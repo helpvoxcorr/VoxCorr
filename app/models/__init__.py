@@ -62,6 +62,7 @@ class Classroom(db.Model):
     name        = db.Column(db.String(80),  nullable=False)
     subject     = db.Column(db.String(100))
     school_year = db.Column(db.String(9),   default='2025-2026')
+    level = db.Column(db.String(20), nullable=True)
     created_at  = db.Column(db.DateTime,    default=lambda: datetime.now(timezone.utc))
  
     teacher     = db.relationship('Teacher',    back_populates='classrooms')
