@@ -295,7 +295,7 @@ function loadLevel(level) {
       Plotly.newPlot(chartDiv, traces, {
         barmode: 'group',
         yaxis: { range: [0, 20], title: 'Moyenne /20', fixedrange: true },
-        xaxis: { fixedrange: true },
+        xaxis: { type: 'category', fixedrange: true },
         showlegend: false,
         plot_bgcolor: '#fff',
         paper_bgcolor: '#fff',
