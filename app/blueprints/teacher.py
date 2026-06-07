@@ -493,10 +493,27 @@ def edit_assignment(assignment_id):
     for q in a.questions:
         count = QuestionScore.query.filter_by(question_id=q.id).count()
         questions_data.append({'question': q, 'corrections_count': count})
-    current_app.logger.info(f"JSON compétences: {competences_by_domain_json[:200]}")
+
+    # Compétences pour la modale
+    competences = Competence.query.filter_by(
+        teacher_id=current_user.id
+    ).order_by(Competence.subject, Competence.domain, Competence.name).all()
+    competences_by_subject = {}
+    for comp in competences:
+        subject = comp.subject or 'Autre'
+        if subject not in competences_by_subject:
+            competences_by_subject[subject] = []
+        competences_by_subject[subject].append({
+            'id': comp.id,
+            'name': comp.name,
+            'domain': comp.domain or ''
+        })
+    competences_by_domain_json = json.dumps(competences_by_subject, ensure_ascii=False)
+
     return render_template('teacher/edit_assignment.html',
                            assignment=a,
-                           questions_data=questions_data)
+                           questions_data=questions_data,
+                           competences_by_domain_json=competences_by_domain_json)
 
 
 @teacher_bp.route('/assignments/<int:assignment_id>/delete', methods=['POST'])
