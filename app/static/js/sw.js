@@ -1,5 +1,5 @@
 // VoxCorr Service Worker v2
-const CACHE_NAME = 'voxcorr-v2';
+const CACHE_NAME = 'voxcorr-v3';
 const urlsToCache = [
   '/',
   '/static/css/voxcorr.css',
