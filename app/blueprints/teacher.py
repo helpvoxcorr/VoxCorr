@@ -1372,12 +1372,13 @@ def access_codes():
                 first = decrypt_name(student.encrypted_first_name)
             except Exception:
                 last = first = '—'
+            pupil = Pupil.query.filter_by(student_id=student.id).first()
             result.append({
                 'classroom': classroom.name,
                 'last':  last,
                 'first': first,
                 'alias': student.alias,
-                'code':  student.pupil.access_code if student.pupil else None,
+                'code':  pupil.access_code if pupil else None,
             })
     
     result.sort(key=lambda x: (x['classroom'], x['last'], x['first']))
