@@ -618,7 +618,7 @@ def record(student_id, assignment_id):
 
     return render_template('teacher/record.html',
                            student=student, assignment=assignment,
-                           questions=assignment.questions, existing=existing,
+                           questions=assignment.questions, existing=corr,
                            prev_student_id=prev_id,
                            next_student_id=next_id,
                            has_prev_correction=_has_correction(prev_id),
