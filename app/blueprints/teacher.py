@@ -70,9 +70,19 @@ def dashboard():
 @teacher_bp.route('/classes')
 @login_required
 def classes():
+    LEVELS = ['6ème', '5ème', '4ème', '3ème', '2nde', '1ère', 'Terminale', 'Autre', None]
+    
     classrooms = Classroom.query.filter_by(teacher_id=current_user.id)\
                                 .order_by(Classroom.name).all()
-    return render_template('teacher/classes.html', classrooms=classrooms)
+    
+    grouped = {}
+    for lvl in LEVELS:
+        key = lvl or 'Non classé'
+        items = [c for c in classrooms if (c.level or None) == lvl]
+        if items:
+            grouped[key] = items
+    
+    return render_template('teacher/classes.html', classrooms=classrooms, grouped=grouped)
 
 
 @teacher_bp.route('/classes/new', methods=['GET', 'POST'])
