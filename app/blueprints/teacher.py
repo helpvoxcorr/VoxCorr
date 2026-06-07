@@ -376,24 +376,23 @@ def import_pronote_file():
 def new_assignment(class_id):
     c = Classroom.query.filter_by(id=class_id, teacher_id=current_user.id).first_or_404()
     
-    # Récupérer les compétences de l'enseignant pour cette matière
+    # Organiser les compétences par domaine pour le formulaire
     competences = Competence.query.filter_by(
         teacher_id=current_user.id
     ).order_by(Competence.subject, Competence.domain, Competence.name).all()
-    # Organiser les compétences par domaine pour le formulaire
-    competences_by_domain = {}
+
+    competences_by_subject = {}
     for comp in competences:
         subject = comp.subject or 'Autre'
-        domain = comp.domain or ''
-        key = f"{subject} — {domain}" if domain else subject
-        if key not in competences_by_domain:
-            competences_by_domain[key] = []
-        competences_by_domain[key].append({
+        if subject not in competences_by_subject:
+            competences_by_subject[subject] = []
+        competences_by_subject[subject].append({
             'id': comp.id,
-            'name': comp.name
+            'name': comp.name,
+            'domain': comp.domain or ''
         })
-    
-    competences_by_domain_json = json.dumps(competences_by_domain, ensure_ascii=False)
+
+    competences_by_domain_json = json.dumps(competences_by_subject, ensure_ascii=False)
     
     if request.method == 'POST':
         try:
@@ -435,13 +434,13 @@ def new_assignment(class_id):
             return render_template('teacher/new_assignment.html', 
                                    classroom=c, 
                                    now=datetime.today(),
-                                   competences_by_domain=competences_by_domain,
+                                   competences_by_domain=competences_by_subject,
                                    competences_by_domain_json=competences_by_domain_json)
     
     return render_template('teacher/new_assignment.html', 
                            classroom=c, 
                            now=datetime.today(),
-                           competences_by_domain=competences_by_domain,
+                           competences_by_domain=competences_by_subject,
                            competences_by_domain_json=competences_by_domain_json)
 
 

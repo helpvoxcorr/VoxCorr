@@ -90,34 +90,37 @@
 <script>
 const COMPETENCES_DATA = {{ competences_by_domain_json|safe }};
 
-function buildCompList(listEl, filter) {
+// ── Rendu de la liste des compétences pour une discipline ──────────────────
+function buildCompList(listEl, subject, filter) {
   listEl.innerHTML = '';
+  const comps = COMPETENCES_DATA[subject] || [];
   const f = (filter || '').toLowerCase().trim();
-  Object.entries(COMPETENCES_DATA).forEach(([domain, comps]) => {
-    const matched = comps.filter(c => !f || c.name.toLowerCase().includes(f));
-    if (!matched.length) return;
-    const header = document.createElement('div');
-    header.className = 'px-3 pt-2 pb-1 text-muted fw-semibold';
-    header.style.fontSize = '11px';
-    header.style.letterSpacing = '0.05em';
-    header.textContent = domain;
-    listEl.appendChild(header);
-    matched.forEach(c => {
-      const item = document.createElement('div');
-      item.className = 'comp-item px-3 py-2 d-flex align-items-start gap-2';
-      item.style.cursor = 'pointer';
-      item.style.fontSize = '13px';
-      item.innerHTML = `<span class="badge bg-secondary bg-opacity-25 text-secondary">${domain.split('—')[0].trim()}</span>${c.name}`;
-      item.addEventListener('mouseenter', () => item.classList.add('bg-light'));
-      item.addEventListener('mouseleave', () => item.classList.remove('bg-light'));
-      item.addEventListener('click', () => selectComp(item, c.id, c.name, domain));
-      listEl.appendChild(item);
-    });
+  const matched = comps.filter(c => !f || c.name.toLowerCase().includes(f));
+
+  if (!matched.length) {
+    listEl.innerHTML = '<div class="px-3 py-2 text-muted small">Aucune compétence trouvée.</div>';
+    return;
+  }
+
+  matched.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'comp-item px-3 py-2 d-flex align-items-start gap-2';
+    item.style.cursor = 'pointer';
+    item.style.fontSize = '13px';
+    item.style.lineHeight = '1.4';
+    const badge = c.domain
+      ? `<span class="badge bg-secondary bg-opacity-25 text-secondary flex-shrink-0">${c.domain}</span>`
+      : '';
+    item.innerHTML = `${badge}<span>${c.name}</span>`;
+    item.addEventListener('mouseenter', () => item.classList.add('bg-light'));
+    item.addEventListener('mouseleave', () => item.classList.remove('bg-light'));
+    item.addEventListener('click', () => selectComp(item, c.id, c.name, subject, c.domain));
+    listEl.appendChild(item);
   });
 }
 
+// ── Ouverture/fermeture du dropdown ───────────────────────────────────────
 function toggleCompDropdown(btn) {
-  // Ferme tous les autres dropdowns ouverts
   document.querySelectorAll('.comp-dropdown').forEach(dd => {
     if (dd !== btn.closest('.comp-picker-wrapper').querySelector('.comp-dropdown')) {
       dd.style.display = 'none';
@@ -125,56 +128,112 @@ function toggleCompDropdown(btn) {
   });
   const wrapper = btn.closest('.comp-picker-wrapper');
   const dd = wrapper.querySelector('.comp-dropdown');
-  const list = wrapper.querySelector('.comp-list');
   const isOpen = dd.style.display === 'block';
   if (isOpen) {
     dd.style.display = 'none';
   } else {
-    buildCompList(list, '');
+    showSubjectList(wrapper);
     dd.style.display = 'block';
-    setTimeout(() => wrapper.querySelector('.comp-search').focus(), 50);
   }
 }
 
-function filterCompDropdown(searchInput) {
-  const list = searchInput.closest('.comp-dropdown').querySelector('.comp-list');
-  buildCompList(list, searchInput.value);
+// ── Affiche la liste des disciplines ──────────────────────────────────────
+function showSubjectList(wrapper) {
+  const dd = wrapper.querySelector('.comp-dropdown');
+  dd.innerHTML = '';
+
+  const header = document.createElement('div');
+  header.className = 'px-3 pt-2 pb-1 text-muted fw-semibold';
+  header.style.cssText = 'font-size:11px; letter-spacing:0.05em;';
+  header.textContent = 'Choisir une discipline';
+  dd.appendChild(header);
+
+  Object.keys(COMPETENCES_DATA).forEach(subject => {
+    const count = COMPETENCES_DATA[subject].length;
+    const item = document.createElement('div');
+    item.className = 'd-flex align-items-center justify-content-between px-3 py-2';
+    item.style.cursor = 'pointer';
+    item.style.fontSize = '14px';
+    item.innerHTML = `
+      <span>${subject}</span>
+      <span class="badge bg-secondary bg-opacity-25 text-secondary">${count}</span>
+    `;
+    item.addEventListener('mouseenter', () => item.classList.add('bg-light'));
+    item.addEventListener('mouseleave', () => item.classList.remove('bg-light'));
+    item.addEventListener('click', () => showCompListForSubject(wrapper, subject));
+    dd.appendChild(item);
+  });
 }
 
-function selectComp(item, compId, compName, domain) {
+// ── Affiche les compétences d'une discipline ───────────────────────────────
+function showCompListForSubject(wrapper, subject) {
+  const dd = wrapper.querySelector('.comp-dropdown');
+  dd.innerHTML = '';
+
+  // Bouton retour
+  const back = document.createElement('div');
+  back.className = 'px-3 py-2 d-flex align-items-center gap-2 border-bottom';
+  back.style.cursor = 'pointer';
+  back.style.fontSize = '13px';
+  back.innerHTML = '<i class="bi bi-arrow-left"></i> <span class="text-muted">' + subject + '</span>';
+  back.addEventListener('click', () => showSubjectList(wrapper));
+  dd.appendChild(back);
+
+  // Champ recherche
+  const search = document.createElement('input');
+  search.type = 'text';
+  search.className = 'form-control border-0 border-bottom rounded-0';
+  search.placeholder = 'Rechercher…';
+  search.style.fontSize = '13px';
+  search.addEventListener('input', () => buildCompList(list, subject, search.value));
+  dd.appendChild(search);
+
+  // Liste
+  const list = document.createElement('div');
+  list.style.cssText = 'max-height:200px; overflow-y:auto;';
+  dd.appendChild(list);
+  buildCompList(list, subject, '');
+
+  setTimeout(() => search.focus(), 50);
+}
+
+// ── Sélection d'une compétence ─────────────────────────────────────────────
+function selectComp(item, compId, compName, subject, domain) {
   const wrapper = item.closest('.comp-picker-wrapper');
   const btn = wrapper.querySelector('.comp-btn');
   const hidden = wrapper.querySelector('input[name="q_competence_id"]');
-  const badge = domain.split('—')[0].trim();
   hidden.value = compId;
+
+  const domainBadge = domain
+    ? `<span class="badge bg-secondary bg-opacity-25 text-secondary me-1">${domain}</span>`
+    : '';
   btn.querySelector('.comp-label').innerHTML =
-    `<span class="badge bg-secondary bg-opacity-25 text-secondary me-1">${badge}</span>${compName}`;
-  btn.querySelector('.bi-chevron-down').insertAdjacentHTML('beforebegin',
-    `<button type="button" class="comp-clear btn btn-sm p-0 ms-1 text-muted" onclick="clearComp(event)">&times;</button>`);
+    `${domainBadge}<span class="text-truncate">${compName}</span>
+     <button type="button" class="comp-clear btn btn-sm p-0 ms-1 text-muted lh-1" 
+             onclick="clearComp(event)" title="Retirer">&times;</button>`;
   btn.querySelector('.bi-chevron-down').style.display = 'none';
   wrapper.querySelector('.comp-dropdown').style.display = 'none';
 }
 
+// ── Réinitialisation ──────────────────────────────────────────────────────
 function clearComp(event) {
   event.stopPropagation();
   const wrapper = event.target.closest('.comp-picker-wrapper');
   const btn = wrapper.querySelector('.comp-btn');
-  const hidden = wrapper.querySelector('input[name="q_competence_id"]');
-  hidden.value = '';
-  btn.querySelector('.comp-label').innerHTML = `<span class="text-muted small">Compétence (optionnel)</span>`;
+  btn.querySelector('.comp-label').innerHTML =
+    `<span class="text-muted small">Compétence (optionnel)</span>`;
   btn.querySelector('.bi-chevron-down').style.display = '';
-  const existing = btn.querySelector('.comp-clear');
-  if (existing) existing.remove();
+  wrapper.querySelector('input[name="q_competence_id"]').value = '';
 }
 
-// Ajout d'une nouvelle ligne
+// ── Ajout d'une question ──────────────────────────────────────────────────
 document.getElementById('add-question').addEventListener('click', () => {
   const original = document.querySelector('.question-row');
   const newRow = original.cloneNode(true);
   newRow.querySelectorAll('input[type="text"], input[type="number"]').forEach(i => i.value = '');
-  // Reset le picker cloné
   const btn = newRow.querySelector('.comp-btn');
-  btn.querySelector('.comp-label').innerHTML = `<span class="text-muted small">Compétence (optionnel)</span>`;
+  btn.querySelector('.comp-label').innerHTML =
+    `<span class="text-muted small">Compétence (optionnel)</span>`;
   btn.querySelector('.bi-chevron-down').style.display = '';
   const clear = btn.querySelector('.comp-clear');
   if (clear) clear.remove();
@@ -183,14 +242,13 @@ document.getElementById('add-question').addEventListener('click', () => {
   document.getElementById('questions-list').appendChild(newRow);
 });
 
-// Suppression d'une ligne
+// ── Suppression + fermeture au clic extérieur ─────────────────────────────
 document.addEventListener('click', e => {
   if (e.target.closest('.remove-question')) {
     const row = e.target.closest('.question-row');
     if (document.querySelectorAll('.question-row').length > 1) row.remove();
     else alert('Il doit y avoir au moins une question.');
   }
-  // Ferme dropdown si clic extérieur
   if (!e.target.closest('.comp-picker-wrapper')) {
     document.querySelectorAll('.comp-dropdown').forEach(dd => dd.style.display = 'none');
   }
