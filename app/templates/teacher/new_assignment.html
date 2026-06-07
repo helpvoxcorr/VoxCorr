@@ -48,21 +48,13 @@
               <input type="number" name="q_max" class="vox-input" placeholder="Points" step="0.5" min="0" required>
             </div>
             <div class="col-12 col-md-4">
-              <div class="comp-picker-wrapper position-relative">
-                <button type="button" class="comp-btn vox-input text-start d-flex align-items-center gap-2"
-                        onclick="toggleCompDropdown(this)">
-                  <i class="bi bi-award"></i>
-                  <span class="comp-label text-muted small">Compétence (optionnel)</span>
-                  <i class="bi bi-chevron-down ms-auto small"></i>
-                </button>
-                <input type="hidden" name="q_competence_id" value="">
-                <div class="comp-dropdown border rounded-3 bg-white shadow-sm"
-                    style="display:none; position:absolute; z-index:200; width:100%; top:calc(100% + 4px);">
-                  <input type="text" class="comp-search form-control border-0 border-bottom rounded-0"
-                        placeholder="Rechercher…" oninput="filterCompDropdown(this)">
-                  <div class="comp-list" style="max-height:240px; overflow-y:auto;"></div>
-                </div>
-              </div>
+              <button type="button" class="comp-btn vox-input text-start d-flex align-items-center gap-2"
+                      onclick="openCompModal(this)">
+                <i class="bi bi-award"></i>
+                <span class="comp-label text-muted small">Compétence (optionnel)</span>
+                <i class="bi bi-chevron-down ms-auto small"></i>
+              </button>
+              <input type="hidden" name="q_competence_id" value="">
             </div>
             <div class="col-12 col-md-1 text-end">
               <button type="button" class="btn btn-danger btn-sm remove-question" title="Supprimer cette question">
@@ -84,149 +76,152 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="modalCompetence" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title">Choisir une compétence</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-2">
+
+        <!-- Vue 1 : choix de la discipline -->
+        <div id="modal-view-subject">
+          <p class="text-muted small mb-3">Sélectionnez d'abord une discipline</p>
+          <div id="modal-subject-list" class="list-group list-group-flush"></div>
+        </div>
+
+        <!-- Vue 2 : choix de la compétence -->
+        <div id="modal-view-comp" style="display:none;">
+          <button type="button" class="btn btn-sm btn-link ps-0 mb-3 text-muted"
+                  onclick="modalShowSubjects()">
+            <i class="bi bi-arrow-left me-1"></i><span id="modal-subject-name"></span>
+          </button>
+          <input type="text" id="modal-search" class="vox-input mb-3"
+                 placeholder="Rechercher une compétence…"
+                 oninput="modalFilterComps(this.value)">
+          <div id="modal-comp-list" class="list-group list-group-flush"
+               style="max-height:340px; overflow-y:auto;"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 const COMPETENCES_DATA = {{ competences_by_domain_json|safe }};
+let activeCompBtn = null;
 
-// ── Rendu de la liste des compétences pour une discipline ──────────────────
-function buildCompList(listEl, subject, filter) {
-  listEl.innerHTML = '';
+// ── Ouvre la modale et mémorise le bouton source ───────────────────────────
+function openCompModal(btn) {
+  activeCompBtn = btn;
+  modalShowSubjects();
+  const modal = new bootstrap.Modal(document.getElementById('modalCompetence'));
+  modal.show();
+}
+
+// ── Vue 1 : liste des disciplines ──────────────────────────────────────────
+function modalShowSubjects() {
+  document.getElementById('modal-view-subject').style.display = '';
+  document.getElementById('modal-view-comp').style.display = 'none';
+  document.getElementById('modal-search').value = '';
+
+  const list = document.getElementById('modal-subject-list');
+  list.innerHTML = '';
+
+  Object.keys(COMPETENCES_DATA).forEach(subject => {
+    const count = COMPETENCES_DATA[subject].length;
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'list-group-item list-group-item-action d-flex align-items-center justify-content-between';
+    item.innerHTML = `<span>${subject}</span>
+                      <span class="badge bg-secondary bg-opacity-25 text-secondary">${count}</span>`;
+    item.addEventListener('click', () => modalShowComps(subject));
+    list.appendChild(item);
+  });
+}
+
+// ── Vue 2 : liste des compétences d'une discipline ─────────────────────────
+function modalShowComps(subject) {
+  document.getElementById('modal-view-subject').style.display = 'none';
+  document.getElementById('modal-view-comp').style.display = '';
+  document.getElementById('modal-subject-name').textContent = subject;
+  document.getElementById('modal-search').value = '';
+  modalRenderComps(subject, '');
+  document.getElementById('modal-search').focus();
+}
+
+function modalFilterComps(filter) {
+  const subject = document.getElementById('modal-subject-name').textContent;
+  modalRenderComps(subject, filter);
+}
+
+function modalRenderComps(subject, filter) {
+  const list = document.getElementById('modal-comp-list');
+  list.innerHTML = '';
+  const f = filter.toLowerCase().trim();
   const comps = COMPETENCES_DATA[subject] || [];
-  const f = (filter || '').toLowerCase().trim();
   const matched = comps.filter(c => !f || c.name.toLowerCase().includes(f));
 
   if (!matched.length) {
-    listEl.innerHTML = '<div class="px-3 py-2 text-muted small">Aucune compétence trouvée.</div>';
+    list.innerHTML = '<div class="list-group-item text-muted small">Aucune compétence trouvée.</div>';
     return;
   }
 
   matched.forEach(c => {
-    const item = document.createElement('div');
-    item.className = 'comp-item px-3 py-2 d-flex align-items-start gap-2';
-    item.style.cursor = 'pointer';
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'list-group-item list-group-item-action d-flex align-items-start gap-2';
     item.style.fontSize = '13px';
-    item.style.lineHeight = '1.4';
     const badge = c.domain
-      ? `<span class="badge bg-secondary bg-opacity-25 text-secondary flex-shrink-0">${c.domain}</span>`
+      ? `<span class="badge bg-secondary bg-opacity-25 text-secondary flex-shrink-0 mt-1">${c.domain}</span>`
       : '';
     item.innerHTML = `${badge}<span>${c.name}</span>`;
-    item.addEventListener('mouseenter', () => item.classList.add('bg-light'));
-    item.addEventListener('mouseleave', () => item.classList.remove('bg-light'));
-    item.addEventListener('click', () => selectComp(item, c.id, c.name, subject, c.domain));
-    listEl.appendChild(item);
+    item.addEventListener('click', () => selectComp(c.id, c.name, subject, c.domain));
+    list.appendChild(item);
   });
-}
-
-// ── Ouverture/fermeture du dropdown ───────────────────────────────────────
-function toggleCompDropdown(btn) {
-  document.querySelectorAll('.comp-dropdown').forEach(dd => {
-    if (dd !== btn.closest('.comp-picker-wrapper').querySelector('.comp-dropdown')) {
-      dd.style.display = 'none';
-    }
-  });
-  const wrapper = btn.closest('.comp-picker-wrapper');
-  const dd = wrapper.querySelector('.comp-dropdown');
-  const isOpen = dd.style.display === 'block';
-  if (isOpen) {
-    dd.style.display = 'none';
-  } else {
-    showSubjectList(wrapper);
-    dd.style.display = 'block';
-  }
-}
-
-// ── Affiche la liste des disciplines ──────────────────────────────────────
-function showSubjectList(wrapper) {
-  const dd = wrapper.querySelector('.comp-dropdown');
-  dd.innerHTML = '';
-
-  const header = document.createElement('div');
-  header.className = 'px-3 pt-2 pb-1 text-muted fw-semibold';
-  header.style.cssText = 'font-size:11px; letter-spacing:0.05em;';
-  header.textContent = 'Choisir une discipline';
-  dd.appendChild(header);
-
-  Object.keys(COMPETENCES_DATA).forEach(subject => {
-    const count = COMPETENCES_DATA[subject].length;
-    const item = document.createElement('div');
-    item.className = 'd-flex align-items-center justify-content-between px-3 py-2';
-    item.style.cursor = 'pointer';
-    item.style.fontSize = '14px';
-    item.innerHTML = `
-      <span>${subject}</span>
-      <span class="badge bg-secondary bg-opacity-25 text-secondary">${count}</span>
-    `;
-    item.addEventListener('mouseenter', () => item.classList.add('bg-light'));
-    item.addEventListener('mouseleave', () => item.classList.remove('bg-light'));
-    item.addEventListener('click', () => showCompListForSubject(wrapper, subject));
-    dd.appendChild(item);
-  });
-}
-
-// ── Affiche les compétences d'une discipline ───────────────────────────────
-function showCompListForSubject(wrapper, subject) {
-  const dd = wrapper.querySelector('.comp-dropdown');
-  dd.innerHTML = '';
-
-  // Bouton retour
-  const back = document.createElement('div');
-  back.className = 'px-3 py-2 d-flex align-items-center gap-2 border-bottom';
-  back.style.cursor = 'pointer';
-  back.style.fontSize = '13px';
-  back.innerHTML = '<i class="bi bi-arrow-left"></i> <span class="text-muted">' + subject + '</span>';
-  back.addEventListener('click', () => showSubjectList(wrapper));
-  dd.appendChild(back);
-
-  // Champ recherche
-  const search = document.createElement('input');
-  search.type = 'text';
-  search.className = 'form-control border-0 border-bottom rounded-0';
-  search.placeholder = 'Rechercher…';
-  search.style.fontSize = '13px';
-  search.addEventListener('input', () => buildCompList(list, subject, search.value));
-  dd.appendChild(search);
-
-  // Liste
-  const list = document.createElement('div');
-  list.style.cssText = 'max-height:200px; overflow-y:auto;';
-  dd.appendChild(list);
-  buildCompList(list, subject, '');
-
-  setTimeout(() => search.focus(), 50);
 }
 
 // ── Sélection d'une compétence ─────────────────────────────────────────────
-function selectComp(item, compId, compName, subject, domain) {
-  const wrapper = item.closest('.comp-picker-wrapper');
-  const btn = wrapper.querySelector('.comp-btn');
-  const hidden = wrapper.querySelector('input[name="q_competence_id"]');
+function selectComp(compId, compName, subject, domain) {
+  if (!activeCompBtn) return;
+  const row = activeCompBtn.closest('.question-row') || activeCompBtn.closest('.col-12');
+  const hidden = activeCompBtn.parentElement.querySelector('input[name="q_competence_id"]');
   hidden.value = compId;
 
-  const domainBadge = domain
+  const badge = domain
     ? `<span class="badge bg-secondary bg-opacity-25 text-secondary me-1">${domain}</span>`
     : '';
-  btn.querySelector('.comp-label').innerHTML =
-    `${domainBadge}<span class="text-truncate">${compName}</span>
-     <button type="button" class="comp-clear btn btn-sm p-0 ms-1 text-muted lh-1" 
-             onclick="clearComp(event)" title="Retirer">&times;</button>`;
-  btn.querySelector('.bi-chevron-down').style.display = 'none';
-  wrapper.querySelector('.comp-dropdown').style.display = 'none';
+  activeCompBtn.querySelector('.comp-label').innerHTML =
+    `${badge}<span class="text-truncate">${compName}</span>`;
+  activeCompBtn.querySelector('.bi-chevron-down').style.display = 'none';
+  activeCompBtn.insertAdjacentHTML('afterend',
+    `<button type="button" class="comp-clear btn btn-sm text-muted p-0 mt-1"
+             onclick="clearComp(this)" title="Retirer la compétence">
+       <i class="bi bi-x-circle"></i>
+     </button>`);
+
+  bootstrap.Modal.getInstance(document.getElementById('modalCompetence')).hide();
+  activeCompBtn = null;
 }
 
-// ── Réinitialisation ──────────────────────────────────────────────────────
-function clearComp(event) {
-  event.stopPropagation();
-  const wrapper = event.target.closest('.comp-picker-wrapper');
+// ── Réinitialisation ───────────────────────────────────────────────────────
+function clearComp(clearBtn) {
+  const wrapper = clearBtn.parentElement;
   const btn = wrapper.querySelector('.comp-btn');
+  const hidden = wrapper.querySelector('input[name="q_competence_id"]');
+  hidden.value = '';
   btn.querySelector('.comp-label').innerHTML =
     `<span class="text-muted small">Compétence (optionnel)</span>`;
   btn.querySelector('.bi-chevron-down').style.display = '';
-  wrapper.querySelector('input[name="q_competence_id"]').value = '';
+  clearBtn.remove();
 }
 
-// ── Ajout d'une question ──────────────────────────────────────────────────
+// ── Ajout d'une question ───────────────────────────────────────────────────
 document.getElementById('add-question').addEventListener('click', () => {
   const original = document.querySelector('.question-row');
   const newRow = original.cloneNode(true);
@@ -235,22 +230,18 @@ document.getElementById('add-question').addEventListener('click', () => {
   btn.querySelector('.comp-label').innerHTML =
     `<span class="text-muted small">Compétence (optionnel)</span>`;
   btn.querySelector('.bi-chevron-down').style.display = '';
-  const clear = btn.querySelector('.comp-clear');
+  const clear = newRow.querySelector('.comp-clear');
   if (clear) clear.remove();
   newRow.querySelector('input[name="q_competence_id"]').value = '';
-  newRow.querySelector('.comp-dropdown').style.display = 'none';
   document.getElementById('questions-list').appendChild(newRow);
 });
 
-// ── Suppression + fermeture au clic extérieur ─────────────────────────────
+// ── Suppression d'une question ─────────────────────────────────────────────
 document.addEventListener('click', e => {
   if (e.target.closest('.remove-question')) {
     const row = e.target.closest('.question-row');
     if (document.querySelectorAll('.question-row').length > 1) row.remove();
     else alert('Il doit y avoir au moins une question.');
-  }
-  if (!e.target.closest('.comp-picker-wrapper') && !e.target.closest('.comp-dropdown')) {
-      document.querySelectorAll('.comp-dropdown').forEach(dd => dd.style.display = 'none');
   }
 });
 </script>
