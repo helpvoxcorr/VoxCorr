@@ -182,22 +182,26 @@
 document.getElementById('listen-tts')?.addEventListener('click', function() {
   const btn = this;
   const status = document.getElementById('tts-status');
-  btn.disabled = true;
-  status.textContent = 'Génération en cours…';
-  fetch('/student/api/tts/{{ correction.id }}')
-    .then(r => { if (!r.ok) throw new Error(); return r.blob(); })
-    .then(blob => {
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.play();
-      audio.onended = () => { URL.revokeObjectURL(url); status.textContent = ''; };
-      status.textContent = '▶ Lecture en cours…';
-      btn.disabled = false;
-    })
-    .catch(() => {
-      status.textContent = 'Erreur de génération.';
-      btn.disabled = false;
-    });
+
+  if (!window.speechSynthesis) {
+    status.textContent = 'Non supporté sur ce navigateur.';
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+
+  const text = document.querySelector('.synth-block')?.innerText || '';
+  if (!text) { status.textContent = 'Aucun texte à lire.'; return; }
+
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'fr-FR';
+  utt.rate = 0.95;
+
+  utt.onstart  = () => { status.textContent = '▶ Lecture en cours…'; btn.textContent = '⏹ Arrêter'; };
+  utt.onend    = () => { status.textContent = ''; btn.innerHTML = '<i class="bi bi-headphones"></i> Écouter la correction'; };
+  utt.onerror  = () => { status.textContent = 'Erreur de lecture.'; };
+
+  window.speechSynthesis.speak(utt);
 });
 </script>
 {% endblock %}
