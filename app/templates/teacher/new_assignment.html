@@ -49,6 +49,7 @@
             </div>
             <div class="col-12 col-md-4">
               <button type="button" class="comp-btn vox-input text-start d-flex align-items-center gap-2"
+                      style="overflow:hidden; min-width:0;"
                       onclick="openCompModal(this)">
                 <i class="bi bi-award"></i>
                 <span class="comp-label text-muted small">Compétence (optionnel)</span>
@@ -197,7 +198,7 @@ function selectComp(compId, compName, subject, domain) {
     ? `<span class="badge bg-secondary bg-opacity-25 text-secondary me-1">${domain}</span>`
     : '';
   activeCompBtn.querySelector('.comp-label').innerHTML =
-    `${badge}<span class="text-truncate">${compName}</span>`;
+    `${badge}<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; display:inline-block;">${compName}</span>`;
   activeCompBtn.querySelector('.bi-chevron-down').style.display = 'none';
   activeCompBtn.insertAdjacentHTML('afterend',
     `<button type="button" class="comp-clear btn btn-sm text-muted p-0 mt-1"

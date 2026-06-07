@@ -1406,7 +1406,7 @@ def import_competences():
         for row in reader:
             # Nettoyer les noms de colonnes (enlever les guillemets et BOM)
             col1 = list(row.keys())[0].strip('"').strip()
-            name = row[col1].strip().strip('"')
+            name = row[col1].strip().strip('"').split(';')[0].strip()
             domain_raw = row.get('"Domaines du socle pour les bilans de cycle"', '').strip().strip('"')
             
             if not name:
