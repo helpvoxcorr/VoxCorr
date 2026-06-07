@@ -69,8 +69,9 @@
             <div class="col-6 col-sm-4">
               <label class="vox-label">Compétence</label>
               <button type="button" class="comp-btn vox-input text-start d-flex align-items-center gap-2"
-                      onclick="openCompModal(this)"
-                      title="{{ q.competence.name if q.competence else '' }}">
+                onclick="openCompModal(this)"
+                title="{{ q.competence.name if q.competence else '' }}"
+                style="overflow:hidden; min-width:0;">
                 <i class="bi bi-award"></i>
                 <span class="comp-label">
                   {% if q.competence %}
