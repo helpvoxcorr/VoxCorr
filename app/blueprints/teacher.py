@@ -822,10 +822,7 @@ def save_correction():
             try:
                 result = synthesize_with_mistral(c.raw_transcript, q_labels, q_max)
                 c.structured_text = result.get('formatted_text', c.raw_transcript)
-
-                # Récupère les scores déjà existants (saisis manuellement avant le thread)
                 existing_scores = {qs.question_id: qs for qs in c.scores}
-
                 grades = result.get('grades', [])
                 for ai_score in grades:
                     idx = ai_score.get('question_index')
@@ -834,13 +831,11 @@ def save_correction():
                     if idx is None or idx >= len(q_ids):
                         continue
                     qid = q_ids[idx]
-                    # Si un score existe déjà pour cette question (manuel), on ne l'écrase pas
                     if qid in existing_scores:
                         continue
                     raw_score = float(ai_score['score'])
                     safe_score = min(raw_score, q_max[idx])
                     advice_text = ai_score.get('advice', '')
-                    # Création du nouveau score
                     qs = QuestionScore(
                         correction_id=corr_id,
                         question_id=qid,
@@ -848,19 +843,21 @@ def save_correction():
                         advice=advice_text
                     )
                     db.session.add(qs)
-                    existing_scores[qid] = qs  # mise à jour du dict
-
+                    existing_scores[qid] = qs
                 db.session.flush()
                 c.compute_total()
                 c.status = 'draft'
                 db.session.commit()
-
             except Exception as e:
                 db.session.rollback()
                 c.status = 'draft'
                 db.session.commit()
-                # Optionnel : log de l'erreur
                 print(f"[Mistral] Erreur dans _synthesize: {e}")
+
+    import threading
+    threading.Thread(target=_synthesize, daemon=True).start()
+
+    return jsonify({'ok': True, 'correction_id': corr_id})
 
 @teacher_bp.route('/api/correction/<int:correction_id>/status')
 @login_required
