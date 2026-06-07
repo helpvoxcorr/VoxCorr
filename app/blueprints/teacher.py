@@ -378,17 +378,17 @@ def new_assignment(class_id):
     
     # Récupérer les compétences de l'enseignant pour cette matière
     competences = Competence.query.filter_by(
-        teacher_id=current_user.id,
-        subject=c.subject
-    ).order_by(Competence.domain, Competence.name).all()
-    current_app.logger.info(f"subject classe: '{c.subject}' | compétences trouvées: {len(competences)}")
+        teacher_id=current_user.id
+    ).order_by(Competence.subject, Competence.domain, Competence.name).all()
     # Organiser les compétences par domaine pour le formulaire
     competences_by_domain = {}
     for comp in competences:
-        domain = comp.domain or 'Socle'
-        if domain not in competences_by_domain:
-            competences_by_domain[domain] = []
-        competences_by_domain[domain].append({
+        subject = comp.subject or 'Autre'
+        domain = comp.domain or ''
+        key = f"{subject} — {domain}" if domain else subject
+        if key not in competences_by_domain:
+            competences_by_domain[key] = []
+        competences_by_domain[key].append({
             'id': comp.id,
             'name': comp.name
         })
