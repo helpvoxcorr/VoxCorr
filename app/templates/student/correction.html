@@ -1,44 +1,203 @@
 {% extends "base.html" %}
-{% block title %}Correction{% endblock %}
+{% block title %}Ma correction — {{ correction.assignment.title }}{% endblock %}
+
+{% block head %}
+<style>
+.corr-hero {
+  background: var(--vox-black);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+.corr-score-ring {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  border: 4px solid var(--vox-neon);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.corr-score-ring .score-val {
+  font-size: 1.5rem; font-weight: 800;
+  color: var(--vox-neon); line-height: 1;
+}
+.corr-score-ring .score-max {
+  font-size: .75rem; color: rgba(255,255,255,.5);
+}
+.corr-question-card {
+  background: var(--bs-white);
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  transition: box-shadow .15s;
+}
+.corr-question-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.06); }
+.q-score-pill {
+  font-size: .85rem; font-weight: 700;
+  padding: .3rem .8rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.q-score-good    { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.q-score-mid     { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.q-score-bad     { background: #fef2f2; color: #e53e3e; border: 1px solid #fecaca; }
+.q-score-none    { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
+.advice-block {
+  background: #f8fafc;
+  border-left: 3px solid var(--vox-neon);
+  border-radius: 0 8px 8px 0;
+  padding: .75rem 1rem;
+  margin-top: .75rem;
+  font-size: .88rem;
+  color: #374151;
+  line-height: 1.6;
+}
+.synth-block {
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-size: .95rem;
+  line-height: 1.8;
+}
+.audio-player {
+  background: var(--vox-black);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.audio-player audio {
+  width: 100%;
+  accent-color: var(--vox-neon);
+}
+.btn-tts {
+  background: var(--vox-neon);
+  color: var(--vox-black);
+  border: none;
+  border-radius: 50px;
+  padding: .6rem 1.5rem;
+  font-weight: 700;
+  font-size: .95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+}
+.btn-tts:hover { opacity: .85; transform: scale(1.02); }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="vox-card">
-  <h2>{{ correction.assignment.title }}</h2>
-  <p>{{ first }} {{ last }} · {{ correction.assignment.date.strftime('%d/%m/%Y') }}</p>
+<div style="max-width:720px; margin:0 auto;">
 
-  {% if correction.audio_url %}
-  <audio controls src="{{ correction.audio_url }}" style="width:100%"></audio>
-  {% endif %}
-
-  <div class="mt-3">
-    <h5>Synthèse</h5>
-    <div>{{ correction.structured_text|safe }}</div>
+  {# ── HERO ── #}
+  <div class="corr-hero">
+    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+      <div>
+        <div class="text-neon small fw-bold mb-1" style="letter-spacing:.05em;">CORRECTION</div>
+        <h1 class="mb-1 text-white" style="font-size:1.5rem;">{{ correction.assignment.title }}</h1>
+        <div style="color:rgba(255,255,255,.55); font-size:.9rem;">
+          {{ first }} {{ last }} · {{ correction.assignment.date.strftime('%d/%m/%Y') }}
+        </div>
+      </div>
+      {% if correction.total_score is not none %}
+      <div class="corr-score-ring">
+        <span class="score-val">{{ '%.1f'|format(correction.total_score) }}</span>
+        <span class="score-max">/ {{ correction.assignment.total_points }}</span>
+      </div>
+      {% endif %}
+    </div>
   </div>
 
-  {% if correction.total_score %}
-  <div class="mt-3 fw-bold">Note : {{ '%.1f'|format(correction.total_score) }} / {{ correction.assignment.total_points }}</div>
+  {# ── AUDIO ── #}
+  {% if correction.audio_url %}
+  <div class="audio-player">
+    <div class="text-white small fw-bold mb-2">
+      <i class="bi bi-mic-fill me-1" style="color:var(--vox-neon)"></i>
+      Enregistrement vocal
+    </div>
+    <audio controls src="{{ correction.audio_url }}"></audio>
+  </div>
   {% endif %}
 
-  <div class="mt-3">
-    <button id="listen-tts" class="btn vox-btn-primary btn-sm">
+  {# ── NOTES PAR QUESTION ── #}
+  {% if correction.scores %}
+  <div class="fw-bold mb-3" style="font-size:1rem;">
+    <i class="bi bi-list-check me-2" style="color:var(--vox-neon)"></i>Détail par question
+  </div>
+  {% for qs in correction.scores %}
+  {% set pct = (qs.score / qs.question.max_points * 100) if qs.question.max_points else 0 %}
+  <div class="corr-question-card">
+    <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+      <div class="fw-bold" style="font-size:.95rem;">{{ qs.question.label }}</div>
+      {% if qs.score is not none %}
+        {% if pct >= 75 %}
+          <span class="q-score-pill q-score-good">{{ '%.1f'|format(qs.score) }} / {{ qs.question.max_points }}</span>
+        {% elif pct >= 40 %}
+          <span class="q-score-pill q-score-mid">{{ '%.1f'|format(qs.score) }} / {{ qs.question.max_points }}</span>
+        {% else %}
+          <span class="q-score-pill q-score-bad">{{ '%.1f'|format(qs.score) }} / {{ qs.question.max_points }}</span>
+        {% endif %}
+      {% else %}
+        <span class="q-score-pill q-score-none">— / {{ qs.question.max_points }}</span>
+      {% endif %}
+    </div>
+    {% if qs.advice %}
+    <div class="advice-block">
+      <i class="bi bi-chat-left-quote me-1" style="color:var(--vox-neon)"></i>
+      {{ qs.advice }}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  {# ── SYNTHÈSE ── #}
+  {% if correction.structured_text %}
+  <div class="fw-bold mb-3 mt-4" style="font-size:1rem;">
+    <i class="bi bi-stars me-2" style="color:var(--vox-neon)"></i>Synthèse Mistral
+  </div>
+  <div class="synth-block">
+    {{ correction.structured_text|safe }}
+  </div>
+  {% endif %}
+
+  {# ── BOUTON TTS ── #}
+  <div class="mb-4">
+    <button id="listen-tts" class="btn-tts">
       <i class="bi bi-headphones"></i> Écouter la correction
     </button>
+    <span id="tts-status" class="text-muted small ms-3"></span>
   </div>
-</div>
 
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
 document.getElementById('listen-tts')?.addEventListener('click', function() {
+  const btn = this;
+  const status = document.getElementById('tts-status');
+  btn.disabled = true;
+  status.textContent = 'Génération en cours…';
   fetch('/student/api/tts/{{ correction.id }}')
-    .then(response => {
-      if (!response.ok) throw new Error('Erreur');
-      return response.blob();
-    })
+    .then(r => { if (!r.ok) throw new Error(); return r.blob(); })
     .then(blob => {
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audio.play();
-      audio.onended = () => URL.revokeObjectURL(url);
+      audio.onended = () => { URL.revokeObjectURL(url); status.textContent = ''; };
+      status.textContent = '▶ Lecture en cours…';
+      btn.disabled = false;
     })
-    .catch(err => alert('Impossible de générer l\'audio : ' + err.message));
+    .catch(() => {
+      status.textContent = 'Erreur de génération.';
+      btn.disabled = false;
+    });
 });
 </script>
 {% endblock %}
