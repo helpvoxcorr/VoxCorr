@@ -54,7 +54,7 @@
         <div class="flex-grow-1">
           <div class="small fw-500">{{ q.label }}</div>
           {% if q.competence %}
-          <div class="text-muted" style="font-size:.75rem">{{ q.competence }}</div>
+          <div class="text-muted" style="font-size:.75rem">{{ q.competence.name }}</div>
           {% endif %}
         </div>
         <input type="number" class="vox-input score-input"
