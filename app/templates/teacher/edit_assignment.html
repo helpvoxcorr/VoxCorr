@@ -68,8 +68,21 @@
             </div>
             <div class="col-6 col-sm-4">
               <label class="vox-label">Compétence</label>
-              <input type="text" name="q_competence_{{ q.id }}" class="vox-input">
-                     value="{{ q.competence.name if q.competence else '' }}">
+              <button type="button" class="comp-btn vox-input text-start d-flex align-items-center gap-2"
+                      onclick="openCompModal(this)"
+                      title="{{ q.competence.name if q.competence else '' }}">
+                <i class="bi bi-award"></i>
+                <span class="comp-label">
+                  {% if q.competence %}
+                    <span class="badge bg-secondary bg-opacity-25 text-secondary me-1">{{ q.competence.domain or '' }}</span>
+                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; display:inline-block;">{{ q.competence.name }}</span>
+                  {% else %}
+                    <span class="text-muted small">Compétence (optionnel)</span>
+                  {% endif %}
+                </span>
+                <i class="bi bi-chevron-down ms-auto small" {% if q.competence %}style="display:none"{% endif %}></i>
+              </button>
+              <input type="hidden" name="q_competence_id_{{ q.id }}" value="{{ q.competence_id or '' }}">
             </div>
           </div>
         </div>
@@ -86,10 +99,113 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="modalCompetence" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title">Choisir une compétence</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <div id="modal-view-subject">
+          <p class="text-muted small mb-3">Sélectionnez d'abord une discipline</p>
+          <div id="modal-subject-list" class="list-group list-group-flush"></div>
+        </div>
+        <div id="modal-view-comp" style="display:none;">
+          <button type="button" class="btn btn-sm btn-link ps-0 mb-3 text-muted"
+                  onclick="modalShowSubjects()">
+            <i class="bi bi-arrow-left me-1"></i><span id="modal-subject-name"></span>
+          </button>
+          <input type="text" id="modal-search" class="vox-input mb-3"
+                 placeholder="Rechercher une compétence…"
+                 oninput="modalFilterComps(this.value)">
+          <div id="modal-comp-list" class="list-group list-group-flush"
+               style="max-height:340px; overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% include "components/modals.html" %}
 {% endblock %}
 
 {% block scripts %}
+<script>
+const COMPETENCES_DATA = {{ competences_by_domain_json|safe }};
+let activeCompBtn = null;
+
+function openCompModal(btn) {
+  activeCompBtn = btn;
+  modalShowSubjects();
+  new bootstrap.Modal(document.getElementById('modalCompetence')).show();
+}
+
+function modalShowSubjects() {
+  document.getElementById('modal-view-subject').style.display = '';
+  document.getElementById('modal-view-comp').style.display = 'none';
+  document.getElementById('modal-search').value = '';
+  const list = document.getElementById('modal-subject-list');
+  list.innerHTML = '';
+  Object.keys(COMPETENCES_DATA).forEach(subject => {
+    const count = COMPETENCES_DATA[subject].length;
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'list-group-item list-group-item-action d-flex align-items-center justify-content-between';
+    item.innerHTML = `<span>${subject}</span><span class="badge bg-secondary bg-opacity-25 text-secondary">${count}</span>`;
+    item.addEventListener('click', () => modalShowComps(subject));
+    list.appendChild(item);
+  });
+}
+
+function modalShowComps(subject) {
+  document.getElementById('modal-view-subject').style.display = 'none';
+  document.getElementById('modal-view-comp').style.display = '';
+  document.getElementById('modal-subject-name').textContent = subject;
+  document.getElementById('modal-search').value = '';
+  modalRenderComps(subject, '');
+  setTimeout(() => document.getElementById('modal-search').focus(), 50);
+}
+
+function modalFilterComps(filter) {
+  modalRenderComps(document.getElementById('modal-subject-name').textContent, filter);
+}
+
+function modalRenderComps(subject, filter) {
+  const list = document.getElementById('modal-comp-list');
+  list.innerHTML = '';
+  const f = filter.toLowerCase().trim();
+  const comps = COMPETENCES_DATA[subject] || [];
+  const matched = comps.filter(c => !f || c.name.toLowerCase().includes(f));
+  if (!matched.length) {
+    list.innerHTML = '<div class="list-group-item text-muted small">Aucune compétence trouvée.</div>';
+    return;
+  }
+  matched.forEach(c => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'list-group-item list-group-item-action d-flex align-items-start gap-2';
+    item.style.fontSize = '13px';
+    const badge = c.domain ? `<span class="badge bg-secondary bg-opacity-25 text-secondary flex-shrink-0 mt-1">${c.domain}</span>` : '';
+    item.innerHTML = `${badge}<span>${c.name}</span>`;
+    item.addEventListener('click', () => selectComp(c.id, c.name, subject, c.domain));
+    list.appendChild(item);
+  });
+}
+
+function selectComp(compId, compName, subject, domain) {
+  if (!activeCompBtn) return;
+  const hidden = activeCompBtn.parentElement.querySelector('input[type="hidden"]');
+  hidden.value = compId;
+  const badge = domain ? `<span class="badge bg-secondary bg-opacity-25 text-secondary me-1">${domain}</span>` : '';
+  activeCompBtn.querySelector('.comp-label').innerHTML =
+    `${badge}<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; display:inline-block;">${compName}</span>`;
+  activeCompBtn.title = compName;
+  activeCompBtn.querySelector('.bi-chevron-down').style.display = 'none';
+  bootstrap.Modal.getInstance(document.getElementById('modalCompetence')).hide();
+  activeCompBtn = null;
+}
+</script>
 <script>
 document.getElementById('btn-save-assignment').addEventListener('click', function(e) {
   e.preventDefault();

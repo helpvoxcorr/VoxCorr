@@ -380,7 +380,6 @@ def new_assignment(class_id):
     competences = Competence.query.filter_by(
         teacher_id=current_user.id
     ).order_by(Competence.subject, Competence.domain, Competence.name).all()
-
     competences_by_subject = {}
     for comp in competences:
         subject = comp.subject or 'Autre'
