@@ -249,8 +249,8 @@ document.addEventListener('click', e => {
     if (document.querySelectorAll('.question-row').length > 1) row.remove();
     else alert('Il doit y avoir au moins une question.');
   }
-  if (!e.target.closest('.comp-picker-wrapper')) {
-    document.querySelectorAll('.comp-dropdown').forEach(dd => dd.style.display = 'none');
+  if (!e.target.closest('.comp-picker-wrapper') && !e.target.closest('.comp-dropdown')) {
+      document.querySelectorAll('.comp-dropdown').forEach(dd => dd.style.display = 'none');
   }
 });
 </script>
