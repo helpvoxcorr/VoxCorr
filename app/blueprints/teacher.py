@@ -493,7 +493,7 @@ def edit_assignment(assignment_id):
     for q in a.questions:
         count = QuestionScore.query.filter_by(question_id=q.id).count()
         questions_data.append({'question': q, 'corrections_count': count})
-
+    current_app.logger.info(f"JSON compétences: {competences_by_domain_json[:200]}")
     return render_template('teacher/edit_assignment.html',
                            assignment=a,
                            questions_data=questions_data)
