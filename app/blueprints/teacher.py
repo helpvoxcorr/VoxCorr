@@ -1333,6 +1333,56 @@ def admin_delete_account():
     flash('Compte supprimé.', 'success')
     return redirect(url_for('auth.login'))
  
+@teacher_bp.route('/admin/generate-access-codes', methods=['POST'])
+@login_required
+def generate_access_codes():
+    if not session.get('admin_unlocked') or not is_admin_session_valid():
+        return jsonify({'error': 'Non autorisé'}), 403
+    
+    from app.models import Pupil
+    classrooms = Classroom.query.filter_by(teacher_id=current_user.id).all()
+    created = 0
+    for classroom in classrooms:
+        for student in classroom.students:
+            if not student.pupil:
+                code = Pupil.generate_access_code()
+                db.session.add(Pupil(student_id=student.id, access_code=code))
+                created += 1
+    db.session.commit()
+    return jsonify({'ok': True, 'created': created})
+
+
+@teacher_bp.route('/admin/access-codes')
+@login_required
+def access_codes():
+    if not session.get('admin_unlocked') or not is_admin_session_valid():
+        return jsonify({'error': 'Non autorisé'}), 403
+    
+    from app.models import Pupil
+    class_id = request.args.get('class_id', type=int)
+    classrooms = Classroom.query.filter_by(teacher_id=current_user.id).all()
+    
+    result = []
+    for classroom in classrooms:
+        if class_id and classroom.id != class_id:
+            continue
+        for student in classroom.students:
+            try:
+                last  = decrypt_name(student.encrypted_last_name)
+                first = decrypt_name(student.encrypted_first_name)
+            except Exception:
+                last = first = '—'
+            result.append({
+                'classroom': classroom.name,
+                'last':  last,
+                'first': first,
+                'alias': student.alias,
+                'code':  student.pupil.access_code if student.pupil else None,
+            })
+    
+    result.sort(key=lambda x: (x['classroom'], x['last'], x['first']))
+    classrooms_list = [{'id': c.id, 'name': c.name} for c in classrooms]
+    return jsonify({'students': result, 'classrooms': classrooms_list})
  
 @teacher_bp.route('/admin/export/notes', methods=['POST'])
 @login_required

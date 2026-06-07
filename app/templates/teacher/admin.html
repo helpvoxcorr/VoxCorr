@@ -191,6 +191,18 @@
         </div>
       </div>
 
+      {# Créer ou ajouter des codes élèves #}
+      <div class="col-md-6">
+        <div class="admin-card" data-bs-toggle="modal" data-bs-target="#modal-access-codes">
+          <div class="admin-card-icon blue"><i class="bi bi-key"></i></div>
+          <div>
+            <div class="admin-card-label">Codes d'accès élèves</div>
+            <div class="admin-card-desc">Générer et consulter les codes de connexion élèves</div>
+          </div>
+          <i class="bi bi-chevron-right admin-card-arrow"></i>
+        </div>
+      </div>
+
       {# Devoir commun #}
       <div class="col-md-6">
         <a href="/teacher/assignments/common/new" class="admin-card">
@@ -458,5 +470,133 @@
     </div>
 </div>
 
+{# ── MODALE : Codes d'accès élèves ───────────────────────────────────────── #}
+<div class="modal fade" id="modal-access-codes" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border-radius:12px;overflow:hidden">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-key me-2 text-primary"></i>Codes d'accès élèves
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+          <button type="button" class="btn vox-btn-primary btn-sm" id="btn-generate-codes">
+            <i class="bi bi-magic me-1"></i>Générer les codes manquants
+          </button>
+          <span id="generate-result" class="text-muted small"></span>
+        </div>
+
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <label class="vox-label mb-0">Classe</label>
+          <select id="filter-class" class="vox-input" style="max-width:200px;">
+            <option value="">Toutes les classes</option>
+          </select>
+          <span class="text-muted small ms-auto" id="codes-count"></span>
+        </div>
+
+        <div style="max-height:400px; overflow-y:auto;">
+          <table class="vox-table w-100" id="codes-table">
+            <thead>
+              <tr>
+                <th>Classe</th>
+                <th>Nom</th>
+                <th>Prénom</th>
+                <th>Alias</th>
+                <th>Code</th>
+              </tr>
+            </thead>
+            <tbody id="codes-tbody">
+              <tr><td colspan="5" class="text-muted text-center py-3">Chargement…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
 {% endif %}
+{% block scripts %}
+<script>
+// ── Codes d'accès élèves ──────────────────────────────────────────────────
+let allStudents = [];
+
+document.getElementById('modal-access-codes').addEventListener('show.bs.modal', () => {
+  loadCodes();
+});
+
+function loadCodes(classId) {
+  const url = classId ? `/teacher/admin/access-codes?class_id=${classId}` : '/teacher/admin/access-codes';
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      allStudents = data.students;
+
+      const select = document.getElementById('filter-class');
+      if (select.options.length <= 1) {
+        data.classrooms.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = c.name;
+          select.appendChild(opt);
+        });
+      }
+
+      renderCodes(data.students);
+    });
+}
+
+function renderCodes(students) {
+  const tbody = document.getElementById('codes-tbody');
+  document.getElementById('codes-count').textContent = `${students.length} élève(s)`;
+  if (!students.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center py-3">Aucun élève.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = students.map(s => `
+    <tr>
+      <td>${s.classroom}</td>
+      <td>${s.last}</td>
+      <td>${s.first}</td>
+      <td><span class="text-muted small">${s.alias}</span></td>
+      <td>
+        ${s.code
+          ? `<code style="font-size:.85rem;letter-spacing:.05em">${s.code}</code>`
+          : '<span class="text-danger small">— manquant</span>'}
+      </td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('filter-class').addEventListener('change', function() {
+  const classId = this.value;
+  if (classId) {
+    loadCodes(classId);
+  } else {
+    renderCodes(allStudents);
+  }
+});
+
+document.getElementById('btn-generate-codes').addEventListener('click', function() {
+  const btn = this;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Génération…';
+  fetch('/teacher/admin/generate-access-codes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+  })
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById('generate-result').textContent =
+      data.created > 0 ? `${data.created} code(s) généré(s).` : 'Tous les élèves ont déjà un code.';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-magic me-1"></i>Générer les codes manquants';
+    loadCodes(document.getElementById('filter-class').value || null);
+  });
+});
+</script>
+{% endblock %}
 {% endblock %}
