@@ -533,6 +533,7 @@ function loadCodes(classId) {
   fetch(url)
     .then(r => r.json())
     .then(data => {
+      console.log('data reçue:', data);
       allStudents = data.students;
 
       const select = document.getElementById('filter-class');
@@ -546,7 +547,8 @@ function loadCodes(classId) {
       }
 
       renderCodes(data.students);
-    });
+    })
+    .catch(err => console.error('Erreur fetch codes:', err));
 }
 
 function renderCodes(students) {
