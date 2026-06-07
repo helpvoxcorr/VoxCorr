@@ -381,7 +381,7 @@ def new_assignment(class_id):
         teacher_id=current_user.id,
         subject=c.subject
     ).order_by(Competence.domain, Competence.name).all()
-    
+    current_app.logger.info(f"subject classe: '{c.subject}' | compétences trouvées: {len(competences)}")
     # Organiser les compétences par domaine pour le formulaire
     competences_by_domain = {}
     for comp in competences:
