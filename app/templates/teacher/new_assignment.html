@@ -48,19 +48,19 @@
               <input type="number" name="q_max" class="vox-input" placeholder="Points" step="0.5" min="0" required>
             </div>
             <div class="col-12 col-md-4">
-              <div class="row g-1">
-                <div class="col-6">
-                  <select name="q_domain" class="vox-input domain-select" data-row-index="0">
-                    <option value="">Domaine</option>
-                    {% for domain, comps in competences_by_domain.items() %}
-                    <option value="{{ domain }}">{{ domain }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-6">
-                  <select name="q_competence_id" class="vox-input competence-select" data-row-index="0" disabled>
-                    <option value="">Compétence</option>
-                  </select>
+              <div class="comp-picker-wrapper position-relative">
+                <button type="button" class="comp-btn vox-input text-start d-flex align-items-center gap-2"
+                        onclick="toggleCompDropdown(this)">
+                  <i class="bi bi-award"></i>
+                  <span class="comp-label text-muted small">Compétence (optionnel)</span>
+                  <i class="bi bi-chevron-down ms-auto small"></i>
+                </button>
+                <input type="hidden" name="q_competence_id" value="">
+                <div class="comp-dropdown border rounded-3 bg-white shadow-sm"
+                    style="display:none; position:absolute; z-index:200; width:100%; top:calc(100% + 4px);">
+                  <input type="text" class="comp-search form-control border-0 border-bottom rounded-0"
+                        placeholder="Rechercher…" oninput="filterCompDropdown(this)">
+                  <div class="comp-list" style="max-height:240px; overflow-y:auto;"></div>
                 </div>
               </div>
             </div>
@@ -88,79 +88,112 @@
 
 {% block scripts %}
 <script>
-  document.getElementById('add-question').addEventListener('click', () => {
-    const row = document.querySelector('.question-row').cloneNode(true);
-    row.querySelectorAll('input').forEach(i => i.value = '');
-    document.getElementById('questions-list').appendChild(row);
-  });
-</script>
-<script>
-  // Données des compétences par domaine (injectées depuis Flask)
-  const competencesData = {{ competences_by_domain_json|safe }};
+const COMPETENCES_DATA = {{ competences_by_domain_json|safe }};
 
-  function populateCompetenceSelect(domainSelect, competenceSelect) {
-    const selectedDomain = domainSelect.value;
-    competenceSelect.innerHTML = '<option value="">Compétence</option>';
-    competenceSelect.disabled = !selectedDomain;
-    
-    if (selectedDomain && competencesData[selectedDomain]) {
-      competencesData[selectedDomain].forEach(comp => {
-        const option = document.createElement('option');
-        option.value = comp.id;
-        option.textContent = comp.name;
-        competenceSelect.appendChild(option);
-      });
+function buildCompList(listEl, filter) {
+  listEl.innerHTML = '';
+  const f = (filter || '').toLowerCase().trim();
+  Object.entries(COMPETENCES_DATA).forEach(([domain, comps]) => {
+    const matched = comps.filter(c => !f || c.name.toLowerCase().includes(f));
+    if (!matched.length) return;
+    const header = document.createElement('div');
+    header.className = 'px-3 pt-2 pb-1 text-muted fw-semibold';
+    header.style.fontSize = '11px';
+    header.style.letterSpacing = '0.05em';
+    header.textContent = domain;
+    listEl.appendChild(header);
+    matched.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'comp-item px-3 py-2 d-flex align-items-start gap-2';
+      item.style.cursor = 'pointer';
+      item.style.fontSize = '13px';
+      item.innerHTML = `<span class="badge bg-secondary bg-opacity-25 text-secondary">${domain.split('—')[0].trim()}</span>${c.name}`;
+      item.addEventListener('mouseenter', () => item.classList.add('bg-light'));
+      item.addEventListener('mouseleave', () => item.classList.remove('bg-light'));
+      item.addEventListener('click', () => selectComp(item, c.id, c.name, domain));
+      listEl.appendChild(item);
+    });
+  });
+}
+
+function toggleCompDropdown(btn) {
+  // Ferme tous les autres dropdowns ouverts
+  document.querySelectorAll('.comp-dropdown').forEach(dd => {
+    if (dd !== btn.closest('.comp-picker-wrapper').querySelector('.comp-dropdown')) {
+      dd.style.display = 'none';
     }
+  });
+  const wrapper = btn.closest('.comp-picker-wrapper');
+  const dd = wrapper.querySelector('.comp-dropdown');
+  const list = wrapper.querySelector('.comp-list');
+  const isOpen = dd.style.display === 'block';
+  if (isOpen) {
+    dd.style.display = 'none';
+  } else {
+    buildCompList(list, '');
+    dd.style.display = 'block';
+    setTimeout(() => wrapper.querySelector('.comp-search').focus(), 50);
   }
+}
 
-  // Initialiser les selects pour une nouvelle ligne
-  function initRowSelects(row) {
-    const domainSelect = row.querySelector('.domain-select');
-    const competenceSelect = row.querySelector('.competence-select');
-    
-    domainSelect.addEventListener('change', () => populateCompetenceSelect(domainSelect, competenceSelect));
-    
-    // Si un domaine est déjà sélectionné (cas du clone), on le gère
-    if (domainSelect.value) {
-      populateCompetenceSelect(domainSelect, competenceSelect);
-    }
+function filterCompDropdown(searchInput) {
+  const list = searchInput.closest('.comp-dropdown').querySelector('.comp-list');
+  buildCompList(list, searchInput.value);
+}
+
+function selectComp(item, compId, compName, domain) {
+  const wrapper = item.closest('.comp-picker-wrapper');
+  const btn = wrapper.querySelector('.comp-btn');
+  const hidden = wrapper.querySelector('input[name="q_competence_id"]');
+  const badge = domain.split('—')[0].trim();
+  hidden.value = compId;
+  btn.querySelector('.comp-label').innerHTML =
+    `<span class="badge bg-secondary bg-opacity-25 text-secondary me-1">${badge}</span>${compName}`;
+  btn.querySelector('.bi-chevron-down').insertAdjacentHTML('beforebegin',
+    `<button type="button" class="comp-clear btn btn-sm p-0 ms-1 text-muted" onclick="clearComp(event)">&times;</button>`);
+  btn.querySelector('.bi-chevron-down').style.display = 'none';
+  wrapper.querySelector('.comp-dropdown').style.display = 'none';
+}
+
+function clearComp(event) {
+  event.stopPropagation();
+  const wrapper = event.target.closest('.comp-picker-wrapper');
+  const btn = wrapper.querySelector('.comp-btn');
+  const hidden = wrapper.querySelector('input[name="q_competence_id"]');
+  hidden.value = '';
+  btn.querySelector('.comp-label').innerHTML = `<span class="text-muted small">Compétence (optionnel)</span>`;
+  btn.querySelector('.bi-chevron-down').style.display = '';
+  const existing = btn.querySelector('.comp-clear');
+  if (existing) existing.remove();
+}
+
+// Ajout d'une nouvelle ligne
+document.getElementById('add-question').addEventListener('click', () => {
+  const original = document.querySelector('.question-row');
+  const newRow = original.cloneNode(true);
+  newRow.querySelectorAll('input[type="text"], input[type="number"]').forEach(i => i.value = '');
+  // Reset le picker cloné
+  const btn = newRow.querySelector('.comp-btn');
+  btn.querySelector('.comp-label').innerHTML = `<span class="text-muted small">Compétence (optionnel)</span>`;
+  btn.querySelector('.bi-chevron-down').style.display = '';
+  const clear = btn.querySelector('.comp-clear');
+  if (clear) clear.remove();
+  newRow.querySelector('input[name="q_competence_id"]').value = '';
+  newRow.querySelector('.comp-dropdown').style.display = 'none';
+  document.getElementById('questions-list').appendChild(newRow);
+});
+
+// Suppression d'une ligne
+document.addEventListener('click', e => {
+  if (e.target.closest('.remove-question')) {
+    const row = e.target.closest('.question-row');
+    if (document.querySelectorAll('.question-row').length > 1) row.remove();
+    else alert('Il doit y avoir au moins une question.');
   }
-
-  // Ajouter une nouvelle ligne
-  document.getElementById('add-question').addEventListener('click', () => {
-    const originalRow = document.querySelector('.question-row');
-    const newRow = originalRow.cloneNode(true);
-    
-    // Reset des valeurs
-    newRow.querySelectorAll('input').forEach(i => i.value = '');
-    const domainSelect = newRow.querySelector('.domain-select');
-    const competenceSelect = newRow.querySelector('.competence-select');
-    domainSelect.value = '';
-    competenceSelect.innerHTML = '<option value="">Compétence</option>';
-    competenceSelect.disabled = true;
-    
-    // Mettre à jour les index (optionnel)
-    const newIndex = document.querySelectorAll('.question-row').length;
-    domainSelect.dataset.rowIndex = newIndex;
-    competenceSelect.dataset.rowIndex = newIndex;
-    
-    document.getElementById('questions-list').appendChild(newRow);
-    initRowSelects(newRow);
-  });
-
-  // Initialiser les lignes existantes
-  document.querySelectorAll('.question-row').forEach(row => initRowSelects(row));
-
-  // Supprimer une ligne
-  document.addEventListener('click', function(e) {
-    if (e.target.closest('.remove-question')) {
-      const row = e.target.closest('.question-row');
-      if (document.querySelectorAll('.question-row').length > 1) {
-        row.remove();
-      } else {
-        alert('Il doit y avoir au moins une question.');
-      }
-    }
-  });
+  // Ferme dropdown si clic extérieur
+  if (!e.target.closest('.comp-picker-wrapper')) {
+    document.querySelectorAll('.comp-dropdown').forEach(dd => dd.style.display = 'none');
+  }
+});
 </script>
 {% endblock %}
