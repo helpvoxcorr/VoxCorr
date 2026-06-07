@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Modifier la classe — VoxCorr{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-5">
+    <div class="vox-page-hero mb-4">
+      <h1>Modifier la classe</h1>
+      <p>{{ classroom.name }} · {{ classroom.school_year }}</p>
+    </div>
+
+    <div class="vox-card">
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="mb-3">
+          <label class="vox-label">Nom de la classe *</label>
+          <input type="text" name="name" class="vox-input"
+                 value="{{ classroom.name }}" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="vox-label">Niveau</label>
+          <select name="level" class="vox-input">
+            <option value="">— Non renseigné —</option>
+            {% for lvl in levels %}
+            <option value="{{ lvl }}" {% if classroom.level == lvl %}selected{% endif %}>
+              {{ lvl }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="vox-label">Matière</label>
+          <input type="text" name="subject" class="vox-input"
+                 value="{{ classroom.subject or '' }}"
+                 placeholder="ex : SVT, Mathématiques…">
+        </div>
+
+        <div class="mb-4">
+          <label class="vox-label">Année scolaire</label>
+          <input type="text" name="school_year" class="vox-input"
+                 value="{{ classroom.school_year or '2025-2026' }}">
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn vox-btn-primary">Enregistrer</button>
+          <a href="/teacher/classes" class="btn vox-btn-dark">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

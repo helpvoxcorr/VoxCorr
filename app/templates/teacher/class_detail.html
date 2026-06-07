@@ -146,14 +146,13 @@
              class="cls-action-btn" title="Modifier">
             <i class="bi bi-pencil"></i>
           </a>
-          <form method="POST" action="/teacher/assignments/{{ a.id }}/delete"
-                class="d-inline"
-                onsubmit="return confirm('Supprimer « {{ a.title }} » ?')">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="cls-action-btn danger" title="Supprimer">
-              <i class="bi bi-trash"></i>
-            </button>
-          </form>
+          <button type="button" class="cls-action-btn danger" 
+                  data-bs-toggle="modal" 
+                  data-bs-target="#modalDeleteAssignment"
+                  data-assignment-id="{{ a.id }}"
+                  data-assignment-title="{{ a.title }}">
+            <i class="bi bi-trash"></i>
+          </button>
         </div>
       </div>
       {% endfor %}
@@ -248,6 +247,29 @@
       </div>
       <div class="modal-footer border-0 pt-0">
         <button type="button" class="btn vox-btn-dark" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal suppression devoir -->
+<div class="modal fade" id="modalDeleteAssignment" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmer la suppression</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Supprimer le devoir <strong id="deleteAssignmentTitle"></strong> ?</p>
+        <p class="text-danger small">Toutes les corrections associées seront définitivement supprimées.</p>
+      </div>
+      <div class="modal-footer">
+        <form method="POST" id="deleteAssignmentForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-danger">Supprimer</button>
+        </form>
       </div>
     </div>
   </div>
@@ -356,5 +378,17 @@ if (statsModal) {
     }
   });
 }
+
+  const deleteModal = document.getElementById('modalDeleteAssignment');
+  if (deleteModal) {
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      const assignmentId = button.getAttribute('data-assignment-id');
+      const assignmentTitle = button.getAttribute('data-assignment-title');
+      document.getElementById('deleteAssignmentTitle').textContent = assignmentTitle;
+      const form = document.getElementById('deleteAssignmentForm');
+      form.action = '/teacher/assignments/' + assignmentId + '/delete';
+    });
+  }
 </script>
 {% endblock %}

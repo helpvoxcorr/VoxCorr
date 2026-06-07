@@ -92,6 +92,25 @@ def new_class():
     return render_template('teacher/new_class.html')
 
 
+@teacher_bp.route('/classes/<int:class_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_class(class_id):
+    c = Classroom.query.filter_by(id=class_id, teacher_id=current_user.id).first_or_404()
+    
+    LEVELS = ['6ème', '5ème', '4ème', '3ème', '2nde', '1ère', 'Terminale', 'Autre']
+    
+    if request.method == 'POST':
+        c.name        = request.form['name'].strip()
+        c.subject     = request.form.get('subject', '').strip()
+        c.school_year = request.form.get('school_year', '2025-2026').strip()
+        c.level       = request.form.get('level', '').strip() or None
+        db.session.commit()
+        flash(f'Classe « {c.name} » mise à jour.', 'success')
+        return redirect(url_for('teacher.classes'))
+    
+    return render_template('teacher/edit_class.html', classroom=c, levels=LEVELS)
+
+
 @teacher_bp.route('/classes/<int:class_id>')
 @login_required
 def class_detail(class_id):
