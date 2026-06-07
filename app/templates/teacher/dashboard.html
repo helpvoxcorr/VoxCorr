@@ -53,20 +53,23 @@
   </div>
 </div>
 
-<!-- Graphique de progression de la classe -->
-<div class="vox-card mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <div class="fw-bold">📈 Progression moyenne de la classe</div>
-    <select id="class-selector-stats" class="form-select form-select-sm w-auto">
-      {% for c in classrooms %}
-      <option value="{{ c.id }}">{{ c.name }} ({{ c.subject or '—' }})</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div id="stats-chart" style="height: 50vh; min-height: 250px; width: 100%;"></div>
-  <div id="stats-loading" class="text-center text-muted py-5 d-none">
-    <div class="spinner-border text-neon" role="status"></div>
-    <p class="mt-2">Chargement des statistiques...</p>
+<div class="mt-3 mb-4">
+  <button class="btn vox-btn-dark btn-sm w-100 d-flex align-items-center justify-content-between"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#graph-progression"
+          aria-expanded="false">
+    <span><i class="bi bi-graph-up me-2"></i>Voir la progression par niveau</span>
+    <i class="bi bi-chevron-down" id="graph-chevron"></i>
+  </button>
+  <div class="collapse" id="graph-progression">
+    <div class="vox-card mt-2">
+      <div class="d-flex gap-2 mb-3 flex-wrap" id="level-tabs"></div>
+      <div id="stats-chart" style="height:320px; width:100%;"></div>
+      <div id="stats-empty" class="text-center text-muted py-4 small d-none">
+        Pas encore assez de données pour afficher la progression.
+      </div>
+    </div>
   </div>
 </div>
 
@@ -219,49 +222,106 @@ document.getElementById('modal-confirm-delete').addEventListener('click', functi
 });
 </script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  const select = document.getElementById('class-selector-stats');
-  const chartDiv = document.getElementById('stats-chart');
-  const loadingDiv = document.getElementById('stats-loading');
-  let currentChart = null;
+const LEVELS = [...new Set([
+  {% for c in classrooms %}
+  "{{ c.level or 'Autre' }}",
+  {% endfor %}
+])];
 
-  function loadStats(classId) {
-    loadingDiv.classList.remove('d-none');
-    chartDiv.classList.add('d-none');
-    fetch(`/teacher/api/stats/class/${classId}`)
-      .then(r => r.json())
-      .then(data => {
-        loadingDiv.classList.add('d-none');
-        chartDiv.classList.remove('d-none');
-        if (currentChart) Plotly.purge(chartDiv);
-        const trace = {
-          x: data.labels,
-          y: data.scores,
-          type: 'scatter',
-          mode: 'lines+markers',
-          name: 'Moyenne classe',
-          line: { color: '#39FF14', width: 3 },
-          marker: { size: 8, color: '#0a0a0a' }
-        };
-        const layout = {
-          title: { text: 'Évolution des moyennes', font: { size: 14 } },
-          xaxis: { title: 'Devoirs' },
-          yaxis: { title: 'Note moyenne /20', range: [0, 20] },
-          plot_bgcolor: '#fff',
-          paper_bgcolor: '#fff'
-        };
-        currentChart = Plotly.newPlot(chartDiv, [trace], layout);
-      })
-      .catch(err => {
-        loadingDiv.classList.add('d-none');
-        chartDiv.classList.remove('d-none');
-        chartDiv.innerHTML = '<div class="alert alert-danger">Erreur chargement stats.</div>';
-        console.error(err);
-      });
+const chevron = document.getElementById('graph-chevron');
+const graphCollapse = document.getElementById('graph-progression');
+let graphLoaded = false;
+let currentLevel = LEVELS[0];
+
+graphCollapse.addEventListener('show.bs.collapse', () => {
+  chevron.style.transform = 'rotate(180deg)';
+  if (!graphLoaded) {
+    graphLoaded = true;
+    buildTabs();
+    loadLevel(currentLevel);
   }
-
-  select.addEventListener('change', () => loadStats(select.value));
-  if (select.options.length) loadStats(select.value);
 });
+
+graphCollapse.addEventListener('hide.bs.collapse', () => {
+  chevron.style.transform = 'rotate(0deg)';
+});
+
+function buildTabs() {
+  const tabs = document.getElementById('level-tabs');
+  LEVELS.forEach((lvl, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-sm ' + (i === 0 ? 'vox-btn-primary' : 'vox-btn-dark');
+    btn.textContent = lvl;
+    btn.addEventListener('click', () => {
+      tabs.querySelectorAll('button').forEach(b => b.className = 'btn btn-sm vox-btn-dark');
+      btn.className = 'btn btn-sm vox-btn-primary';
+      currentLevel = lvl;
+      loadLevel(lvl);
+    });
+    tabs.appendChild(btn);
+  });
+}
+
+function loadLevel(level) {
+  const chartDiv = document.getElementById('stats-chart');
+  const emptyDiv = document.getElementById('stats-empty');
+  chartDiv.innerHTML = '';
+  emptyDiv.classList.add('d-none');
+
+  fetch(`/teacher/api/stats/level/${encodeURIComponent(level)}`)
+    .then(r => r.json())
+    .then(data => {
+      const classes = data.classes.filter(c => c.avg !== null);
+      if (!classes.length) {
+        chartDiv.style.display = 'none';
+        emptyDiv.classList.remove('d-none');
+        return;
+      }
+      chartDiv.style.display = '';
+
+      const COLORS = ['#39FF14','#3b82f6','#f59e0b','#e53e3e','#8b5cf6','#06b6d4'];
+
+      const traces = classes.map((c, i) => ({
+        x: [c.name],
+        y: [c.avg],
+        type: 'bar',
+        name: c.name,
+        marker: { color: COLORS[i % COLORS.length] },
+        text: [c.avg.toFixed(1)],
+        textposition: 'outside',
+      }));
+
+      Plotly.newPlot(chartDiv, traces, {
+        barmode: 'group',
+        yaxis: { range: [0, 20], title: 'Moyenne /20', fixedrange: true },
+        xaxis: { fixedrange: true },
+        showlegend: false,
+        plot_bgcolor: '#fff',
+        paper_bgcolor: '#fff',
+        margin: { t: 40, r: 20, b: 40, l: 40 },
+        annotations: classes.map((c, i) => {
+          if (!c.trend) return null;
+          const isUp = c.trend === 'up';
+          return {
+            x: c.name,
+            y: c.avg + 1.2,
+            xref: 'x', yref: 'y',
+            text: '',
+            showarrow: true,
+            arrowhead: 2,
+            arrowsize: 1.5,
+            arrowwidth: 2.5,
+            arrowcolor: isUp ? '#16a34a' : '#e53e3e',
+            ax: isUp ? -18 : 18,
+            ay: isUp ? 18 : -18,
+          };
+        }).filter(Boolean),
+      }, { responsive: true, displayModeBar: false });
+    })
+    .catch(() => {
+      emptyDiv.classList.remove('d-none');
+    });
+}
 </script>
 {% endblock %}

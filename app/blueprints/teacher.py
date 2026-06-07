@@ -578,6 +578,36 @@ def class_stats(class_id):
         data['scores'].append(avg_score)
     return jsonify(data)
 
+@teacher_bp.route('/api/stats/level/<level>')
+@login_required
+def level_stats(level):
+    classrooms = Classroom.query.filter_by(
+        teacher_id=current_user.id,
+        level=level
+    ).all()
+    
+    result = []
+    for c in classrooms:
+        scores = []
+        for a in sorted(c.assignments, key=lambda x: x.date or x.created_at):
+            corrs = [corr.total_score for corr in a.corrections if corr.total_score is not None]
+            if corrs:
+                scores.append(sum(corrs) / len(corrs))
+        
+        avg = round(sum(scores) / len(scores), 2) if scores else None
+        trend = None
+        if len(scores) >= 2:
+            trend = 'up' if scores[-1] > scores[-2] else 'down'
+        
+        result.append({
+            'name': c.name,
+            'avg': avg,
+            'trend': trend,
+            'nb_devoirs': len(c.assignments),
+        })
+    
+    return jsonify({'classes': result, 'level': level})
+
 # ── Vue corrections d'un devoir ───────────────────────────────────────────────
 
 @teacher_bp.route('/assignments/<int:assignment_id>/corrections')
