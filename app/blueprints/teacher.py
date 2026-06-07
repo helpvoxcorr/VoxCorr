@@ -463,13 +463,13 @@ def edit_assignment(assignment_id):
         # Mise à jour des questions existantes
         for q in a.questions:
             label      = request.form.get(f'q_label_{q.id}', '').strip()
-            competence = request.form.get(f'q_competence_{q.id}', '').strip()
+            comp_id = request.form.get(f'q_competence_id_{q.id}', '').strip()
             new_max    = request.form.get(f'q_max_{q.id}')
             force_clamp = request.form.get(f'q_clamp_{q.id}') == '1'
 
             if label:
                 q.label = label
-            q.competence = competence
+            q.competence_id = int(comp_id) if comp_id and comp_id.isdigit() else None
 
             if new_max is not None:
                 new_max = float(new_max)
