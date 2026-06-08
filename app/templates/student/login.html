@@ -3,111 +3,111 @@
 
 {% block head %}
 <style>
-  .login-hero {
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-    border-radius: 32px;
-    padding: 2rem;
-    margin-bottom: 1.5rem;
-    text-align: center;
-    border: 1px solid rgba(57,255,20,0.25);
-    box-shadow: 0 20px 35px -12px rgba(0,0,0,0.4);
+  .login-wrapper {
+    max-width: 480px;
+    margin: 6rem auto 2rem auto;
+    padding: 0 1rem;
   }
-  .login-icon {
-    width: 80px;
-    height: 80px;
+  .login-badge {
     background: rgba(57,255,20,0.12);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1rem auto;
-    font-size: 2.5rem;
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    border-radius: 40px;
+    font-size: 0.75rem;
+    font-weight: 600;
     color: var(--vox-neon);
-    backdrop-filter: blur(4px);
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+  }
+  .login-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--vox-black);
+  }
+  .login-sub {
+    font-size: 0.9rem;
+    color: #5b6778;
+    margin-bottom: 2rem;
   }
   .premium-card {
-    background: rgba(255,255,255,0.98);
-    backdrop-filter: blur(2px);
-    border-radius: 28px;
-    border: none;
+    background: #ffffff;
+    border-radius: 24px;
     padding: 2rem;
-    box-shadow: 0 25px 40px -12px rgba(0,0,0,0.2);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+    border: 1px solid #edf2f7;
   }
-  .input-premium {
-    border-radius: 60px;
-    padding: 0.85rem 1.25rem;
-    border: 1.5px solid #e2e8f0;
-    font-size: 1rem;
-    transition: all 0.2s;
+  .input-custom {
     width: 100%;
+    padding: 0.85rem 1.2rem;
+    font-size: 0.95rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 48px;
+    transition: all 0.2s;
+    background: #fff;
   }
-  .input-premium:focus {
+  .input-custom:focus {
     border-color: var(--vox-neon);
-    box-shadow: 0 0 0 3px rgba(57,255,20,0.2);
     outline: none;
+    box-shadow: 0 0 0 3px rgba(57,255,20,0.15);
   }
-  .btn-premium {
+  .btn-login {
     background: var(--vox-black);
     color: white;
-    border-radius: 60px;
-    padding: 0.85rem 1.5rem;
-    font-weight: 700;
-    font-size: 1rem;
+    border-radius: 48px;
+    padding: 0.85rem 1.2rem;
+    font-weight: 600;
+    font-size: 0.95rem;
     width: 100%;
     border: none;
     transition: 0.2s;
+    margin-top: 0.5rem;
   }
-  .btn-premium:hover {
-    background: #1f1f1f;
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.2);
+  .btn-login:hover {
+    background: #1e1e1e;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.08);
   }
-  .helper-text {
+  .helper-footer {
     text-align: center;
     margin-top: 1.5rem;
-    font-size: 0.8rem;
-    color: #6c757d;
+    font-size: 0.75rem;
+    color: #8a99b0;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-vh-100 d-flex align-items-center justify-content-center" style="background:var(--vox-grey); padding: 1rem;">
-  <div style="max-width: 480px; width: 100%;">
-
-    {# Hero visuel #}
-    <div class="login-hero">
-      <div class="login-icon">
-        <i class="bi bi-qr-code-scan"></i>
-      </div>
-      <h2 class="text-white mb-2" style="font-weight: 700;">Espace élève</h2>
-      <p class="text-white-50 mb-0" style="font-size: 0.9rem;">Entrez votre code personnel pour accéder à vos corrections</p>
+<div class="login-wrapper">
+  <div class="text-center">
+    <div class="login-badge">
+      <i class="bi bi-qr-code-scan me-1"></i> Accès sécurisé
     </div>
+    <div class="login-title">Bienvenue 👋</div>
+    <div class="login-sub">Entrez votre code pour consulter vos corrections</div>
+  </div>
 
-    {# Formulaire premium #}
-    <div class="premium-card">
-      <form method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="premium-card">
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <div class="mb-4">
-          <label class="form-label fw-semibold">Code d’accès</label>
-          <input type="text" name="access_code" class="input-premium" 
-                 placeholder="ex: 1A2B3C4D" required autocomplete="off">
-          <div class="form-text mt-2" style="font-size: 0.75rem;">
-            🔒 Votre code vous a été fourni par votre professeur.
-          </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold mb-2">Code d’accès</label>
+        <input type="text" name="access_code" class="input-custom" 
+               placeholder="ex: 1A2B3C4D" required autocomplete="off">
+        <div class="form-text mt-2" style="font-size: 0.7rem;">
+          🔒 Le code vous a été remis par votre professeur.
         </div>
-
-        <button type="submit" class="btn-premium">
-          <i class="bi bi-arrow-right-circle me-2"></i>Voir mes corrections
-        </button>
-      </form>
-
-      <div class="helper-text">
-        <i class="bi bi-shield-check"></i> Accès sécurisé – aucune inscription requise
       </div>
-    </div>
 
+      <button type="submit" class="btn-login">
+        Accéder à mes corrections <i class="bi bi-chevron-right ms-1"></i>
+      </button>
+    </form>
+  </div>
+
+  <div class="helper-footer">
+    <i class="bi bi-shield-check"></i> Aucune inscription nécessaire
   </div>
 </div>
 {% endblock %}
