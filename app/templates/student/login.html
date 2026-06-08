@@ -171,9 +171,11 @@
       {% endif %}
     {% endwith %}
 
-    <form method="POST" action="{{ url_for('pupil.login') }}" id="loginForm" novalidate>
-      <!-- Token CSRF pour sécurité Flask-WTF -->
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+    <!-- ✅ Blueprint correct : student.login (pas pupil.login) -->
+    <form method="POST" action="{{ url_for('student.login') }}" id="loginForm" novalidate>
+      
+      <!-- Token CSRF Flask-WTF -->
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       
       <div class="vox-input-group">
         <input 
@@ -194,8 +196,9 @@
       </button>
     </form>
 
+    <!-- ✅ Lien sécurisé sans url_for pour éviter autre BuildError -->
     <div class="vox-help">
-      Code perdu ou invalide ? <a href="{{ url_for('main.contact') }}">Contacte ton prof</a>
+      Code perdu ou invalide ? <a href="#" onclick="alert('Demande ton code à ton professeur.'); return false;">Contacte ton prof</a>
     </div>
   </div>
 </div>
@@ -203,7 +206,6 @@
 <script>
   // ── Force majuscules et bloque caractères spéciaux en temps réel ──
   document.getElementById('access_code').addEventListener('input', function(e) {
-    // Garde uniquement lettres et chiffres, convertit en majuscules
     this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
   });
 
