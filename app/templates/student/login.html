@@ -3,111 +3,306 @@
 
 {% block head %}
 <style>
-  .login-wrapper {
-    max-width: 480px;
-    margin: 6rem auto 2rem auto;
-    padding: 0 1rem;
+  :root {
+    --vox-black:     #0a0a0a;
+    --vox-white:     #ffffff;
+    --vox-neon:      #39FF14;
+    --vox-neon-d:    #2ecc10;
+    --vox-neon-glow: rgba(57,255,20,.18);
+    --vox-grey:      #f4f5f7;
+    --vox-grey-2:    #eaebee;
+    --vox-border:    rgba(0,0,0,.08);
+    --vox-border-md: rgba(0,0,0,.13);
+    --vox-muted:     #6c757d;
+    --vox-radius:    10px;
+    --vox-radius-lg: 8px;
+    --vox-radius-xl: 12px;
+    --vox-shadow-xs: 0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+    --vox-shadow-sm: 0 2px 8px rgba(0,0,0,.07),0 1px 3px rgba(0,0,0,.04);
+    --vox-shadow-md: 0 4px 20px rgba(0,0,0,.09),0 2px 6px rgba(0,0,0,.05);
+    --vox-shadow-lg: 0 12px 40px rgba(0,0,0,.12),0 4px 12px rgba(0,0,0,.06);
+    --vox-tr:        200ms cubic-bezier(.4,0,.2,1);
+    --vox-font:      'Inter',system-ui,-apple-system,sans-serif;
   }
-  .login-badge {
-    background: rgba(57,255,20,0.12);
-    display: inline-block;
-    padding: 0.4rem 1rem;
-    border-radius: 40px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--vox-neon);
-    letter-spacing: 0.5px;
-    margin-bottom: 1rem;
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
-  .login-title {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    color: var(--vox-black);
-  }
-  .login-sub {
-    font-size: 0.9rem;
-    color: #5b6778;
-    margin-bottom: 2rem;
-  }
-  .premium-card {
-    background: #ffffff;
-    border-radius: 24px;
-    padding: 2rem;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
-    border: 1px solid #edf2f7;
-  }
-  .input-custom {
-    width: 100%;
-    padding: 0.85rem 1.2rem;
-    font-size: 0.95rem;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 48px;
-    transition: all 0.2s;
-    background: #fff;
-  }
-  .input-custom:focus {
-    border-color: var(--vox-neon);
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(57,255,20,0.15);
-  }
-  .btn-login {
+
+  body {
+    font-family: var(--vox-font);
     background: var(--vox-black);
-    color: white;
-    border-radius: 48px;
-    padding: 0.85rem 1.2rem;
-    font-weight: 600;
-    font-size: 0.95rem;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Effet de grille en arrière-plan */
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(57,255,20,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(57,255,20,0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index: 0;
+  }
+
+  /* Glow vert animé */
+  .neon-glow {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, var(--vox-neon-glow) 0%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+    animation: pulse-glow 4s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+  }
+
+  .login-wrapper {
+    position: relative;
+    z-index: 10;
     width: 100%;
-    border: none;
-    transition: 0.2s;
-    margin-top: 0.5rem;
+    max-width: 480px;
+    padding: 20px;
   }
-  .btn-login:hover {
-    background: #1e1e1e;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+
+  .login-card {
+    background: var(--vox-white);
+    border-radius: var(--vox-radius-xl);
+    padding: 48px 40px;
+    box-shadow: var(--vox-shadow-lg);
+    border: 1px solid var(--vox-border);
+    position: relative;
+    overflow: hidden;
   }
-  .helper-footer {
+
+  /* Ligne néon en haut */
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--vox-neon), var(--vox-neon-d));
+    box-shadow: 0 0 20px var(--vox-neon-glow);
+  }
+
+  .logo-section {
     text-align: center;
-    margin-top: 1.5rem;
-    font-size: 0.75rem;
-    color: #8a99b0;
+    margin-bottom: 32px;
+  }
+
+  .lock-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, var(--vox-neon), var(--vox-neon-d));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 28px;
+    box-shadow: 0 8px 24px var(--vox-neon-glow);
+    animation: bounce 2s ease-in-out infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  h1 {
+    color: var(--vox-black);
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+
+  .welcome-text {
+    color: var(--vox-muted);
+    font-size: 1rem;
+    margin-bottom: 24px;
+  }
+
+  .form-group {
+    margin-bottom: 24px;
+  }
+
+  label {
+    display: block;
+    color: var(--vox-black);
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .input-container {
+    position: relative;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 16px 20px 16px 48px;
+    background: var(--vox-grey);
+    border: 2px solid var(--vox-border);
+    border-radius: var(--vox-radius-xl);
+    font-size: 1rem;
+    font-family: var(--vox-font);
+    color: var(--vox-black);
+    transition: all var(--vox-tr);
+    outline: none;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--vox-neon);
+    background: var(--vox-white);
+    box-shadow: 0 0 0 4px var(--vox-neon-glow);
+  }
+
+  input[type="text"]::placeholder {
+    color: var(--vox-muted);
+  }
+
+  .input-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    opacity: 0.5;
+    transition: opacity var(--vox-tr);
+  }
+
+  input[type="text"]:focus + .input-icon {
+    opacity: 1;
+  }
+
+  .helper-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: var(--vox-grey);
+    border-radius: var(--vox-radius);
+    font-size: 0.875rem;
+    color: var(--vox-muted);
+    border: 1px solid var(--vox-border);
+  }
+
+  .helper-box .icon {
+    font-size: 18px;
+  }
+
+  .btn-submit {
+    width: 100%;
+    padding: 18px 32px;
+    background: linear-gradient(135deg, var(--vox-neon), var(--vox-neon-d));
+    color: var(--vox-black);
+    border: none;
+    border-radius: var(--vox-radius-xl);
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: var(--vox-font);
+    cursor: pointer;
+    transition: all var(--vox-tr);
+    box-shadow: var(--vox-shadow-md);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-top: 8px;
+  }
+
+  .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px var(--vox-neon-glow);
+  }
+
+  .btn-submit:active {
+    transform: translateY(0);
+  }
+
+  .footer-text {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 0.875rem;
+    color: var(--vox-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .login-card {
+      padding: 40px 24px;
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="bg-grid"></div>
+<div class="neon-glow"></div>
+
 <div class="login-wrapper">
-  <div class="text-center">
-    <div class="login-badge">
-      <i class="bi bi-qr-code-scan me-1"></i> Accès sécurisé
+  <div class="login-card">
+    <div class="logo-section">
+      <div class="lock-icon">🔐</div>
+      <h1>Accès sécurisé</h1>
+      <p class="welcome-text">Bienvenue 👋<br>Entrez votre code pour consulter vos corrections</p>
     </div>
-    <div class="login-title">Bienvenue 👋</div>
-    <div class="login-sub">Entrez votre code pour consulter vos corrections</div>
-  </div>
 
-  <div class="premium-card">
-    <form method="POST">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-      <div class="mb-4">
-        <label class="form-label fw-semibold mb-2">Code d’accès</label>
-        <input type="text" name="access_code" class="input-custom" 
-               placeholder="ex: 1A2B3C4D" required autocomplete="off">
-        <div class="form-text mt-2" style="font-size: 0.7rem;">
-          🔒 Le code vous a été remis par votre professeur.
+    <form method="POST" action="">
+      <div class="form-group">
+        <label for="access_code">Code d'accès</label>
+        <div class="input-container">
+          <input 
+            type="text" 
+            id="access_code" 
+            name="code" 
+            placeholder="Ex: 1234-ABCD" 
+            required 
+            autocomplete="off"
+          >
+          <span class="input-icon">🔑</span>
+        </div>
+        <div class="helper-box">
+          <span class="icon">🔒</span>
+          <span>Le code vous a été remis par votre professeur.</span>
         </div>
       </div>
 
-      <button type="submit" class="btn-login">
-        Accéder à mes corrections <i class="bi bi-chevron-right ms-1"></i>
+      <button type="submit" class="btn-submit">
+        Accéder à mes corrections
       </button>
     </form>
-  </div>
 
-  <div class="helper-footer">
-    <i class="bi bi-shield-check"></i> Aucune inscription nécessaire
+    <div class="footer-text">
+      <span>✨</span>
+      <span>Aucune inscription nécessaire</span>
+    </div>
   </div>
 </div>
 {% endblock %}
