@@ -3,41 +3,88 @@
 
 {% block head %}
 <style>
-.corr-hero {
-  background: var(--vox-black);
-  border-radius: 16px;
-  padding: 2rem;
+/* Hero premium */
+.corr-hero-premium {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  border-radius: 28px;
+  padding: 1.8rem;
   margin-bottom: 1.5rem;
-  color: #fff;
+  border: 1px solid rgba(57,255,20,0.2);
+  box-shadow: 0 15px 30px -12px rgba(0,0,0,0.3);
 }
 .corr-score-ring {
   width: 90px; height: 90px;
   border-radius: 50%;
-  border: 4px solid var(--vox-neon);
+  background: rgba(57,255,20,0.1);
+  border: 2px solid var(--vox-neon);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   flex-shrink: 0;
+  backdrop-filter: blur(4px);
 }
-.corr-score-ring .score-val {
-  font-size: 1.5rem; font-weight: 800;
+.score-val {
+  font-size: 1.8rem; font-weight: 800;
   color: var(--vox-neon); line-height: 1;
 }
-.corr-score-ring .score-max {
-  font-size: .75rem; color: rgba(255,255,255,.5);
+.score-max {
+  font-size: .7rem; color: rgba(255,255,255,.6);
+}
+
+/* Cartes glass */
+.glass-card {
+  background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(2px);
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.2rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.glass-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px -12px rgba(0,0,0,0.15);
+}
+.audio-player {
+  background: #f8f9fc;
+  border-radius: 18px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+}
+.audio-player audio {
+  width: 100%;
+  accent-color: var(--vox-neon);
+}
+.btn-tts-premium {
+  background: var(--vox-neon);
+  color: var(--vox-black);
+  border: none;
+  border-radius: 40px;
+  padding: 0.7rem 1.8rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  transition: 0.15s;
+}
+.btn-tts-premium:hover {
+  transform: scale(1.02);
+  opacity: 0.9;
 }
 .corr-question-card {
-  background: var(--bs-white);
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1rem;
-  transition: box-shadow .15s;
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 18px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 0.9rem;
+  transition: box-shadow 0.15s;
 }
-.corr-question-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.06); }
+.corr-question-card:hover { box-shadow: 0 6px 14px rgba(0,0,0,0.05); }
 .q-score-pill {
-  font-size: .85rem; font-weight: 700;
-  padding: .3rem .8rem;
-  border-radius: 20px;
+  font-size: 0.8rem; font-weight: 700;
+  padding: 0.25rem 0.9rem;
+  border-radius: 40px;
   white-space: nowrap;
 }
 .q-score-good    { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
@@ -47,87 +94,69 @@
 .advice-block {
   background: #f8fafc;
   border-left: 3px solid var(--vox-neon);
-  border-radius: 0 8px 8px 0;
-  padding: .75rem 1rem;
-  margin-top: .75rem;
-  font-size: .88rem;
-  color: #374151;
-  line-height: 1.6;
+  border-radius: 0 12px 12px 0;
+  padding: 0.7rem 1rem;
+  margin-top: 0.7rem;
+  font-size: 0.85rem;
+  color: #2c3e50;
 }
 .synth-block {
-  background: #fafafa;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  font-size: .95rem;
-  line-height: 1.8;
+  background: #fefefe;
+  border: 1px solid #eef2f6;
+  border-radius: 20px;
+  padding: 1.2rem 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.75;
 }
-.audio-player {
-  background: var(--vox-black);
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.5rem;
-}
-.audio-player audio {
-  width: 100%;
-  accent-color: var(--vox-neon);
-}
-.btn-tts {
-  background: var(--vox-neon);
-  color: var(--vox-black);
-  border: none;
-  border-radius: 50px;
-  padding: .6rem 1.5rem;
-  font-weight: 700;
-  font-size: .95rem;
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  cursor: pointer;
-  transition: opacity .15s, transform .1s;
-}
-.btn-tts:hover { opacity: .85; transform: scale(1.02); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div style="max-width:720px; margin:0 auto;">
+<div style="max-width:800px; margin:0 auto;">
 
-  {# ── HERO ── #}
-  <div class="corr-hero">
+  {# ── HERO PREMIUM ── #}
+  <div class="corr-hero-premium">
     <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
       <div>
-        <div class="text-neon small fw-bold mb-1" style="letter-spacing:.05em;">CORRECTION</div>
-        <h1 class="mb-1 text-white" style="font-size:1.5rem;">{{ correction.assignment.title }}</h1>
-        <div style="color:rgba(255,255,255,.55); font-size:.9rem;">
+        <div class="text-neon small fw-bold mb-1" style="letter-spacing:.06em;">✨ VOTRE CORRECTION</div>
+        <h1 class="mb-1 text-white" style="font-size:1.6rem;">{{ correction.assignment.title }}</h1>
+        <div style="color:rgba(255,255,255,.65); font-size:.9rem;">
           {{ first }} {{ last }} · {{ correction.assignment.date.strftime('%d/%m/%Y') }}
         </div>
       </div>
       {% if correction.total_score is not none %}
       <div class="corr-score-ring">
         <span class="score-val">{{ '%.1f'|format(correction.total_score) }}</span>
-        <span class="score-max">/ {{ correction.assignment.total_points }}</span>
+        <span class="score-max">/{{ correction.assignment.total_points }}</span>
       </div>
       {% endif %}
     </div>
   </div>
 
-  {# ── AUDIO ── #}
-  {% if correction.audio_url %}
-  <div class="audio-player">
-    <div class="text-white small fw-bold mb-2">
-      <i class="bi bi-mic-fill me-1" style="color:var(--vox-neon)"></i>
-      Enregistrement vocal
+  {# ── AUDIO + TTS (groupé, visible haut) ── #}
+  <div class="glass-card">
+    <div class="fw-bold mb-2" style="font-size:1rem;">
+      <i class="bi bi-headphones me-2" style="color:var(--vox-neon)"></i> Écouter la correction
     </div>
-    <audio controls src="{{ correction.audio_url }}"></audio>
+    {% if correction.audio_url %}
+    <div class="audio-player">
+      <audio controls src="{{ correction.audio_url }}"></audio>
+    </div>
+    {% else %}
+    <div class="text-muted small mb-2">Aucun enregistrement vocal disponible.</div>
+    {% endif %}
+    <div class="mt-2">
+      <button id="listen-tts" class="btn-tts-premium">
+        <i class="bi bi-mic-fill"></i> Lire la synthèse à voix haute
+      </button>
+      <span id="tts-status" class="text-muted small ms-3"></span>
+    </div>
   </div>
-  {% endif %}
 
   {# ── NOTES PAR QUESTION ── #}
   {% if correction.scores %}
-  <div class="fw-bold mb-3" style="font-size:1rem;">
-    <i class="bi bi-list-check me-2" style="color:var(--vox-neon)"></i>Détail par question
+  <div class="fw-bold mb-2 mt-2" style="font-size:1rem;">
+    <i class="bi bi-list-check me-2" style="color:var(--vox-neon)"></i> Détail par question
   </div>
   {% for qs in correction.scores %}
   {% set pct = (qs.score / qs.question.max_points * 100) if qs.question.max_points else 0 %}
@@ -156,52 +185,57 @@
   {% endfor %}
   {% endif %}
 
-  {# ── SYNTHÈSE ── #}
+  {# ── SYNTHÈSE MISTRAL ── #}
   {% if correction.structured_text %}
-  <div class="fw-bold mb-3 mt-4" style="font-size:1rem;">
-    <i class="bi bi-stars me-2" style="color:var(--vox-neon)"></i>Synthèse Mistral
+  <div class="fw-bold mb-2 mt-3" style="font-size:1rem;">
+    <i class="bi bi-stars me-2" style="color:var(--vox-neon)"></i> Synthèse de l’enseignant
   </div>
   <div class="synth-block">
     {{ correction.structured_text|safe }}
   </div>
   {% endif %}
 
-  {# ── BOUTON TTS ── #}
-  <div class="mb-4">
-    <button id="listen-tts" class="btn-tts">
-      <i class="bi bi-headphones"></i> Écouter la correction
-    </button>
-    <span id="tts-status" class="text-muted small ms-3"></span>
-  </div>
-
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.getElementById('listen-tts')?.addEventListener('click', function() {
-  const btn = this;
-  const status = document.getElementById('tts-status');
+const btn = document.getElementById('listen-tts');
+const statusSpan = document.getElementById('tts-status');
 
+btn?.addEventListener('click', function() {
   if (!window.speechSynthesis) {
-    status.textContent = 'Non supporté sur ce navigateur.';
+    statusSpan.textContent = '❌ Non supporté sur ce navigateur.';
     return;
   }
 
   window.speechSynthesis.cancel();
 
-  const text = document.querySelector('.synth-block')?.innerText || '';
-  if (!text) { status.textContent = 'Aucun texte à lire.'; return; }
+  // Récupérer le texte dans la synthèse (pas le bloc HTML complet)
+  const synthDiv = document.querySelector('.synth-block');
+  let text = synthDiv?.innerText || '';
+  if (!text) {
+    statusSpan.textContent = '⚠️ Aucune synthèse à lire.';
+    return;
+  }
 
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.lang = 'fr-FR';
-  utt.rate = 0.95;
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'fr-FR';
+  utterance.rate = 0.92;
 
-  utt.onstart  = () => { status.textContent = '▶ Lecture en cours…'; btn.textContent = '⏹ Arrêter'; };
-  utt.onend    = () => { status.textContent = ''; btn.innerHTML = '<i class="bi bi-headphones"></i> Écouter la correction'; };
-  utt.onerror  = () => { status.textContent = 'Erreur de lecture.'; };
+  utterance.onstart = () => {
+    statusSpan.textContent = '🔊 Lecture en cours…';
+    btn.innerHTML = '<i class="bi bi-stop-circle"></i> Arrêter';
+  };
+  utterance.onend = () => {
+    statusSpan.textContent = '';
+    btn.innerHTML = '<i class="bi bi-mic-fill"></i> Lire la synthèse à voix haute';
+  };
+  utterance.onerror = () => {
+    statusSpan.textContent = '❌ Erreur de lecture.';
+  };
 
-  window.speechSynthesis.speak(utt);
+  window.speechSynthesis.speak(utterance);
 });
 </script>
 {% endblock %}
