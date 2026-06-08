@@ -1,308 +1,218 @@
 {% extends "base.html" %}
-{% block title %}Accès élève – VoxCorr{% endblock %}
 
-{% block head %}
-<style>
-  :root {
-    --vox-black:     #0a0a0a;
-    --vox-white:     #ffffff;
-    --vox-neon:      #39FF14;
-    --vox-neon-d:    #2ecc10;
-    --vox-neon-glow: rgba(57,255,20,.18);
-    --vox-grey:      #f4f5f7;
-    --vox-grey-2:    #eaebee;
-    --vox-border:    rgba(0,0,0,.08);
-    --vox-border-md: rgba(0,0,0,.13);
-    --vox-muted:     #6c757d;
-    --vox-radius:    10px;
-    --vox-radius-lg: 8px;
-    --vox-radius-xl: 12px;
-    --vox-shadow-xs: 0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
-    --vox-shadow-sm: 0 2px 8px rgba(0,0,0,.07),0 1px 3px rgba(0,0,0,.04);
-    --vox-shadow-md: 0 4px 20px rgba(0,0,0,.09),0 2px 6px rgba(0,0,0,.05);
-    --vox-shadow-lg: 0 12px 40px rgba(0,0,0,.12),0 4px 12px rgba(0,0,0,.06);
-    --vox-tr:        200ms cubic-bezier(.4,0,.2,1);
-    --vox-font:      'Inter',system-ui,-apple-system,sans-serif;
-  }
-
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  body {
-    font-family: var(--vox-font);
-    background: var(--vox-black);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* Effet de grille en arrière-plan */
-  .bg-grid {
-    position: absolute;
-    inset: 0;
-    background-image: 
-      linear-gradient(rgba(57,255,20,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(57,255,20,0.03) 1px, transparent 1px);
-    background-size: 50px 50px;
-    z-index: 0;
-  }
-
-  /* Glow vert animé */
-  .neon-glow {
-    position: absolute;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, var(--vox-neon-glow) 0%, transparent 70%);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 0;
-    animation: pulse-glow 4s ease-in-out infinite;
-  }
-
-  @keyframes pulse-glow {
-    0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
-    50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
-  }
-
-  .login-wrapper {
-    position: relative;
-    z-index: 10;
-    width: 100%;
-    max-width: 480px;
-    padding: 20px;
-  }
-
-  .login-card {
-    background: var(--vox-white);
-    border-radius: var(--vox-radius-xl);
-    padding: 48px 40px;
-    box-shadow: var(--vox-shadow-lg);
-    border: 1px solid var(--vox-border);
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* Ligne néon en haut */
-  .login-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--vox-neon), var(--vox-neon-d));
-    box-shadow: 0 0 20px var(--vox-neon-glow);
-  }
-
-  .logo-section {
-    text-align: center;
-    margin-bottom: 32px;
-  }
-
-  .lock-icon {
-    width: 64px;
-    height: 64px;
-    background: linear-gradient(135deg, var(--vox-neon), var(--vox-neon-d));
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-    font-size: 28px;
-    box-shadow: 0 8px 24px var(--vox-neon-glow);
-    animation: bounce 2s ease-in-out infinite;
-  }
-
-  @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-  }
-
-  h1 {
-    color: var(--vox-black);
-    font-size: 1.75rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-    letter-spacing: -0.02em;
-  }
-
-  .welcome-text {
-    color: var(--vox-muted);
-    font-size: 1rem;
-    margin-bottom: 24px;
-  }
-
-  .form-group {
-    margin-bottom: 24px;
-  }
-
-  label {
-    display: block;
-    color: var(--vox-black);
-    font-weight: 600;
-    font-size: 0.875rem;
-    margin-bottom: 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .input-container {
-    position: relative;
-  }
-
-  input[type="text"] {
-    width: 100%;
-    padding: 16px 20px 16px 48px;
-    background: var(--vox-grey);
-    border: 2px solid var(--vox-border);
-    border-radius: var(--vox-radius-xl);
-    font-size: 1rem;
-    font-family: var(--vox-font);
-    color: var(--vox-black);
-    transition: all var(--vox-tr);
-    outline: none;
-  }
-
-  input[type="text"]:focus {
-    border-color: var(--vox-neon);
-    background: var(--vox-white);
-    box-shadow: 0 0 0 4px var(--vox-neon-glow);
-  }
-
-  input[type="text"]::placeholder {
-    color: var(--vox-muted);
-  }
-
-  .input-icon {
-    position: absolute;
-    left: 18px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 20px;
-    opacity: 0.5;
-    transition: opacity var(--vox-tr);
-  }
-
-  input[type="text"]:focus + .input-icon {
-    opacity: 1;
-  }
-
-  .helper-box {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 12px;
-    padding: 12px 16px;
-    background: var(--vox-grey);
-    border-radius: var(--vox-radius);
-    font-size: 0.875rem;
-    color: var(--vox-muted);
-    border: 1px solid var(--vox-border);
-  }
-
-  .helper-box .icon {
-    font-size: 18px;
-  }
-
-  .btn-submit {
-    width: 100%;
-    padding: 18px 32px;
-    background: linear-gradient(135deg, var(--vox-neon), var(--vox-neon-d));
-    color: var(--vox-black);
-    border: none;
-    border-radius: var(--vox-radius-xl);
-    font-size: 1rem;
-    font-weight: 700;
-    font-family: var(--vox-font);
-    cursor: pointer;
-    transition: all var(--vox-tr);
-    box-shadow: var(--vox-shadow-md);
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    margin-top: 8px;
-  }
-
-  .btn-submit:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px var(--vox-neon-glow);
-  }
-
-  .btn-submit:active {
-    transform: translateY(0);
-  }
-
-  .footer-text {
-    text-align: center;
-    margin-top: 24px;
-    font-size: 0.875rem;
-    color: var(--vox-muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-
-  /* Responsive */
-  @media (max-width: 640px) {
-    .login-card {
-      padding: 40px 24px;
-    }
-    
-    h1 {
-      font-size: 1.5rem;
-    }
-  }
-</style>
-{% endblock %}
+{% block title %}Connexion Élève - VoxCorr{% endblock %}
 
 {% block content %}
-<div class="bg-grid"></div>
-<div class="neon-glow"></div>
+<style>
+  /* ── Conteneur principal centré ─────────────────────────────────────── */
+  .vox-login-container {
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--vox-grey);
+    font-family: var(--vox-font);
+    padding: 1rem;
+  }
 
-<div class="login-wrapper">
-  <div class="login-card">
-    <div class="logo-section">
-      <div class="lock-icon">🔐</div>
-      <h1>Accès sécurisé</h1>
-      <p class="welcome-text">Bienvenue 👋<br>Entrez votre code pour consulter vos corrections</p>
-    </div>
+  /* ── Carte de connexion avec ombre et animation ─────────────────────── */
+  .vox-card {
+    background: var(--vox-white);
+    border-radius: var(--vox-radius-xl);
+    box-shadow: var(--vox-shadow-lg);
+    padding: 3rem 2.5rem;
+    width: 100%;
+    max-width: 440px;
+    border: 1px solid var(--vox-border);
+    text-align: center;
+    transition: transform var(--vox-tr), box-shadow var(--vox-tr);
+    animation: fadeInUp 0.6s var(--vox-tr) forwards;
+  }
 
-    <form method="POST" action="">
-      <div class="form-group">
-        <label for="access_code">Code d'accès</label>
-        <div class="input-container">
-          <input 
-            type="text" 
-            id="access_code" 
-            name="code" 
-            placeholder="Ex: 1234-ABCD" 
-            required 
-            autocomplete="off"
-          >
-          <span class="input-icon">🔑</span>
-        </div>
-        <div class="helper-box">
-          <span class="icon">🔒</span>
-          <span>Le code vous a été remis par votre professeur.</span>
-        </div>
+  .vox-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 48px rgba(57, 255, 20, 0.12), var(--vox-shadow-lg);
+    border-color: var(--vox-neon-glow);
+  }
+
+  /* ── Typographie et logo ────────────────────────────────────────────── */
+  .vox-logo {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--vox-black);
+    margin-bottom: 0.5rem;
+    letter-spacing: -1.5px;
+  }
+
+  .vox-logo span {
+    color: var(--vox-neon);
+    text-shadow: 0 0 15px var(--vox-neon-glow);
+  }
+
+  .vox-subtitle {
+    color: var(--vox-muted);
+    font-size: 1rem;
+    margin-bottom: 2.5rem;
+    font-weight: 500;
+  }
+
+  /* ── Champ de saisie code d'accès ───────────────────────────────────── */
+  .vox-input-group {
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  .vox-input {
+    width: 100%;
+    padding: 1.2rem 1rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 6px;
+    color: var(--vox-black);
+    background: var(--vox-grey-2);
+    border: 2px solid var(--vox-border-md);
+    border-radius: var(--vox-radius);
+    outline: none;
+    transition: all var(--vox-tr);
+    text-transform: uppercase;
+  }
+
+  .vox-input:focus {
+    border-color: var(--vox-neon);
+    background: var(--vox-white);
+    box-shadow: 0 0 0 5px var(--vox-neon-glow);
+  }
+
+  .vox-input::placeholder {
+    letter-spacing: 2px;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--vox-muted);
+    opacity: 0.6;
+  }
+
+  /* ── Bouton d'action principal ──────────────────────────────────────── */
+  .vox-btn {
+    width: 100%;
+    padding: 1.1rem;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--vox-black);
+    background: var(--vox-neon);
+    border: none;
+    border-radius: var(--vox-radius);
+    cursor: pointer;
+    transition: all var(--vox-tr);
+    box-shadow: var(--vox-shadow-sm);
+    letter-spacing: 0.5px;
+  }
+
+  .vox-btn:hover {
+    background: var(--vox-neon-d);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px var(--vox-neon-glow);
+  }
+
+  .vox-btn:active {
+    transform: translateY(-1px);
+  }
+
+  /* ── Lien d'aide ────────────────────────────────────────────────────── */
+  .vox-help {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    color: var(--vox-muted);
+  }
+
+  .vox-help a {
+    color: var(--vox-black);
+    font-weight: 700;
+    text-decoration: none;
+    border-bottom: 2px solid var(--vox-neon);
+    transition: color var(--vox-tr), border-color var(--vox-tr);
+  }
+
+  .vox-help a:hover {
+    color: var(--vox-neon-d);
+    border-color: var(--vox-neon-d);
+  }
+
+  /* ── Animation d'entrée fluide ──────────────────────────────────────── */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Message d'erreur Flask-WTF ─────────────────────────────────────── */
+  .vox-error {
+    background: rgba(255, 50, 50, 0.1);
+    color: #d32f2f;
+    padding: 0.8rem;
+    border-radius: var(--vox-radius);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(255, 50, 50, 0.2);
+  }
+</style>
+
+<div class="vox-login-container">
+  <div class="vox-card">
+    <div class="vox-logo">Vox<span>Corr</span></div>
+    <p class="vox-subtitle">Entre ton code d'accès à 8 caractères</p>
+    
+    <!-- Affichage erreurs Flask-WTF si présentes -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="vox-error">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('pupil.login') }}" id="loginForm" novalidate>
+      <!-- Token CSRF pour sécurité Flask-WTF -->
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+      
+      <div class="vox-input-group">
+        <input 
+          type="text" 
+          name="access_code" 
+          id="access_code" 
+          class="vox-input" 
+          placeholder="CODE" 
+          maxlength="8" 
+          autocomplete="off"
+          required
+          autofocus
+        >
       </div>
-
-      <button type="submit" class="btn-submit">
-        Accéder à mes corrections
+      
+      <button type="submit" class="vox-btn">
+        ACCÉDER À MES CORRECTIONS
       </button>
     </form>
 
-    <div class="footer-text">
-      <span>✨</span>
-      <span>Aucune inscription nécessaire</span>
+    <div class="vox-help">
+      Code perdu ou invalide ? <a href="{{ url_for('main.contact') }}">Contacte ton prof</a>
     </div>
   </div>
 </div>
+
+<script>
+  // ── Force majuscules et bloque caractères spéciaux en temps réel ──
+  document.getElementById('access_code').addEventListener('input', function(e) {
+    // Garde uniquement lettres et chiffres, convertit en majuscules
+    this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  });
+
+  // ── Focus automatique au chargement si champ vide ──
+  window.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('access_code');
+    if (input && !input.value) {
+      input.focus();
+    }
+  });
+</script>
 {% endblock %}
