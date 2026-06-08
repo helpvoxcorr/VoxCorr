@@ -1,21 +1,468 @@
 {% extends "base.html" %}
-{% block title %}Mes corrections{% endblock %}
+
+{% block title %}Tableau de bord - {{ pupil.student.alias }}{% endblock %}
+
 {% block content %}
-<div class="vox-page-hero mb-4">
-  <h1>Mes corrections</h1>
-  <p>Bienvenue {{ pupil.student.alias }}</p>
-</div>
-<div class="vox-card">
-  {% if corrections %}
-    {% for corr in corrections %}
-    <div class="mb-3 border-bottom pb-2">
-      <div class="fw-bold">{{ corr.assignment.title }} ({{ corr.assignment.date.strftime('%d/%m/%Y') }})</div>
-      <div>Note : {{ '%.1f'|format(corr.total_score) if corr.total_score else '—' }} / {{ corr.assignment.total_points }}</div>
-      <a href="{{ url_for('student.view_correction', correction_id=corr.id) }}" class="btn vox-btn-primary btn-sm mt-1">Voir détail</a>
+<style>
+  /* ── Container principal ──────────────────────────────────────────────── */
+  .dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    font-family: var(--vox-font);
+  }
+
+  /* ── Header avec bienvenue ────────────────────────────────────────────── */
+  .dashboard-header {
+    background: linear-gradient(135deg, var(--vox-black) 0%, #1a1a1a 100%);
+    border-radius: var(--vox-radius-xl);
+    padding: 2.5rem;
+    margin-bottom: 2.5rem;
+    color: var(--vox-white);
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--vox-shadow-lg);
+  }
+
+  .dashboard-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, var(--vox-neon-glow) 0%, transparent 70%);
+    opacity: 0.3;
+    animation: pulse 4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.3; }
+    50% { transform: scale(1.1); opacity: 0.5; }
+  }
+
+  .dashboard-header h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: -1px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .dashboard-header .welcome-text {
+    font-size: 1.1rem;
+    color: var(--vox-muted);
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .dashboard-header .student-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--vox-neon);
+    color: var(--vox-black);
+    padding: 0.5rem 1rem;
+    border-radius: var(--vox-radius);
+    font-weight: 700;
+    font-size: 0.95rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Stats rapides ────────────────────────────────────────────────────── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .stat-card {
+    background: var(--vox-white);
+    border-radius: var(--vox-radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--vox-shadow-md);
+    border: 1px solid var(--vox-border);
+    transition: transform var(--vox-tr), box-shadow var(--vox-tr);
+  }
+
+  .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--vox-shadow-lg);
+  }
+
+  .stat-card .stat-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--vox-neon-glow);
+    border-radius: var(--vox-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+
+  .stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--vox-black);
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-card .stat-label {
+    color: var(--vox-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  /* ── Section titres ───────────────────────────────────────────────────── */
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--vox-black);
+    margin: 2.5rem 0 1.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, var(--vox-border) 0%, transparent 100%);
+  }
+
+  /* ── Grille des corrections ───────────────────────────────────────────── */
+  .corrections-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  /* ── Carte de correction ──────────────────────────────────────────────── */
+  .correction-card {
+    background: var(--vox-white);
+    border-radius: var(--vox-radius-xl);
+    padding: 1.75rem;
+    border: 2px solid var(--vox-border);
+    transition: all var(--vox-tr);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .correction-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(135deg, var(--vox-neon) 0%, var(--vox-neon-d) 100%);
+    transform: scaleX(0);
+    transition: transform var(--vox-tr);
+  }
+
+  .correction-card:hover {
+    border-color: var(--vox-neon);
+    box-shadow: var(--vox-shadow-md);
+    transform: translateY(-3px);
+  }
+
+  .correction-card:hover::before {
+    transform: scaleX(1);
+  }
+
+  .correction-card.read {
+    opacity: 0.85;
+    background: var(--vox-grey);
+  }
+
+  .correction-card.read::before {
+    background: linear-gradient(90deg, var(--vox-muted) 0%, var(--vox-muted) 100%);
+    transform: scaleX(1);
+  }
+
+  .correction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+  }
+
+  .correction-title {
+    flex: 1;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--vox-black);
+    line-height: 1.4;
+  }
+
+  .correction-date {
+    font-size: 0.85rem;
+    color: var(--vox-muted);
+    white-space: nowrap;
+  }
+
+  .correction-meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .correction-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--vox-grey-2);
+    padding: 0.5rem 1rem;
+    border-radius: var(--vox-radius);
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .correction-note .score {
+    color: var(--vox-neon-d);
+    font-size: 1.3rem;
+  }
+
+  .correction-note .total {
+    color: var(--vox-muted);
+    font-size: 0.95rem;
+  }
+
+  .correction-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--vox-radius);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .status-new {
+    background: var(--vox-neon-glow);
+    color: var(--vox-neon-d);
+  }
+
+  .status-read {
+    background: var(--vox-grey-2);
+    color: var(--vox-muted);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: blink 2s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .correction-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 0.9rem 1.25rem;
+    border: none;
+    border-radius: var(--vox-radius);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all var(--vox-tr);
+    text-decoration: none;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--vox-neon) 0%, var(--vox-neon-d) 100%);
+    color: var(--vox-black);
+    box-shadow: var(--vox-shadow-sm);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--vox-neon-glow);
+  }
+
+  /* ── Empty state ──────────────────────────────────────────────────────── */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--vox-white);
+    border-radius: var(--vox-radius-xl);
+    border: 2px dashed var(--vox-border-md);
+  }
+
+  .empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  .empty-state h3 {
+    color: var(--vox-black);
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+  }
+
+  .empty-state p {
+    color: var(--vox-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  /* ── Responsive ───────────────────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .dashboard-header h1 {
+      font-size: 1.8rem;
+    }
+
+    .corrections-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .correction-header {
+      flex-direction: column;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .correction-actions {
+      flex-direction: column;
+    }
+
+    .btn {
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="dashboard-container">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <h1>Mes corrections</h1>
+    <p class="welcome-text">Retrouve toutes tes corrections audio et suis tes progrès</p>
+    <div class="student-badge">
+      <span>👤</span>
+      <span>{{ pupil.student.alias }}</span>
     </div>
-    {% endfor %}
+  </div>
+
+  <!-- Stats rapides -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">📝</div>
+      <div class="stat-value">{{ corrections|length }}</div>
+      <div class="stat-label">Corrections disponibles</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">✅</div>
+      <div class="stat-value">{{ corrections|selectattr('read_at')|list|length }}</div>
+      <div class="stat-label">Corrections consultées</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📊</div>
+      <div class="stat-value">
+        {% set scores = corrections|map(attribute='total_score')|select|list %}
+        {% if scores %}
+          {{ "%.1f"|format(scores|sum / scores|length) }}/20
+        {% else %}
+          —
+        {% endif %}
+      </div>
+      <div class="stat-label">Moyenne générale</div>
+    </div>
+  </div>
+
+  <!-- Section corrections -->
+  <h2 class="section-title">
+    <span>🎧</span>
+    <span>Mes devoirs corrigés</span>
+  </h2>
+
+  {% if corrections %}
+    <div class="corrections-grid">
+      {% for corr in corrections %}
+        <div class="correction-card {% if corr.read_at %}read{% endif %}">
+          <div class="correction-header">
+            <div class="correction-title">{{ corr.assignment.title }}</div>
+            <div class="correction-date">{{ corr.assignment.date.strftime('%d/%m/%Y') }}</div>
+          </div>
+
+          <div class="correction-meta">
+            <div class="correction-note">
+              <span class="score">{{ '%.1f'|format(corr.total_score) if corr.total_score else '—' }}</span>
+              <span class="total">/ {{ corr.assignment.total_points }}</span>
+            </div>
+            <div class="correction-status {% if corr.read_at %}status-read{% else %}status-new{% endif %}">
+              <span class="status-dot"></span>
+              <span>{% if corr.read_at %}Consulté{% else %}Nouveau{% endif %}</span>
+            </div>
+          </div>
+
+          <div class="correction-actions">
+            <a href="{{ url_for('student.view_correction', correction_id=corr.id) }}" class="btn btn-primary">
+              <span>🎧</span>
+              <span>Voir le détail</span>
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
   {% else %}
-    <p>Aucune correction publiée pour l'instant.</p>
+    <div class="empty-state">
+      <div class="empty-state-icon">📭</div>
+      <h3>Aucune correction disponible</h3>
+      <p>Ton professeur n'a pas encore ajouté de corrections pour le moment.</p>
+      <button class="btn btn-primary" onclick="location.reload()">
+        <span>🔄</span>
+        <span>Rafraîchir la page</span>
+      </button>
+    </div>
   {% endif %}
 </div>
+
+<script>
+  // Animation d'entrée des cartes
+  document.addEventListener('DOMContentLoaded', () => {
+    const cards = document.querySelectorAll('.correction-card, .stat-card');
+    cards.forEach((card, index) => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(20px)';
+      setTimeout(() => {
+        card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, index * 100);
+    });
+  });
+</script>
 {% endblock %}
