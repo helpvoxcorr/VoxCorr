@@ -3,28 +3,29 @@
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-lg-5">
-    <div class="vox-page-hero mb-4">
-      <h1>Modifier l'élève</h1>
-      <p>Alias actuel : <strong>{{ student.alias }}</strong></p>
-    </div>
+  <div class="col-md-8 col-lg-6">
     <div class="vox-card">
-      <form method="POST">
+      <h2 class="h4 mb-4">Modifier l'élève</h2>
+      <p class="text-muted small mb-3">Alias actuel : <span class="vox-badge">{{ student.alias }}</span></p>
+      
+      <form method="POST" action="{{ url_for('teacher_crud.edit_student', class_id=classroom_id, student_id=student.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="mb-3">
-          <label class="vox-label">Prénom</label>
-          <input type="text" name="first_name" class="vox-input" value="{{ first }}" required>
+        
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="vox-label">Prénom</label>
+            <input type="text" name="first_name" class="vox-input" value="{{ first }}" required>
+          </div>
+          <div class="col-6">
+            <label class="vox-label">Nom</label>
+            <input type="text" name="last_name" class="vox-input" value="{{ last }}" required>
+          </div>
         </div>
-        <div class="mb-4">
-          <label class="vox-label">Nom</label>
-          <input type="text" name="last_name" class="vox-input" value="{{ last }}" required>
-        </div>
-        <p class="text-muted small mb-4">
-          L'alias RGPD sera recalculé automatiquement.
-        </p>
-        <div class="d-flex gap-2">
+        <p class="text-muted small mt-3"><i class="bi bi-info-circle"></i> L'alias RGPD sera recalculé automatiquement.</p>
+
+        <div class="d-flex justify-content-between mt-4">
+          <a href="{{ url_for('teacher_crud.class_detail', class_id=classroom_id) }}" class="btn vox-btn-outline">Annuler</a>
           <button type="submit" class="btn vox-btn-primary">Enregistrer</button>
-          <a href="/teacher/classes/{{ classroom_id }}" class="btn vox-btn-dark">Annuler</a>
         </div>
       </form>
     </div>

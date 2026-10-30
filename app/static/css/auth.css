@@ -1,0 +1,93 @@
+/* ═══════════════════════════════════════════════════════════════
+   VOXCORR — PAGES AUTH (login, register — prof et élève)
+   Remplace : .vox-login-container, .vox-logo, .vox-subtitle,
+              .vox-error, .vox-help, .vox-input-group, .vox-btn
+   ═══════════════════════════════════════════════════════════════ */
+
+.auth-vc-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 70vh;
+  padding: var(--space-md);
+}
+
+.auth-vc-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  text-align: center;
+}
+.auth-vc-card.wide { max-width: 500px; }
+
+.auth-vc-logo-img {
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-sm);
+}
+
+.auth-vc-logo {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+  margin-bottom: var(--space-xs);
+}
+.auth-vc-logo span { color: var(--neon); }
+
+.auth-vc-subtitle {
+  color: var(--text-muted);
+  font-size: var(--fs-base);
+  margin-bottom: var(--space-lg);
+}
+
+.auth-vc-error {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  font-size: var(--fs-sm);
+  padding: .6rem .9rem;
+  border-radius: var(--radius);
+  margin-bottom: var(--space-md);
+  text-align: left;
+}
+
+.auth-vc-group {
+  margin-bottom: var(--space-md);
+  text-align: left;
+}
+
+.auth-vc-btn {
+  width: 100%;
+  background: var(--neon);
+  color: var(--black);
+  border: none;
+  border-radius: var(--radius);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-md);
+  padding: .75rem 1rem;
+  cursor: pointer;
+  transition: var(--tr);
+  margin-top: var(--space-sm);
+}
+.auth-vc-btn:hover {
+  background: var(--neon-d);
+  box-shadow: var(--shadow-neon);
+}
+
+.auth-vc-help {
+  margin-top: var(--space-lg);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.auth-vc-help a { font-weight: var(--fw-medium); }
+
+/* Code d'accès élève — saisie large et centrée */
+.auth-vc-code-input {
+  text-align: center;
+  letter-spacing: .2em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-lg);
+  text-transform: uppercase;
+}

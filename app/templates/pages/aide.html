@@ -2,39 +2,42 @@
 {% block title %}Aide & Support — VoxCorr{% endblock %}
 
 {% block content %}
-<div class="vox-page-hero mb-4">
-  <h1><i class="bi bi-question-circle me-2"></i>Aide & Support</h1>
-  <p>Trouvez rapidement une réponse ou contactez l'équipe VoxCorr</p>
-</div>
+<div class="container py-5">
+  <h1 class="mb-4">Aide & Support</h1>
+  <p class="lead text-muted">Trouvez rapidement une réponse ou contactez l'équipe VoxCorr.</p>
 
-<div class="row g-3 mb-5">
-  <div class="col-md-4">
-    <a href="/pages/documentation" class="vox-card vox-card-accent d-block text-center py-4">
-      <i class="bi bi-book" style="font-size:2.2rem;color:var(--vox-neon);display:block;margin-bottom:.75rem"></i>
-      <div class="fw-700 mb-1">Documentation complète</div>
-      <div class="text-muted small">Guide pas à pas de toutes les fonctionnalités</div>
-    </a>
+  <div class="row g-4 mb-5">
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Documentation complète</h5>
+          <p class="card-text text-muted">Guide pas à pas de toutes les fonctionnalités.</p>
+          <a href="/pages/documentation" class="btn btn-outline-dark btn-sm">Lire le guide</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Contacter le support</h5>
+          <p class="card-text text-muted">Réponse sous 48h ouvrées.</p>
+          <a href="mailto:help.voxcorr@gmail.com" class="btn btn-outline-dark btn-sm">Envoyer un email</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Données & RGPD</h5>
+          <p class="card-text text-muted">Comment vos données sont protégées.</p>
+          <a href="/pages/rgpd" class="btn btn-outline-dark btn-sm">Voir la politique</a>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="col-md-4">
-    <a href="/pages/contact" class="vox-card d-block text-center py-4">
-      <i class="bi bi-envelope" style="font-size:2.2rem;color:#3b82f6;display:block;margin-bottom:.75rem"></i>
-      <div class="fw-700 mb-1">Contacter le support</div>
-      <div class="text-muted small">Réponse sous 48h ouvrées</div>
-    </a>
-  </div>
-  <div class="col-md-4">
-    <a href="/pages/rgpd" class="vox-card d-block text-center py-4">
-      <i class="bi bi-shield-check" style="font-size:2.2rem;color:#10b981;display:block;margin-bottom:.75rem"></i>
-      <div class="fw-700 mb-1">Données & RGPD</div>
-      <div class="text-muted small">Comment vos données sont protégées</div>
-    </a>
-  </div>
-</div>
 
-<!-- Problèmes courants -->
-<div class="vox-card">
-  <h2 class="h5 fw-700 mb-4"><i class="bi bi-tools me-2 text-neon"></i>Problèmes courants</h2>
-  <div class="accordion" id="helpAccordion">
+  <h3 class="mb-3">Problèmes courants</h3>
+  <div class="accordion" id="faqAccordion">
     {% for titre, corps in [
       ("Le micro ne démarre pas", "Vérifiez que Chrome a accès au micro (icône cadenas dans la barre d'adresse). VoxCorr requiert Chrome 113+ ou Edge 113+. Firefox ne supporte pas la Web Speech API en temps réel."),
       ("La transcription est incorrecte", "Parlez distinctement, à distance normale du micro. Mentionnez chaque note clairement : « Question 1, trois virgule cinq sur cinq ». Évitez le bruit ambiant."),
@@ -42,16 +45,14 @@
       ("Le QR code ne fonctionne pas depuis le téléphone", "L'URL dans le QR code doit être publique. En développement local, utilisez ngrok. En production, configurez APP_BASE_URL avec l'URL de votre hébergement."),
       ("L'audio ne s'uploade pas", "Vérifiez les trois variables Cloudinary dans votre configuration : CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET."),
     ] %}
-    <div class="accordion-item border-0 mb-2">
-      <h3 class="accordion-header">
-        <button class="accordion-button collapsed fw-600" type="button"
-                data-bs-toggle="collapse" data-bs-target="#help{{ loop.index }}"
-                style="font-size:.9rem">
-          <i class="bi bi-chevron-right me-2 text-neon" style="font-size:.75rem"></i>{{ titre }}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="heading{{ loop.index }}">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
+          {{ titre }}
         </button>
-      </h3>
-      <div id="help{{ loop.index }}" class="accordion-collapse collapse">
-        <div class="accordion-body text-muted" style="font-size:.88rem;line-height:1.8">{{ corps }}</div>
+      </h2>
+      <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">{{ corps }}</div>
       </div>
     </div>
     {% endfor %}

@@ -1,654 +1,326 @@
 {% extends "base.html" %}
-{% set breadcrumbs = [{"label": "Classes", "url": "/teacher/classes"}, {"label": assignment.classroom.name, "url": "/teacher/classes/" ~ assignment.classroom_id}, {"label": assignment.title, "url": None}] %}
 {% block title %}{{ assignment.title }} — Corrections{% endblock %}
-{% block head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-{% endblock %}
+
 {% block content %}
-<div class="vox-page-hero mb-4">
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-    <div>
-      <h1>{{ assignment.title }}</h1>
-      <p>{{ assignment.classroom.name }} · {{ assignment.date.strftime('%d/%m/%Y') }} · /{{ assignment.total_points }} pts</p>
-    </div>
-    <div class="d-flex gap-2">
-      <a href="/teacher/assignments/{{ assignment.id }}/edit" class="btn vox-btn-outline btn-sm">
-        <i class="bi bi-pencil me-1"></i>Modifier
-      </a>
-      <form method="POST" action="/teacher/assignments/{{ assignment.id }}/delete" onsubmit="return confirm('Supprimer ce devoir et toutes ses corrections ?')">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-danger btn-sm">
-          <i class="bi bi-trash me-1"></i>Supprimer
-        </button>
-      </form>
+{# ── Hero compact ──────────────────────────────────────────────────────────── #}
+<div class="ac-hero">
+  <div class="ac-hero-left">
+    <h1 class="ac-hero-title">{{ assignment.title }}</h1>
+    <div class="ac-hero-meta">
+      <span class="ac-pill">{{ assignment.classroom.name }}</span>
+      <span>{{ assignment.date.strftime('%d/%m/%Y') }}</span>
+      <span class="ac-dot">·</span>
+      <span>/{{ assignment.total_points }} pts</span>
+      <span class="ac-dot">·</span>
+      <span>{{ assignment.questions|length }} question{{ 's' if assignment.questions|length > 1 }}</span>
     </div>
   </div>
-</div>
-
-<!-- Barème + bouton statistiques -->
-{% if assignment.questions %}
-<div class="vox-card mb-4">
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-    <div class="fw-bold">Barème</div>
-    <button class="btn vox-btn-outline btn-sm" id="btn-open-stats"
-            {% if not students or students|selectattr('correction')|list|length == 0 %}
-            disabled title="Aucune correction disponible"
-            {% endif %}>
-      <i class="bi bi-bar-chart-line me-1"></i>Statistiques
-    </button>
-  </div>
-  <div class="d-flex flex-wrap gap-2">
-    {% for q in assignment.questions %}
-    <span class="vox-badge vox-badge-grey">{{ q.label }} / {{ q.max_points }}</span>
-    {% endfor %}
+  <div class="ac-hero-actions">
+    <a href="{{ url_for('teacher_crud.edit_assignment', assignment_id=assignment.id) }}" class="ac-btn-ghost" title="Modifier">
+      <i class="bi bi-pencil"></i>
+    </a>
+    <a href="{{ url_for('teacher_corr.print_corrections', assignment_id=assignment.id) }}" class="ac-btn-ghost" target="_blank" title="Imprimer">
+      <i class="bi bi-printer"></i>
+    </a>
+    <a href="{{ url_for('teacher_crud.class_detail', class_id=assignment.classroom_id) }}" class="ac-btn-ghost" title="Retour à la classe">
+      <i class="bi bi-arrow-left"></i>
+    </a>
   </div>
 </div>
-{% endif %}
 
-<!-- Appréciation générale -->
-<div class="vox-card mb-4">
-  <div class="fw-bold mb-3">
-    <i class="bi bi-chat-quote me-2"></i>Appréciation générale sur la classe
-    <span class="text-muted fw-normal small ms-2">Optionnelle · visible par tous les élèves</span>
+{# ── Stats rapides ─────────────────────────────────────────────────────────── #}
+{% set total = students|length %}
+{% set done = students|selectattr('correction')|list|length %}
+{% set published = students|selectattr('correction.status', 'eq', 'published')|list|length %}
+{% set scores = students|selectattr('correction.total_score')|map(attribute='correction.total_score')|list %}
+{% set avg = (scores|sum / scores|length)|round(1) if scores else None %}
+
+<div class="ac-stats">
+  <div class="ac-stat">
+    <div class="ac-stat-val">{{ done }}<span class="ac-stat-total">/{{ total }}</span></div>
+    <div class="ac-stat-lbl">Corrigés</div>
+    <div class="ac-stat-bar"><div class="ac-stat-fill" style="width:{{ (done/total*100)|round if total else 0 }}%"></div></div>
   </div>
-
-  <!-- Mini recorder -->
-  <div class="d-flex align-items-center gap-3 mb-3 p-3 rounded" style="background:var(--vox-black)">
-    <button class="vox-record-btn" id="appr-record-btn" title="Dicter l'appréciation">
-      <i class="bi bi-mic-fill"></i>
-    </button>
-    <button class="vox-record-btn d-none" id="appr-stop-btn" style="border-color:#e53e3e;color:#e53e3e">
-      <i class="bi bi-stop-fill"></i>
-    </button>
-    <div class="text-white-50 small flex-grow-1" id="appr-record-status">
-      Micro pour dicter l'appréciation
+  <div class="ac-stat">
+    <div class="ac-stat-val neon">{{ published }}</div>
+    <div class="ac-stat-lbl">Publiés</div>
+  </div>
+  <div class="ac-stat">
+    <div class="ac-stat-val {% if avg is not none %}{% if avg >= 14 %}good{% elif avg >= 10 %}mid{% else %}bad{% endif %}{% endif %}">
+      {{ avg if avg is not none else '—' }}
     </div>
-    {% if assignment.class_appreciation_audio_url %}
-    <audio controls src="{{ assignment.class_appreciation_audio_url }}"
-           style="height:32px;accent-color:var(--vox-neon)" preload="none"></audio>
-    {% endif %}
+    <div class="ac-stat-lbl">Moyenne{% if avg is not none %}<span class="ac-stat-max">/{{ assignment.total_points }}</span>{% endif %}</div>
   </div>
-
-  <textarea id="appreciation-text" class="vox-input mb-2" rows="3"
-            placeholder="Tapez ou dictez votre appréciation…">{{ assignment.class_appreciation or '' }}</textarea>
-  <div id="appr-interim" class="text-muted small fst-italic mb-2" style="min-height:1.2em"></div>
-
-  <div class="d-flex gap-2 align-items-center flex-wrap">
-    <button id="btn-synthesize-appreciation" class="btn vox-btn-outline btn-sm">
-      <i class="bi bi-stars me-1"></i>Reformuler avec Mistral
-    </button>
-    <button id="btn-save-appreciation" class="btn vox-btn-primary btn-sm">
-      <i class="bi bi-floppy me-1"></i>Enregistrer
-    </button>
-    <span id="appreciation-status" class="text-muted small"></span>
+  <div class="ac-stat">
+    <div class="ac-stat-val">{{ (total - done) }}</div>
+    <div class="ac-stat-lbl">Restants</div>
   </div>
 </div>
 
-<!-- Barre suppression groupée -->
-<div id="bulk-action-bar" class="d-none mb-3 p-3 rounded d-flex align-items-center gap-3 flex-wrap"
-     style="background:#fef2f2;border:1px solid #fecaca">
-  <span id="bulk-count" class="fw-bold text-danger small"></span>
-  <button id="btn-bulk-delete" class="btn btn-danger btn-sm ms-auto">
-    <i class="bi bi-trash me-1"></i>Supprimer la sélection
-  </button>
-  <button id="btn-bulk-cancel" class="btn vox-btn-outline btn-sm">
-    Annuler
-  </button>
-</div>
+{# ── Layout 2 colonnes ─────────────────────────────────────────────────────── #}
+<div class="ac-grid">
 
-<!-- Liste élèves + statut + bouton micro -->
-<div class="vox-card">
-  <div class="fw-bold mb-3">
-    Corrections <span class="vox-badge ms-1">{{ students|length }} élèves</span>
-  </div>
-  <table class="vox-table">
-    <thead>
-      <tr>
-        <th style="width:40px">
-          <input type="checkbox" id="chk-all" class="form-check-input"
-                 title="Tout sélectionner" style="cursor:pointer">
-        </th>
-        <th>N°</th>
-        <th>Alias</th>
-        <th>Nom réel</th>
-        <th>Statut</th>
-        <th>Note</th>
-        <th>Lecture</th>
-        <th class="text-end">Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in students %}
-      <tr data-correction-id="{{ s.correction.id if s.correction else '' }}">
-        <td>
-          {% if s.correction %}
-          <input type="checkbox" class="form-check-input chk-corr"
-                 value="{{ s.correction.id }}" style="cursor:pointer">
-          {% endif %}
-        </td>
-        <td class="text-muted small">{{ s.student_number }}</td>
-        <td><span class="vox-badge vox-badge-grey">{{ s.alias }}</span></td>
-        <td class="small">{{ s.display_last }}, {{ s.display_first }}</td>
-        <td>
-          {% if s.correction %}
-            {% if s.correction.status == 'published' %}
-            <span class="vox-badge">Publié</span>
-            {% elif s.correction.status == 'processing' %}
-            <span class="vox-badge vox-badge-grey">En cours…</span>
-            {% else %}
-            <span class="vox-badge vox-badge-dark">Brouillon</span>
-            {% endif %}
-          {% else %}
-          <span class="text-muted small">—</span>
-          {% endif %}
-        </td>
-        <td class="fw-bold">
-          {% if s.correction and s.correction.total_score is not none %}
-            {{ '%.1f'|format(s.correction.total_score) }}
-            <span class="text-muted fw-normal small">/ {{ assignment.total_points }}</span>
-          {% else %}—{% endif %}
-        </td>
-        <td>
-          {% if s.correction and s.correction.read_at %}
-            <span title="{{ s.correction.read_at.strftime('%d/%m/%Y à %Hh%M') }}"
-                  style="color:#16a34a">
-              <i class="bi bi-check-circle-fill"></i>
-              <span class="d-none d-md-inline small ms-1">
-                {{ s.correction.read_at.strftime('%d/%m') }}
+  {# ── Colonne gauche : Appréciation + Barème ──────────────────────────────── #}
+  <div class="ac-col-side">
+
+        {# Appréciation générale #}
+        <div class="ac-card">
+          <div class="ac-card-header">
+            <h2 class="ac-section-title">
+              <i class="bi bi-chat-square-text text-neon"></i>
+              Appréciation générale
+            </h2>
+            <span class="ac-hint">Visible par tous les élèves</span>
+          </div>
+          <form id="appreciationForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <textarea class="ac-textarea" name="text" id="appreciation-text" rows="5" placeholder="Dictez ou tapez l'appréciation pour toute la classe...">{{ assignment.class_appreciation or '' }}</textarea>
+            
+            {# Bouton micro #}
+            <div class="d-flex align-items-center gap-2 mt-2 mb-2">
+              <button type="button" class="ac-btn-primary ac-btn-sm" id="btnRecordAppreciation" title="Dicter l'appréciation" style="border-radius:50%;width:40px;height:40px;padding:0;">
+                <i class="bi bi-mic-fill"></i>
+              </button>
+              <span id="recording-status" class="text-muted small" style="display:none">
+                <i class="bi bi-record-fill text-danger"></i> Enregistrement en cours…
               </span>
-            </span>
-          {% elif s.correction and s.correction.status == 'published' %}
-            <span class="text-muted small" title="Pas encore écouté">
-              <i class="bi bi-hourglass-split"></i>
-            </span>
-          {% else %}
-            <span class="text-muted small">—</span>
-          {% endif %}
-        </td>
-        <td class="text-end">
-          {% if s.correction %}
-          <a href="/teacher/correction/{{ s.correction.id }}"
-             class="btn vox-btn-outline btn-sm">
-            <i class="bi bi-eye me-1"></i>Revoir
-          </a>
-          {% else %}
-          <a href="/teacher/record/{{ s.id }}/{{ assignment.id }}"
-             class="btn vox-btn-primary btn-sm">
-            <i class="bi bi-mic-fill me-1"></i>Corriger
-          </a>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-<!-- Données JSON pour les stats -->
-<script id="stats-data" type="application/json">
-{
-  "total_points": {{ assignment.total_points }},
-  "questions": [
-    {% for q in assignment.questions %}
-    {"id": {{ q.id }}, "label": {{ q.label|tojson }}, "max": {{ q.max_points }}}{% if not loop.last %},{% endif %}
-    {% endfor %}
-  ],
-  "corrections": [
-    {% set ns = namespace(first=true) %}
-    {% for s in students %}{% if s.correction and s.correction.total_score is not none %}
-    {% if not ns.first %},{% endif %}
-    {% set ns.first = false %}
-    {
-      "alias": {{ s.alias|tojson }},
-      "total": {{ s.correction.total_score }},
-      "status": {{ s.correction.status|tojson }},
-      "scores": [
-        {% for sc in s.correction.scores %}
-        {"question_id": {{ sc.question_id }}, "score": {{ sc.score if sc.score is not none else 'null' }}}{% if not loop.last %},{% endif %}
+              <span id="transcription-interim" class="text-muted small fst-italic"></span>
+            </div>
+            
+            <div class="ac-form-actions">
+              <button type="button" class="ac-btn-primary ac-btn-sm" id="btnSaveAppreciation">
+                <i class="bi bi-check-lg"></i> Enregistrer
+              </button>
+              <button type="button" class="ac-btn-ghost ac-btn-sm" id="btnSynthAppreciation" title="Reformuler avec Mistral">
+                <i class="bi bi-stars"></i> IA
+              </button>
+            </div>
+            <div id="appreciation-feedback" class="ac-feedback"></div>
+          </form>
+        </div>
+
+    {# Barème #}
+    <div class="ac-card">
+      <div class="ac-card-header">
+        <h2 class="ac-section-title">
+          <i class="bi bi-list-ol text-neon"></i>
+          Barème
+        </h2>
+        <span class="ac-hint">{{ assignment.questions|length }} question{{ 's' if assignment.questions|length > 1 }}</span>
+      </div>
+      {% if assignment.questions %}
+        <div class="ac-rubric">
+          {% for q in assignment.questions %}
+            <div class="ac-rubric-row">
+              <span class="ac-rubric-num">Q{{ loop.index }}</span>
+              <span class="ac-rubric-label">{{ q.label }}</span>
+              <span class="ac-rubric-max">/{{ q.max_points }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="ac-empty">Aucune question définie.</div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  {# ── Colonne principale : Liste élèves ───────────────────────────────────── #}
+  <div class="ac-col-main">
+    <div class="ac-card ac-students-card">
+      <div class="ac-card-header">
+        <h2 class="ac-section-title">
+          <i class="bi bi-people text-neon"></i>
+          Élèves
+        </h2>
+        <span class="ac-hint">{{ total }} élèves</span>
+      </div>
+
+      <div class="ac-student-list">
+        {% for s in students %}
+          {% set corr = s.correction %}
+          {% set status = corr.status if corr else 'none' %}
+          {% set score = corr.total_score if corr and corr.total_score is not none else None %}
+          {% set pct = (score / assignment.total_points * 100)|round if score is not none else 0 %}
+
+          <div class="ac-student-row {% if status == 'published' %}row-published{% elif status == 'draft' %}row-draft{% elif status == 'processing' %}row-processing{% endif %}">
+            
+            {# Numéro #}
+            <div class="ac-student-num">{{ s.student_number }}</div>
+
+            {# Infos élève #}
+            <div class="ac-student-info">
+              <div class="ac-student-name">{{ s.display_last }}, {{ s.display_first }}</div>
+              <div class="ac-student-alias">{{ s.alias }}</div>
+            </div>
+
+            {# Statut #}
+            <div class="ac-student-status">
+              {% if status == 'published' %}
+                <span class="ac-status ac-status-published"><i class="bi bi-check-circle-fill"></i> Publié</span>
+              {% elif status == 'processing' %}
+                <span class="ac-status ac-status-processing"><i class="bi bi-hourglass-split"></i> Analyse…</span>
+              {% elif status == 'draft' %}
+                <span class="ac-status ac-status-draft"><i class="bi bi-file-earmark"></i> Brouillon</span>
+              {% else %}
+                <span class="ac-status ac-status-none">—</span>
+              {% endif %}
+            </div>
+
+            {# Note + barre #}
+            <div class="ac-student-score">
+              {% if score is not none %}
+                <div class="ac-score-val {% if pct >= 75 %}good{% elif pct >= 40 %}mid{% else %}bad{% endif %}">
+                  {{ '%.1f'|format(score) }}
+                </div>
+                <div class="ac-score-max">/{{ assignment.total_points }}</div>
+                <div class="ac-score-bar">
+                  <div class="ac-score-fill" style="width:{{ pct }}%"></div>
+                </div>
+              {% else %}
+                <div class="ac-score-val ac-score-none">—</div>
+              {% endif %}
+            </div>
+
+            {# Actions #}
+            <div class="ac-student-actions">
+              {% if corr %}
+                <a href="{{ url_for('teacher_corr.correction_detail', correction_id=corr.id) }}" class="ac-icon-btn" title="Voir le détail">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ url_for('teacher_corr.record', student_id=s.id, assignment_id=assignment.id) }}" class="ac-icon-btn" title="Modifier">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              {% else %}
+                <a href="{{ url_for('teacher_corr.record', student_id=s.id, assignment_id=assignment.id) }}" class="ac-icon-btn ac-icon-btn-primary" title="Corriger">
+                  <i class="bi bi-mic-fill"></i>
+                </a>
+              {% endif %}
+            </div>
+          </div>
         {% endfor %}
-      ]
-    }
-    {% endif %}{% endfor %}
-  ]
-}
-</script>
-
-<!-- Modale Statistiques -->
-<div class="modal fade" id="statsModal" tabindex="-1" aria-labelledby="statsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
-    <div class="modal-content" style="border-radius:1rem;overflow:hidden">
-
-      <!-- Header -->
-      <div class="modal-header" style="background:var(--vox-black);border:none;padding:1.2rem 1.5rem">
-        <div>
-          <h5 class="modal-title text-white fw-bold mb-0" id="statsModalLabel">
-            <i class="bi bi-bar-chart-line me-2" style="color:var(--vox-neon)"></i>Statistiques — {{ assignment.title }}
-          </h5>
-          <div class="text-white-50 small mt-1" id="stats-subtitle">—</div>
-        </div>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
 
-      <!-- Body -->
-      <div class="modal-body p-3 p-md-4" style="background:#f9fafb">
-
-        <!-- KPIs : 2 par ligne sur mobile, 4 sur desktop -->
-        <div class="row g-2 mb-4" id="stats-kpis"></div>
-
-        <!-- Graphiques : empilés sur mobile, côte à côte sur md+ -->
-        <div class="row g-3">
-          <div class="col-12 col-md-7">
-            <div class="vox-card h-100 p-3">
-              <div class="fw-semibold mb-3 small text-uppercase" style="letter-spacing:.05em;color:#6b7280">
-                Distribution des notes
-              </div>
-              <div style="position:relative;height:220px">
-                <canvas id="chart-histogram"></canvas>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-md-5">
-            <div class="vox-card h-100 p-3">
-              <div class="fw-semibold mb-3 small text-uppercase" style="letter-spacing:.05em;color:#6b7280">
-                Scores moyens par question
-              </div>
-              <div style="position:relative;height:220px">
-                <canvas id="chart-radar"></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tableau détail — scroll horizontal sur mobile -->
-        <div class="vox-card mt-3 p-0" style="overflow:hidden">
-          <div class="fw-semibold p-3 pb-2 small text-uppercase" style="letter-spacing:.05em;color:#6b7280">
-            Détail par élève
-          </div>
-          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-            <table class="vox-table mb-0" id="stats-table"></table>
-          </div>
-        </div>
-
-      </div>
+      {% if not students %}
+        <div class="ac-empty">Aucun élève dans cette classe.</div>
+      {% endif %}
     </div>
   </div>
 </div>
-
-<!-- Modale suppression groupée -->
-<div class="modal fade" id="modal-bulk-delete" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:12px;overflow:hidden;border:1px solid #fecaca">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold text-danger">
-          <i class="bi bi-exclamation-triangle me-2"></i>Supprimer les corrections
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="alert alert-danger py-2 small mb-3">
-          <strong>Action irréversible.</strong>
-          <span id="bulk-modal-count"></span> correction(s) seront définitivement supprimées.
-        </div>
-        <div class="mb-3">
-          <label class="vox-label">Mot de passe pour confirmer</label>
-          <input type="password" id="bulk-delete-password" class="vox-input"
-                 placeholder="Votre mot de passe VoxCorr" autocomplete="current-password">
-          <div id="bulk-delete-error" class="text-danger small mt-1 d-none"></div>
-        </div>
-        <button id="btn-bulk-delete-confirm" class="btn btn-danger w-100">
-          <i class="bi bi-trash me-1"></i>Supprimer définitivement
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 {% endblock %}
+
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="/static/js/recorder.js"></script>
 <script>
-(function () {
-  const assignmentId = {{ assignment.id }};
-  let apprRecorder   = null;
-  let apprBlob       = null;
+  const feedbackEl = document.getElementById('appreciation-feedback');
+  const btnSave = document.getElementById('btnSaveAppreciation');
+  const btnSynth = document.getElementById('btnSynthAppreciation');
+  const textarea = document.querySelector('#appreciationForm textarea');
+  const csrf = document.querySelector('meta[name="csrf-token"]').content;
 
-  apprRecorder = new VoxRecorder({
-    onTranscript: (final, interim) => {
-      document.getElementById('appreciation-text').value = final;
-      document.getElementById('appr-interim').textContent = interim;
-    },
-    onAudioReady: (blob) => {
-      apprBlob = blob;
-      document.getElementById('appr-record-status').textContent = 'Audio prêt — cliquez Enregistrer.';
-    },
-    onStateChange: (state) => {
-      const st = document.getElementById('appr-record-status');
-      if (state === 'recording') {
-        document.getElementById('appr-record-btn').classList.add('d-none');
-        document.getElementById('appr-stop-btn').classList.remove('d-none');
-        st.textContent = '⬤ Dictée en cours…';
-      } else {
-        document.getElementById('appr-record-btn').classList.remove('d-none');
-        document.getElementById('appr-stop-btn').classList.add('d-none');
-      }
-    },
-  });
-
-  document.getElementById('appr-record-btn').addEventListener('click', () => apprRecorder.start([]));
-  document.getElementById('appr-stop-btn').addEventListener('click',  () => apprRecorder.stop([]));
-
-  document.getElementById('btn-save-appreciation').addEventListener('click', async () => {
-    const text = document.getElementById('appreciation-text').value.trim();
-    const st   = document.getElementById('appreciation-status');
-    st.textContent = 'Enregistrement…';
-
-    // 1. Sauvegarde texte
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-    const r1 = await fetch(`/teacher/assignments/${assignmentId}/appreciation`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-      body:    JSON.stringify({ text }),
-    });
-    if (!r1.ok) { st.textContent = '✗ Erreur texte'; return; }
-
-    // 2. Upload audio si disponible
-    if (apprBlob) {
-      const fd = new FormData();
-      fd.append('audio', apprBlob, 'appreciation.webm');
-      const r2 = await fetch(`/teacher/assignments/${assignmentId}/appreciation/audio`, {
-        method: 'POST', body: fd,
-      });
-      if (r2.ok) {
-        const data = await r2.json();
-        // Affiche lecteur inline sans rechargement
-        const status = document.getElementById('appr-record-status');
-        status.innerHTML = `<audio controls src="${data.url}" style="height:32px;accent-color:var(--vox-neon)" preload="none"></audio>`;
-      }
-    }
-
-    st.textContent = '✓ Enregistré';
-    setTimeout(() => st.textContent = '', 3000);
-  });
-  document.getElementById('btn-synthesize-appreciation').addEventListener('click', async () => {
-    const text = document.getElementById('appreciation-text').value.trim();
-    const st   = document.getElementById('appreciation-status');
-    if (!text) { st.textContent = '⚠ Dictez d\'abord votre appréciation.'; return; }
-    st.innerHTML = '<span class="text-warning">⏳ Mistral reformule…</span>';
-    document.getElementById('btn-synthesize-appreciation').disabled = true;
-    try {
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-      const r = await fetch(`/teacher/assignments/${assignmentId}/appreciation/synthesize`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-        body:    JSON.stringify({ text }),
-      });
-      const data = await r.json();
-      if (data.text) {
-        document.getElementById('appreciation-text').value = data.text;
-        st.innerHTML = '<span class="text-success">✓ Reformulé — cliquez Enregistrer pour sauvegarder.</span>';
-      } else {
-        st.textContent = '✗ Erreur Mistral.';
-      }
-    } catch(e) {
-      st.textContent = '✗ Erreur réseau.';
-    } finally {
-      document.getElementById('btn-synthesize-appreciation').disabled = false;
-    }
-  });
-
-  // ── Statistiques ───────────────────────────────────────────────────────────
-  (function () {
-    const raw = document.getElementById('stats-data');
-    if (!raw) return;
-
-    let histChart = null, radarChart = null;
-    const data  = JSON.parse(raw.textContent);
-    const corrs = data.corrections;
-
-    // Calculs
-    function median(arr) {
-      if (!arr.length) return 0;
-      const s = [...arr].sort((a, b) => a - b);
-      const m = Math.floor(s.length / 2);
-      return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-    }
-    function stddev(arr, mean) {
-      if (arr.length < 2) return 0;
-      return Math.sqrt(arr.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / arr.length);
-    }
-
-    const totals  = corrs.map(c => c.total);
-    const n       = totals.length;
-    const mean    = n ? totals.reduce((a, b) => a + b, 0) / n : 0;
-    const med     = median(totals);
-    const sd      = stddev(totals, mean);
-    const maxPts  = data.total_points;
-    const totalStudents = {{ students|length }};
-
-    function getNeon() {
-      return getComputedStyle(document.documentElement)
-               .getPropertyValue('--vox-neon').trim() || '#39FF14';
-    }
-
-    function renderKpis() {
-      const kpis = [
-        { icon: 'bi-people',              label: 'Corrigés',   value: `${n} / ${totalStudents}` },
-        { icon: 'bi-calculator',          label: 'Moyenne',    value: n ? `${mean.toFixed(2)} / ${maxPts}` : '—' },
-        { icon: 'bi-arrow-left-right',    label: 'Médiane',    value: n ? `${med.toFixed(2)} / ${maxPts}` : '—' },
-        { icon: 'bi-distribute-vertical', label: 'Écart-type', value: n ? sd.toFixed(2) : '—' },
-      ];
-      document.getElementById('stats-kpis').innerHTML = kpis.map(k => `
-        <div class="col-6 col-md-3">
-          <div class="vox-card p-3 text-center h-100">
-            <i class="bi ${k.icon} fs-4 mb-1 d-block" style="color:var(--vox-neon)"></i>
-            <div class="fw-bold fs-5">${k.value}</div>
-            <div class="text-muted small">${k.label}</div>
-          </div>
-        </div>`).join('');
-      document.getElementById('stats-subtitle').textContent =
-        `${n} correction${n > 1 ? 's' : ''} · {{ assignment.classroom.name }}`;
-    }
-
-    function renderHistogram() {
-      const steps = 5;
-      const step  = maxPts / steps;
-      const labels = [], counts = [];
-      for (let i = 0; i < steps; i++) {
-        const lo = i * step, hi = (i + 1) * step;
-        labels.push(`${lo.toFixed(0)}–${hi.toFixed(0)}`);
-        counts.push(totals.filter(v => v >= lo && (i === steps - 1 ? v <= hi : v < hi)).length);
-      }
-      const neon = getNeon();
-      if (histChart) histChart.destroy();
-      histChart = new Chart(document.getElementById('chart-histogram'), {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Élèves',
-            data: counts,
-            backgroundColor: neon + 'cc',
-            borderColor: neon,
-            borderWidth: 2,
-            borderRadius: 6,
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#e5e7eb' } },
-            x: { grid: { display: false } }
-          }
-        }
-      });
-    }
-
-    function renderRadar() {
-      const questions = data.questions;
-      if (!questions.length) return;
-      const avgByQ = questions.map(q => {
-        const vals = corrs.map(c => {
-          const s = c.scores.find(sc => sc.question_id === q.id);
-          return (s && s.score !== null) ? (s.score / q.max) * 100 : null;
-        }).filter(v => v !== null);
-        return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-      });
-      const neon = getNeon();
-      if (radarChart) radarChart.destroy();
-      radarChart = new Chart(document.getElementById('chart-radar'), {
-        type: 'radar',
-        data: {
-          labels: questions.map(q => q.label),
-          datasets: [{
-            label: 'Moyenne (%)',
-            data: avgByQ,
-            backgroundColor: neon + '33',
-            borderColor: neon,
-            borderWidth: 2,
-            pointBackgroundColor: neon,
-            pointRadius: 4,
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            r: {
-              beginAtZero: true, max: 100,
-              ticks: { stepSize: 25, font: { size: 10 } },
-              grid: { color: '#e5e7eb' },
-              pointLabels: { font: { size: 11 } }
-            }
-          }
-        }
-      });
-    }
-
-    function renderTable() {
-      const qs = data.questions;
-      const thead = `<thead><tr>
-        <th>Alias</th>
-        <th>Total</th>
-        ${qs.map(q => `<th class="text-center">${q.label}</th>`).join('')}
-      </tr></thead>`;
-      const rows = corrs
-        .slice()
-        .sort((a, b) => b.total - a.total)
-        .map(c => {
-          const pct   = maxPts ? (c.total / maxPts) * 100 : 0;
-          const color = pct >= 70 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626';
-          const cells = qs.map(q => {
-            const s = c.scores.find(sc => sc.question_id === q.id);
-            return `<td class="text-center">${(s && s.score !== null) ? s.score : '—'}</td>`;
-          }).join('');
-          return `<tr>
-            <td><span class="vox-badge vox-badge-grey">${c.alias}</span></td>
-            <td><span class="fw-bold" style="color:${color}">${c.total.toFixed(1)}</span>
-                <span class="text-muted small"> / ${maxPts}</span></td>
-            ${cells}
-          </tr>`;
-        }).join('');
-      document.getElementById('stats-table').innerHTML = thead + `<tbody>${rows}</tbody>`;
-    }
-
-    document.getElementById('btn-open-stats')?.addEventListener('click', () => {
-      const modal = new bootstrap.Modal(document.getElementById('statsModal'));
-      modal.show();
-      document.getElementById('statsModal').addEventListener('shown.bs.modal', () => {
-        renderKpis();
-        renderHistogram();
-        renderRadar();
-        renderTable();
-      }, { once: true });
-    });
-  })();
-
-  // ── Checkboxes + suppression groupée ─────────────────────────────────────
-  const _csrf2 = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-  const chkAll  = document.getElementById('chk-all');
-  const bulkBar = document.getElementById('bulk-action-bar');
-  const bulkCount = document.getElementById('bulk-count');
-  const bulkModal = new bootstrap.Modal(document.getElementById('modal-bulk-delete'));
-
-  function getChecked() {
-    return [...document.querySelectorAll('.chk-corr:checked')].map(c => parseInt(c.value));
+  function showFeedback(msg, type) {
+    feedbackEl.textContent = msg;
+    feedbackEl.className = 'ac-feedback ac-feedback-' + type;
+    setTimeout(() => { feedbackEl.textContent = ''; feedbackEl.className = 'ac-feedback'; }, 3000);
   }
 
-  function updateBulkBar() {
-    const ids = getChecked();
-    if (ids.length > 0) {
-      bulkBar.classList.remove('d-none');
-      bulkCount.textContent = `${ids.length} correction${ids.length > 1 ? 's' : ''} sélectionnée${ids.length > 1 ? 's' : ''}`;
-    } else {
-      bulkBar.classList.add('d-none');
-    }
-  }
-
-  document.querySelectorAll('.chk-corr').forEach(c => {
-    c.addEventListener('change', () => {
-      updateBulkBar();
-      const all = document.querySelectorAll('.chk-corr');
-      chkAll.checked = [...all].every(c => c.checked);
-      chkAll.indeterminate = !chkAll.checked && [...all].some(c => c.checked);
-    });
-  });
-
-  chkAll?.addEventListener('change', function () {
-    document.querySelectorAll('.chk-corr').forEach(c => c.checked = this.checked);
-    updateBulkBar();
-  });
-
-  document.getElementById('btn-bulk-cancel')?.addEventListener('click', () => {
-    document.querySelectorAll('.chk-corr').forEach(c => c.checked = false);
-    chkAll.checked = false;
-    chkAll.indeterminate = false;
-    bulkBar.classList.add('d-none');
-  });
-
-  document.getElementById('btn-bulk-delete')?.addEventListener('click', () => {
-    const n = getChecked().length;
-    document.getElementById('bulk-modal-count').textContent = n;
-    document.getElementById('bulk-delete-password').value = '';
-    document.getElementById('bulk-delete-error').classList.add('d-none');
-    bulkModal.show();
-  });
-
-  document.getElementById('btn-bulk-delete-confirm')?.addEventListener('click', async function () {
-    const pwd = document.getElementById('bulk-delete-password').value;
-    const err = document.getElementById('bulk-delete-error');
-    const ids = getChecked();
-    if (!pwd) { err.textContent = 'Mot de passe requis.'; err.classList.remove('d-none'); return; }
-    if (!ids.length) return;
-
-    this.disabled = true;
-    this.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Suppression…';
-
+  btnSave?.addEventListener('click', async () => {
+    btnSave.disabled = true;
     try {
-      const res = await fetch('/teacher/api/corrections/delete-bulk', {
+      const res = await fetch("{{ url_for('teacher_corr.save_appreciation', assignment_id=assignment.id) }}", {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrf2() },
-        body: JSON.stringify({ ids, password: pwd }),
-      }).then(r => r.json());
-
-      if (res.ok) {
-        window.location.reload();
-      } else {
-        err.textContent = res.error || 'Erreur.';
-        err.classList.remove('d-none');
-        this.disabled = false;
-        this.innerHTML = '<i class="bi bi-trash me-1"></i>Supprimer définitivement';
-      }
-    } catch {
-      err.textContent = 'Erreur réseau.';
-      err.classList.remove('d-none');
-      this.disabled = false;
-      this.innerHTML = '<i class="bi bi-trash me-1"></i>Supprimer définitivement';
-    }
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({text: textarea.value})
+      });
+      if (res.ok) showFeedback('✓ Appréciation enregistrée', 'success');
+      else showFeedback('Erreur lors de la sauvegarde', 'error');
+    } catch(e) { showFeedback('Erreur réseau', 'error'); }
+    finally { btnSave.disabled = false; }
   });
 
-})();
+  btnSynth?.addEventListener('click', async () => {
+    if (!textarea.value.trim()) { showFeedback('Tapez d\'abord un texte', 'error'); return; }
+    btnSynth.disabled = true;
+    btnSynth.innerHTML = '<i class="bi bi-hourglass-split"></i> IA…';
+    try {
+      const res = await fetch("{{ url_for('teacher_corr.synthesize_appreciation_route', assignment_id=assignment.id) }}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({text: textarea.value})
+      });
+      const data = await res.json();
+      if (res.ok && data.text) { textarea.value = data.text; showFeedback('✓ Texte reformulé par Mistral', 'success'); }
+      else showFeedback('Erreur IA', 'error');
+    } catch(e) { showFeedback('Erreur réseau', 'error'); }
+    finally { btnSynth.disabled = false; btnSynth.innerHTML = '<i class="bi bi-stars"></i> IA'; }
+  });
+  
+    {# ── Enregistrement audio pour appréciation ────────────────────────────── #}
+  const btnRecordAppreciation = document.getElementById('btnRecordAppreciation');
+  const recordingStatus = document.getElementById('recording-status');
+  const transcriptionInterim = document.getElementById('transcription-interim');
+  let recognition = null;
+  let isRecording = false;
+
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      isRecording = true;
+      btnRecordAppreciation.classList.add('ac-btn-primary');
+      btnRecordAppreciation.innerHTML = '<i class="bi bi-stop-fill"></i>';
+      recordingStatus.style.display = 'inline';
+    };
+
+    recognition.onend = () => {
+      isRecording = false;
+      btnRecordAppreciation.classList.remove('ac-btn-primary');
+      btnRecordAppreciation.innerHTML = '<i class="bi bi-mic-fill"></i>';
+      recordingStatus.style.display = 'none';
+      transcriptionInterim.textContent = '';
+    };
+
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        textarea.value += (textarea.value ? ' ' : '') + finalTranscript;
+      }
+      transcriptionInterim.textContent = interimTranscript;
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      showFeedback('Erreur de reconnaissance vocale: ' + event.error, 'error');
+      isRecording = false;
+      btnRecordAppreciation.classList.remove('ac-btn-primary');
+      btnRecordAppreciation.innerHTML = '<i class="bi bi-mic-fill"></i>';
+      recordingStatus.style.display = 'none';
+    };
+
+    btnRecordAppreciation.addEventListener('click', () => {
+      if (isRecording) {
+        recognition.stop();
+      } else {
+        recognition.start();
+      }
+    });
+  } else {
+    btnRecordAppreciation.style.display = 'none';
+    console.warn('Speech recognition not supported');
+  }
 </script>
 {% endblock %}

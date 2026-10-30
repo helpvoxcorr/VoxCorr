@@ -1,48 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Tableau de bord — VoxCorr{% endblock %}
 
-{% block head %}
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
-{% endblock %}
-
 {% block content %}
-
-<!-- Greeting -->
 <div class="dash-greeting">
   <div>
-    <div class="dash-greeting-name">
-      Bonjour, <span>{{ current_user.first_name }}</span> 👋
-    </div>
-    <div class="dash-greeting-sub">
-      {{ current_user.school or 'VoxCorr — Espace enseignant' }}
-    </div>
+    <div class="dash-greeting-name">Bonjour, <span>{{ current_user.first_name or 'Enseignant' }}</span> </div>
+    <div class="dash-greeting-sub">{{ current_user.school or 'VoxCorr — Espace enseignant' }}</div>
   </div>
-  <a href="/teacher/classes/new" class="btn vox-btn-primary">
+  <a href="{{ url_for('teacher_crud.new_class') }}" class="btn vox-btn-primary">
     <i class="bi bi-plus-lg"></i> Nouvelle classe
   </a>
 </div>
 
-<!-- Stats -->
 <div class="dash-stats">
   <div class="dash-stat">
-    <div class="dash-stat-icon">
-      <span class="material-symbols-outlined">diversity_3</span>
-    </div>
-    <div class="dash-stat-val">{{ classrooms|length }}</div>
-    <div class="dash-stat-lbl">Classes actives</div>
-  </div>
-  <div class="dash-stat">
-    <div class="dash-stat-icon">
-      <span class="material-symbols-outlined">person_raised_hand</span>
-    </div>
+    <div class="dash-stat-icon"><i class="bi bi-people-fill"></i></div>
     <div class="dash-stat-val">{{ total_students }}</div>
     <div class="dash-stat-lbl">Élèves</div>
   </div>
   <div class="dash-stat">
-    <div class="dash-stat-icon">
-      <span class="material-symbols-outlined">library_books</span>
-    </div>
+    <div class="dash-stat-icon"><i class="bi bi-book"></i></div>
+    <div class="dash-stat-val">{{ classrooms|length }}</div>
+    <div class="dash-stat-lbl">Classes</div>
+  </div>
+  <div class="dash-stat">
+    <div class="dash-stat-icon"><i class="bi bi-journal-check"></i></div>
     <div class="dash-stat-val">{{ total_corrections }}</div>
     <div class="dash-stat-lbl">Devoirs</div>
   </div>
@@ -53,29 +35,7 @@
   </div>
 </div>
 
-<div class="mt-3 mb-4">
-  <button class="btn vox-btn-dark btn-sm w-100 d-flex align-items-center justify-content-between"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#graph-progression"
-          aria-expanded="false">
-    <span><i class="bi bi-graph-up me-2"></i>Voir la progression par niveau</span>
-    <i class="bi bi-chevron-down" id="graph-chevron"></i>
-  </button>
-  <div class="collapse" id="graph-progression">
-    <div class="vox-card mt-2">
-      <div class="d-flex gap-2 mb-3 flex-wrap" id="level-tabs"></div>
-      <div id="stats-chart" style="height:320px; width:100%;"></div>
-      <div id="stats-empty" class="text-center text-muted py-4 small d-none">
-        Pas encore assez de données pour afficher la progression.
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Classes par discipline -->
 {% if classrooms %}
-
   {% set disciplines = {} %}
   {% for c in classrooms %}
     {% set disc = c.subject or 'Autre' %}
@@ -84,96 +44,43 @@
   {% endfor %}
 
   {% for discipline, classes in disciplines.items() %}
-
-  {% set disc_lower = discipline|lower %}
-  {% if 'math' in disc_lower %}{% set disc_class = 'vox-disc-maths' %}
-  {% elif 'français' in disc_lower or 'francais' in disc_lower or 'lettres' in disc_lower %}{% set disc_class = 'vox-disc-français' %}
-  {% elif 'histoire' in disc_lower or 'géographie' in disc_lower %}{% set disc_class = 'vox-disc-histoire' %}
-  {% elif 'svt' in disc_lower or 'biologie' in disc_lower or 'sciences' in disc_lower %}{% set disc_class = 'vox-disc-svt' %}
-  {% elif 'anglais' in disc_lower or 'espagnol' in disc_lower or 'allemand' in disc_lower %}{% set disc_class = 'vox-disc-anglais' %}
-  {% elif 'physique' in disc_lower or 'chimie' in disc_lower %}{% set disc_class = 'vox-disc-physique' %}
-  {% else %}{% set disc_class = 'vox-disc-default' %}
-  {% endif %}
-
-  <div class="dash-section-header">
-    <span class="vox-disc {{ disc_class }}">
-      <i class="bi bi-book"></i> {{ discipline }}
-    </span>
-    <span class="dash-section-count">{{ classes|length }} classe{{ 's' if classes|length > 1 }}</span>
-    <div class="dash-section-line"></div>
-  </div>
-
-  <div class="dash-classes">
-    {% for c in classes %}
-    {% set nb_assignments = c.assignments|length %}
-    {# Devoirs non entièrement corrigés #}
-    {% set incomplete = [] %}
-    {% for a in c.assignments %}
-      {% set stat = assign_stats.get(a.id, {'done': 0, 'total': 0, 'pct': 0}) %}
-      {% if stat.pct < 100 %}
-        {% set _ = incomplete.append({'a': a, 'stat': stat}) %}
-      {% endif %}
-    {% endfor %}
-    <div class="dash-class-card" onclick="window.location='/teacher/classes/{{ c.id }}'">
-      <div class="dash-card-top">
-        <div>
-          <div class="dash-class-name">{{ c.name }}</div>
-          <div class="dash-class-subject">{{ c.subject }}</div>
-          <div class="dash-class-year">{{ c.school_year }}</div>
-        </div>
-        <span class="dash-badge-students">{{ c.students|length }}</span>
-      </div>
-
-      {% if nb_assignments == 0 %}
-        {# Pas encore de devoir : aucun indicateur #}
-      {% elif incomplete|length == 0 %}
-        <div class="dash-assign-all-done">
-          <i class="bi bi-check-circle-fill"></i> Tous les devoirs corrigés
-        </div>
-      {% else %}
-        <div class="dash-assign-list">
-          {% for item in incomplete %}
-            {% set filled = (item.stat.pct / 10) | int %}
-            <div class="dash-assign-row"
-                 title="{{ item.stat.done }}/{{ item.stat.total }} élèves — {{ item.a.title }}">
-              <span class="dash-assign-name">{{ item.a.title }}</span>
-              <span class="dash-assign-dots">
-                {% for i in range(10) %}
-                  <span class="dash-dot {% if i < filled %}on{% endif %}"></span>
-                {% endfor %}
-              </span>
-              <span class="dash-assign-pct">{{ item.stat.pct }}%</span>
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      <div class="dash-card-footer">
-        <div class="dash-card-meta">
-          <i class="bi bi-file-text"></i>
-          {{ nb_assignments }} devoir{{ 's' if nb_assignments > 1 }}
-        </div>
-        <button class="dash-trash"
-                onclick="event.stopPropagation(); showDeleteModal('{{ c.id }}','{{ c.name }}')"
-                title="Supprimer">
-          <i class="bi bi-trash"></i>
-        </button>
-      </div>
+    <div class="dash-section-header">
+      <span class="vox-disc vox-disc-default"><i class="bi bi-book"></i> {{ discipline }}</span>
+      <span class="dash-section-count">{{ classes|length }} classe{{ 's' if classes|length > 1 }}</span>
+      <div class="dash-section-line"></div>
     </div>
-    {% endfor %}
-  </div>
 
+    <div class="dash-classes">
+      {% for c in classes %}
+        <div class="dash-class-card" onclick="window.location='{{ url_for('teacher_crud.class_detail', class_id=c.id) }}'">
+          <div class="dash-card-top">
+            <div>
+              <div class="dash-class-name">{{ c.name }}</div>
+              <div class="dash-class-subject">{{ c.subject or '—' }}</div>
+              <div class="dash-class-year">{{ c.school_year }}</div>
+            </div>
+            <span class="dash-badge-students">{{ c.students|length }}</span>
+          </div>
+          
+          <div class="dash-card-footer">
+            <div class="dash-card-meta"><i class="bi bi-file-text"></i> {{ c.assignments|length }} devoir{{ 's' if c.assignments|length > 1 }}</div>
+            <button class="dash-trash" onclick="event.stopPropagation(); showDeleteModal('{{ c.id }}','{{ c.name }}')" title="Supprimer">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
   {% endfor %}
-
 {% else %}
-<div class="dash-empty">
-  <i class="bi bi-people" style="font-size:3rem;opacity:.15;display:block;margin-bottom:1rem"></i>
-  <h5 class="fw-600 mb-2">Aucune classe pour l'instant</h5>
-  <p class="text-muted mb-4">Créez votre première classe pour commencer.</p>
-  <a href="/teacher/classes/new" class="btn vox-btn-primary">
-    <i class="bi bi-plus-lg"></i> Créer ma première classe
-  </a>
-</div>
+  <div class="dash-empty">
+    <i class="bi bi-people" style="font-size:3rem;opacity:.15;display:block;margin-bottom:1rem"></i>
+    <h5 class="fw-600 mb-2">Aucune classe pour l'instant</h5>
+    <p class="text-muted mb-4">Créez votre première classe pour commencer.</p>
+    <a href="{{ url_for('teacher_crud.new_class') }}" class="btn vox-btn-primary">
+      <i class="bi bi-plus-lg"></i> Créer ma première classe
+    </a>
+  </div>
 {% endif %}
 
 <!-- Modale suppression -->
@@ -181,9 +88,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:12px;overflow:hidden;border:1px solid #fecaca">
       <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold text-danger">
-          <i class="bi bi-exclamation-triangle me-2"></i>Supprimer la classe
-        </h5>
+        <h5 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Supprimer la classe</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -192,136 +97,23 @@
       </div>
       <div class="modal-footer border-0 pt-0">
         <button type="button" class="btn vox-btn-outline btn-sm" data-bs-dismiss="modal">Annuler</button>
-        <button type="button" class="btn btn-danger btn-sm" id="modal-confirm-delete">
-          <i class="bi bi-trash me-1"></i>Supprimer
-        </button>
+        <form id="form-delete-class" method="POST" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash me-1"></i>Supprimer</button>
+        </form>
       </div>
     </div>
   </div>
 </div>
 
-{% for c in classrooms %}
-<form method="POST" action="/teacher/classes/{{ c.id }}/delete"
-      id="form-delete-{{ c.id }}" class="d-none">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-</form>
-{% endfor %}
-
 {% endblock %}
 
 {% block scripts %}
 <script>
-let _deleteFormId = null;
 function showDeleteModal(classId, className) {
-  _deleteFormId = 'form-delete-' + classId;
   document.getElementById('modal-class-name').textContent = className;
+  document.getElementById('form-delete-class').action = "/teacher/classes/" + classId + "/delete";
   new bootstrap.Modal(document.getElementById('modal-delete-class')).show();
-}
-document.getElementById('modal-confirm-delete').addEventListener('click', function () {
-  if (_deleteFormId) document.getElementById(_deleteFormId).submit();
-});
-</script>
-<script>
-const LEVELS = [...new Set([
-  {% for c in classrooms %}
-  "{{ c.level or 'Autre' }}",
-  {% endfor %}
-])];
-
-const chevron = document.getElementById('graph-chevron');
-const graphCollapse = document.getElementById('graph-progression');
-let graphLoaded = false;
-let currentLevel = LEVELS[0];
-
-graphCollapse.addEventListener('show.bs.collapse', () => {
-  chevron.style.transform = 'rotate(180deg)';
-  if (!graphLoaded) {
-    graphLoaded = true;
-    buildTabs();
-    loadLevel(currentLevel);
-  }
-});
-
-graphCollapse.addEventListener('hide.bs.collapse', () => {
-  chevron.style.transform = 'rotate(0deg)';
-});
-
-function buildTabs() {
-  const tabs = document.getElementById('level-tabs');
-  LEVELS.forEach((lvl, i) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn btn-sm ' + (i === 0 ? 'vox-btn-primary' : 'vox-btn-dark');
-    btn.textContent = lvl;
-    btn.addEventListener('click', () => {
-      tabs.querySelectorAll('button').forEach(b => b.className = 'btn btn-sm vox-btn-dark');
-      btn.className = 'btn btn-sm vox-btn-primary';
-      currentLevel = lvl;
-      loadLevel(lvl);
-    });
-    tabs.appendChild(btn);
-  });
-}
-
-function loadLevel(level) {
-  const chartDiv = document.getElementById('stats-chart');
-  const emptyDiv = document.getElementById('stats-empty');
-  chartDiv.innerHTML = '';
-  emptyDiv.classList.add('d-none');
-
-  fetch(`/teacher/api/stats/level/${encodeURIComponent(level)}`)
-    .then(r => r.json())
-    .then(data => {
-      const classes = data.classes.filter(c => c.avg !== null);
-      if (!classes.length) {
-        chartDiv.style.display = 'none';
-        emptyDiv.classList.remove('d-none');
-        return;
-      }
-      chartDiv.style.display = '';
-
-      const COLORS = ['#39FF14','#3b82f6','#f59e0b','#e53e3e','#8b5cf6','#06b6d4'];
-
-      const traces = classes.map((c, i) => ({
-        x: [c.name],
-        y: [c.avg],
-        type: 'bar',
-        name: c.name,
-        marker: { color: COLORS[i % COLORS.length] },
-        text: [c.avg.toFixed(1)],
-        textposition: 'outside',
-      }));
-
-      Plotly.newPlot(chartDiv, traces, {
-        barmode: 'group',
-        yaxis: { range: [0, 20], title: 'Moyenne /20', fixedrange: true },
-        xaxis: { type: 'category', fixedrange: true },
-        showlegend: false,
-        plot_bgcolor: '#fff',
-        paper_bgcolor: '#fff',
-        margin: { t: 40, r: 20, b: 40, l: 40 },
-        annotations: classes.map((c, i) => {
-          if (!c.trend) return null;
-          const isUp = c.trend === 'up';
-          return {
-            x: c.name,
-            y: c.avg + 1.2,
-            xref: 'x', yref: 'y',
-            text: '',
-            showarrow: true,
-            arrowhead: 2,
-            arrowsize: 1.5,
-            arrowwidth: 2.5,
-            arrowcolor: isUp ? '#16a34a' : '#e53e3e',
-            ax: isUp ? -18 : 18,
-            ay: isUp ? 18 : -18,
-          };
-        }).filter(Boolean),
-      }, { responsive: true, displayModeBar: false });
-    })
-    .catch(() => {
-      emptyDiv.classList.remove('d-none');
-    });
 }
 </script>
 {% endblock %}

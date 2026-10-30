@@ -1,57 +1,48 @@
-# app/__init__.py
-from flask import Flask, redirect, url_for, render_template
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_login import LoginManager
-from flask_wtf.csrf import CSRFProtect
-from app.config import Config
-import threading
 import os
-
+from flask import Flask, redirect, url_for, render_template, session
 from datetime import datetime, timezone, timedelta
-db = SQLAlchemy()
-migrate = Migrate()
-login_manager = LoginManager()
-csrf = CSRFProtect()
 
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-limiter = Limiter(key_func=get_remote_address, default_limits=[])
-from flask_socketio import SocketIO
-socketio = SocketIO()
+from app.config import Config
+from app.extensions import db, migrate, login_manager, csrf, limiter, socketio
 
-login_manager.login_view             = 'auth.login'
-login_manager.login_message          = 'Connectez-vous pour accéder à cette page.'
-login_manager.login_message_category = 'warning'
-
-_purge_lock    = threading.Lock()
-_last_purge_at = None
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    # ── Initialisation des extensions ──────────────────────────────────────────
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
-    app.config['SESSION_COOKIE_SECURE'] = not app.debug
     csrf.init_app(app)
     limiter.init_app(app)
-    # En production, restreindre aux domaines autorisés
+
     allowed_origins = os.environ.get('SOCKETIO_CORS_ALLOWED', 'http://localhost:5000')
     socketio.init_app(app, cors_allowed_origins=allowed_origins.split(','))
 
+    # ── Import des modèles (nécessaire pour que SQLAlchemy les connaisse) ──────
     from app import models
-    from app.blueprints.auth    import auth_bp
-    from app.blueprints.teacher import teacher_bp
-    from app.blueprints.public  import public_bp
-    from app.blueprints.pages   import pages_bp
+
+    # ── Enregistrement des Blueprints ──────────────────────────────────────────
+    from app.blueprints.auth import auth_bp
+    from app.blueprints.public import public_bp
+    from app.blueprints.pages import pages_bp
     from app.blueprints.student import student_bp
     
+    # Blueprints factorisés de l'espace enseignant
+    from app.blueprints.teacher_crud import teacher_crud_bp
+    from app.blueprints.teacher_corrections import teacher_corr_bp
+    from app.blueprints.teacher_admin import teacher_admin_bp
+    from app.blueprints.teacher_stats import teacher_stats_bp
+
     app.register_blueprint(student_bp)
     app.register_blueprint(auth_bp)
-    app.register_blueprint(teacher_bp)
     app.register_blueprint(public_bp)
     app.register_blueprint(pages_bp)
+    app.register_blueprint(teacher_crud_bp)
+    app.register_blueprint(teacher_corr_bp)
+    app.register_blueprint(teacher_admin_bp)
+    app.register_blueprint(teacher_stats_bp)
 
     # ── Gestionnaires d'erreurs ────────────────────────────────────────────────
     @app.errorhandler(404)
@@ -71,6 +62,7 @@ def create_app(config_class=Config):
         app.logger.error(f'[500] {e}')
         return render_template('errors/500.html'), 500
 
+    # ── Routes racines ─────────────────────────────────────────────────────────
     @app.route('/ping')
     def ping():
         return {"status": "ok", "app": "VoxCorr"}
@@ -79,63 +71,33 @@ def create_app(config_class=Config):
     def index():
         return redirect(url_for('auth.login'))
 
+    # ─ Hooks avant requête ───────────────────────────────────────────────────
     @app.before_request
     def before_request_hooks():
-        from flask import session
-
-        # 1. Expiration session admin
+        # Expiration automatique de la session admin après 30 minutes
         unlocked_at = session.get('admin_unlocked_at')
         if unlocked_at:
-            unlocked_dt = datetime.fromisoformat(unlocked_at)
-            if datetime.now(timezone.utc) - unlocked_dt > timedelta(minutes=30):
-                session.pop('admin_unlocked',    None)
+            try:
+                unlocked_dt = datetime.fromisoformat(unlocked_at)
+                if datetime.now(timezone.utc) - unlocked_dt > timedelta(minutes=30):
+                    session.pop('admin_unlocked', None)
+                    session.pop('admin_unlocked_at', None)
+            except ValueError:
+                # Si le format de date est corrompu, on nettoie la session
                 session.pop('admin_unlocked_at', None)
 
-        # 2. Purge périodique (toutes les 6h)
-        global _last_purge_at
-        now = datetime.now(timezone.utc)
-        if _last_purge_at is None or (now - _last_purge_at) >= timedelta(hours=6):
-            acquired = _purge_lock.acquire(blocking=False)
-            if acquired:
-                try:
-                    if _last_purge_at is None or (now - _last_purge_at) >= timedelta(hours=6):
-                        _last_purge_at = now
-                        _run_purge(app)
-                finally:
-                    _purge_lock.release()
+    # ── Context processor pour breadcrumb dynamique ─────────────────────────────
+    @app.context_processor
+    def inject_breadcrumb():
+        from app.utils.breadcrumbs import build_breadcrumb
+        from flask import request
+        
+        def generate_breadcrumb():
+            endpoint = request.endpoint
+            if not endpoint:
+                return []
+            return build_breadcrumb(endpoint, dict(request.view_args or {}))
+        
+        return dict(generate_breadcrumb=generate_breadcrumb)
 
-    # Migration automatique au démarrage
-    # with app.app_context():
-    #     from flask_migrate import upgrade as db_upgrade
-    #     try:
-    #         db_upgrade()
-    #         app.logger.info('[migrate] flask db upgrade OK')
-    #     except Exception as e:
-    #         app.logger.error(f'[migrate] Erreur : {e}')
     return app, socketio
-
-
-def _run_purge(app):
-    from app.models import AccessLog, Correction
-    now           = datetime.now(timezone.utc)
-    cutoff_logs   = now - timedelta(days=180)
-    cutoff_drafts = now - timedelta(days=30)
-    try:
-        n_logs = (
-            db.session.query(AccessLog)
-            .filter(AccessLog.accessed_at < cutoff_logs)
-            .delete(synchronize_session=False)
-        )
-        n_drafts = (
-            db.session.query(Correction)
-            .filter(
-                Correction.status     == 'draft',
-                Correction.created_at  < cutoff_drafts,
-            )
-            .delete(synchronize_session=False)
-        )
-        db.session.commit()
-        app.logger.info(f'[purge] {n_logs} access_logs + {n_drafts} drafts supprimés')
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f'[purge] Échec : {e}')

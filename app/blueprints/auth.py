@@ -1,18 +1,19 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
-from app import db, limiter
+from app.extensions import db, limiter
 from app.models import Teacher
 from app.services.email import send_verification_email
 from urllib.parse import urlparse, urljoin
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 import re
 
-# Dummy hash précalculé pour protection timing attack
 _DUMMY_HASH = generate_password_hash("dummy")
+
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
+# Regex corrigées (lookaheads complets)
 PASSWORD_PATTERN = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]).{10,}$'
-EMAIL_PATTERN    = r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$'
+EMAIL_PATTERN = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
 
 def is_safe_url(target):
     if not target:
@@ -25,55 +26,46 @@ def is_safe_url(target):
 @limiter.limit("10 per minute; 50 per hour")
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('teacher.dashboard'))
+        return redirect(url_for('teacher_crud.dashboard'))
 
     if request.method == 'POST':
-        email    = request.form.get('email', '').strip().lower()
+        email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         remember = bool(request.form.get('remember'))
 
         teacher = Teacher.query.filter_by(email=email).first()
-        
+
         if teacher:
             password_valid = teacher.check_password(password)
         else:
-            # Consomme le même temps que check_password (hash précalculé)
             check_password_hash(_DUMMY_HASH, password)
             password_valid = False
-        
+
         if teacher and password_valid:
-            # ── Utilisateur vérifié : connexion normale ──────────────────────
             if teacher.email_verified:
                 login_user(teacher, remember=remember)
                 session.permanent = True
                 next_page = request.args.get('next')
                 if not is_safe_url(next_page):
                     next_page = None
-                return redirect(next_page or url_for('teacher.dashboard'))
+                return redirect(next_page or url_for('teacher_crud.dashboard'))
 
-            # ── Utilisateur non vérifié : message explicite ──────────────────
-            flash(
-                "Votre compte n'est pas encore activé."
-                "Vérifiez votre boîte mail et cliquez sur le lien de confirmation.",
-                "warning"
-            )
+            flash("Votre compte n'est pas encore activé. Vérifiez votre boîte mail.", "warning")
             return render_template('auth/login.html')
 
         flash('Email ou mot de passe incorrect.', 'danger')
 
     return render_template('auth/login.html')
 
-
 @auth_bp.route('/register', methods=['GET', 'POST'])
 @limiter.limit("5 per hour")
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('teacher.dashboard'))
+        return redirect(url_for('teacher_crud.dashboard'))
 
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
 
-        # Validation email
         if not re.match(EMAIL_PATTERN, email):
             flash('Adresse email invalide.', 'warning')
             return render_template('auth/register.html')
@@ -82,24 +74,21 @@ def register():
             flash('Cet email est déjà utilisé.', 'warning')
             return render_template('auth/register.html')
 
-        # Validation mot de passe
         password = request.form.get('password', '')
         if not re.match(PASSWORD_PATTERN, password):
             flash('Mot de passe : 10 caractères min., majuscule, minuscule, chiffre et caractère spécial.', 'warning')
             return render_template('auth/register.html')
 
-        # Confirmation mot de passe
         confirm = request.form.get('confirm_password', '')
         if password != confirm:
             flash('Les mots de passe ne correspondent pas.', 'warning')
             return render_template('auth/register.html')
 
-        # Création du compte (email_verified=False par défaut — cf. modèle)
         teacher = Teacher(
-            email      = email,
-            first_name = request.form.get('first_name', '').strip(),
-            last_name  = request.form.get('last_name',  '').strip(),
-            school     = request.form.get('school',     '').strip(),
+            email=email,
+            first_name=request.form.get('first_name', '').strip(),
+            last_name=request.form.get('last_name', '').strip(),
+            school=request.form.get('school', '').strip(),
         )
         teacher.set_password(password)
         token = teacher.generate_verification_token()
@@ -107,36 +96,22 @@ def register():
         db.session.add(teacher)
         db.session.commit()
 
-        # Envoi email de vérification
         sent = send_verification_email(
-            to_email   = email,
-            first_name = teacher.first_name or 'Enseignant',
-            token      = token,
+            to_email=email,
+            first_name=teacher.first_name or 'Enseignant',
+            token=token,
         )
 
         if sent:
-            flash(
-                f'Compte créé ! Un email de confirmation a été envoyé à {email}. '
-                'Cliquez sur le lien pour activer votre compte.',
-                'success'
-            )
+            flash(f'Compte créé ! Email de confirmation envoyé à {email}.', 'success')
             return redirect(url_for('auth.login'))
 
-        # ── SendGrid a échoué : on supprime le compte et on informe l'utilisateur ──
-        # On ne valide PAS le compte silencieusement — ce serait contourner
-        # la vérification. L'utilisateur doit réessayer quand le service sera
-        # disponible.
         db.session.delete(teacher)
         db.session.commit()
-        flash(
-            "Impossible d'envoyer l'email de confirmation (service temporairement indisponible). "
-            "Votre compte n'a pas été créé. Veuillez réessayer dans quelques instants.",
-            "danger"
-        )
+        flash("Impossible d'envoyer l'email de confirmation. Réessayez plus tard.", "danger")
         return render_template('auth/register.html')
 
     return render_template('auth/register.html')
-
 
 @auth_bp.route('/verify/<token>')
 def verify_email(token):
@@ -145,15 +120,14 @@ def verify_email(token):
         flash('Lien de vérification invalide ou expiré.', 'danger')
         return redirect(url_for('auth.login'))
 
-    teacher.email_verified     = True
+    teacher.email_verified = True
     teacher.verification_token = None
     db.session.commit()
 
     login_user(teacher)
     session.permanent = True
-    flash(f'Email confirmé ! Bienvenue, {teacher.first_name} 🎉', 'success')
-    return redirect(url_for('teacher.dashboard'))
-
+    flash(f'Email confirmé ! Bienvenue, {teacher.first_name}.', 'success')
+    return redirect(url_for('teacher_crud.dashboard'))
 
 @auth_bp.route('/logout')
 @login_required

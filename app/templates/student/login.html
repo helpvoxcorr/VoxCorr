@@ -1,271 +1,57 @@
 {% extends "base.html" %}
-
 {% block title %}Connexion Élève - VoxCorr{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/auth.css') }}">{% endblock %}
 
 {% block content %}
-<style>
-  /* ── Conteneur principal centré ─────────────────────────────────────── */
-  .vox-login-container {
-    min-height: 85vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--vox-grey);
-    font-family: var(--vox-font);
-    padding: 1rem;
-  }
+<div class="auth-vc-container">
+  <div class="auth-vc-card">
+    <img src="{{ url_for('static', filename='icons/logo.svg') }}" alt="VoxCorr" class="auth-vc-logo-img">
 
-  /* ── Carte de connexion avec ombre et animation ─────────────────────── */
-  .vox-card {
-    background: var(--vox-white);
-    border-radius: var(--vox-radius-xl);
-    box-shadow: var(--vox-shadow-lg);
-    padding: 3rem 2.5rem;
-    width: 100%;
-    max-width: 440px;
-    border: 1px solid var(--vox-border);
-    text-align: center;
-    transition: transform var(--vox-tr), box-shadow var(--vox-tr);
-    animation: fadeInUp 0.6s var(--vox-tr) forwards;
-    position: relative;
-    overflow: visible;
-  }
+    <div class="auth-vc-logo">Vox<span>Corr</span></div>
+    <p class="auth-vc-subtitle">Entre ton code d'accès</p>
 
-  .vox-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 16px 48px rgba(57, 255, 20, 0.12), var(--vox-shadow-lg);
-    border-color: var(--vox-neon-glow);
-  }
-
-  /* ── Logo flottant à cheval sur le bord ─────────────────────────────── */
-  .vox-logo-img {
-    width: 140px;
-    height: 140px;
-    margin: -110px auto 1.5rem auto;
-    display: block;
-    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.15));
-    animation: logoFloat 3s ease-in-out infinite;
-  }
-
-  @keyframes logoFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-  }
-
-  /* ── Typographie et logo texte ──────────────────────────────────────── */
-  .vox-logo {
-    font-size: 2.2rem;
-    font-weight: 800;
-    color: var(--vox-black);
-    margin-bottom: 0.5rem;
-    letter-spacing: -1.5px;
-  }
-
-  .vox-logo span {
-    color: var(--vox-neon);
-    text-shadow: 0 0 15px var(--vox-neon-glow);
-  }
-
-  .vox-subtitle {
-    color: var(--vox-muted);
-    font-size: 1rem;
-    margin-bottom: 2.5rem;
-    font-weight: 500;
-  }
-
-  /* ── Champ de saisie code d'accès ───────────────────────────────────── */
-  .vox-input-group {
-    position: relative;
-    margin-bottom: 2rem;
-  }
-
-  .vox-input {
-    width: 100%;
-    padding: 1.2rem 1rem;
-    font-size: 1.5rem;
-    font-weight: 700;
-    text-align: center;
-    letter-spacing: 6px;
-    color: var(--vox-black);
-    background: var(--vox-grey-2);
-    border: 2px solid var(--vox-border-md);
-    border-radius: var(--vox-radius);
-    outline: none;
-    transition: all var(--vox-tr);
-    text-transform: uppercase;
-  }
-
-  .vox-input:focus {
-    border-color: var(--vox-neon);
-    background: var(--vox-white);
-    box-shadow: 0 0 0 5px var(--vox-neon-glow);
-  }
-
-  .vox-input::placeholder {
-    letter-spacing: 2px;
-    font-weight: 600;
-    font-size: 1rem;
-    color: var(--vox-muted);
-    opacity: 0.6;
-  }
-
-  /* ── Bouton d'action principal ──────────────────────────────────────── */
-  .vox-btn {
-    width: 100%;
-    padding: 1.1rem;
-    font-size: 1.1rem;
-    font-weight: 800;
-    color: var(--vox-black);
-    background: var(--vox-neon);
-    border: none;
-    border-radius: var(--vox-radius);
-    cursor: pointer;
-    transition: all var(--vox-tr);
-    box-shadow: var(--vox-shadow-sm);
-    letter-spacing: 0.5px;
-  }
-
-  .vox-btn:hover {
-    background: var(--vox-neon-d);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px var(--vox-neon-glow);
-  }
-
-  .vox-btn:active {
-    transform: translateY(-1px);
-  }
-
-  /* ── Lien d'aide ────────────────────────────────────────────────────── */
-  .vox-help {
-    margin-top: 2rem;
-    font-size: 0.9rem;
-    color: var(--vox-muted);
-  }
-
-  .vox-help a {
-    color: var(--vox-black);
-    font-weight: 700;
-    text-decoration: none;
-    border-bottom: 2px solid var(--vox-neon);
-    transition: color var(--vox-tr), border-color var(--vox-tr);
-  }
-
-  .vox-help a:hover {
-    color: var(--vox-neon-d);
-    border-color: var(--vox-neon-d);
-  }
-
-  /* ── Animation d'entrée fluide ──────────────────────────────────────── */
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* ── Message d'erreur Flask-WTF ─────────────────────────────────────── */
-  .vox-error {
-    background: rgba(255, 50, 50, 0.1);
-    color: #d32f2f;
-    padding: 0.8rem;
-    border-radius: var(--vox-radius);
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-    border: 1px solid rgba(255, 50, 50, 0.2);
-  }
-
-  /* ── Responsive mobile ──────────────────────────────────────────────── */
-  @media (max-width: 480px) {
-    .vox-logo-img {
-      width: 100px;
-      height: 100px;
-      margin: -80px auto 1rem auto;
-    }
-    
-    .vox-card {
-      padding: 2rem 1.5rem;
-    }
-    
-    .vox-logo {
-      font-size: 1.8rem;
-    }
-    
-    .vox-subtitle {
-      font-size: 0.9rem;
-      margin-bottom: 2rem;
-    }
-  }
-
-  /* ── Responsive tablette ────────────────────────────────────────────── */
-  @media (min-width: 481px) and (max-width: 768px) {
-    .vox-logo-img {
-      width: 120px;
-      height: 120px;
-      margin: -95px auto 1.2rem auto;
-    }
-  }
-</style>
-
-<div class="vox-login-container">
-  <div class="vox-card">
-    <!-- Logo flottant à cheval sur le bord supérieur -->
-    <img src="{{ url_for('static', filename='icons/logo.svg') }}" alt="VoxCorr" class="vox-logo-img">
-    
-    <div class="vox-logo">Vox<span>Corr</span></div>
-    <p class="vox-subtitle">Entre ton code d'accès à 8 caractères</p>
-    
-    <!-- Affichage erreurs Flask-WTF si présentes -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="vox-error">{{ message }}</div>
+          <div class="auth-vc-error">{{ message }}</div>
         {% endfor %}
       {% endif %}
     {% endwith %}
 
-    <!-- Blueprint correct : student.login -->
     <form method="POST" action="{{ url_for('student.login') }}" id="loginForm" novalidate>
-      
-      <!-- Token CSRF Flask-WTF -->
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      
-      <div class="vox-input-group">
-        <input 
-          type="text" 
-          name="access_code" 
-          id="access_code" 
-          class="vox-input" 
-          placeholder="CODE" 
-          maxlength="8" 
+
+      <div class="auth-vc-group">
+        <input
+          type="text"
+          name="access_code"
+          id="access_code"
+          class="input-vc auth-vc-code-input"
+          placeholder="CODE"
+          maxlength="8"
           autocomplete="off"
           required
           autofocus
         >
       </div>
-      
-      <button type="submit" class="vox-btn">
-        ACCÉDER À MES CORRECTIONS
-      </button>
+
+      <button type="submit" class="auth-vc-btn">ACCÉDER À MES CORRECTIONS</button>
     </form>
 
-    <!-- Lien mailto sécurisé -->
-    <div class="vox-help">
-      Code perdu ou invalide ? <a href="mailto:help.voxcorr@gmail.com?subject=VoxCorr%20%3A%20Code%20d%27acc%C3%A8s%20perdu&body=Bonjour%2C%0A%0AJe%20suis%20%C3%A9l%C3%A8ve%20et%20j%27ai%20perdu%20mon%20code%20d%27acc%C3%A8s%20VoxCorr.%0AMerci%20de%20me%20le%20renvoyer.%0A%0ACode%20classe%20%3A%20%0ANom%20%3A%20">Contacte ton prof</a>
+    <div class="auth-vc-help">
+      Code perdu ou invalide ? <a href="mailto:help.voxcorr@gmail.com?subject=VoxCorr%20%3A%20Code%20d%27acc%C3%A8s%20perdu">Contacte ton prof</a>
     </div>
   </div>
 </div>
 
 <script>
-  // ── Force majuscules et bloque caractères spéciaux en temps réel ──
   document.getElementById('access_code').addEventListener('input', function(e) {
     this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
   });
 
-  // ── Focus automatique au chargement si champ vide ──
   window.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('access_code');
-    if (input && !input.value) {
-      input.focus();
-    }
+    if (input && !input.value) input.focus();
   });
 </script>
 {% endblock %}

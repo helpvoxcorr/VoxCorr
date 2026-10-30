@@ -1,31 +1,47 @@
 {% extends "base.html" %}
 {% block title %}Mes compétences — VoxCorr{% endblock %}
+
 {% block content %}
-<div class="vox-page-hero mb-4">
-  <h1>Compétences évaluables</h1>
-  <p>Compétences importées depuis Pronote ({{ competences|length }})</p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Mes compétences</h1>
+  <a href="{{ url_for('teacher_admin.admin') }}" class="btn vox-btn-outline">
+    <i class="bi bi-arrow-left"></i> Retour à l'admin
+  </a>
 </div>
 
 <div class="vox-card">
-  <table class="vox-table">
-    <thead>
-      <tr><th>Nom</th><th>Domaine</th><th>Matière</th><th>Actions</th></tr>
-    </thead>
-    <tbody>
-      {% for c in competences %}
-      <tr>
-        <td>{{ c.name }}</td>
-        <td>{% if c.domain %}{{ c.domain }}{% else %}—{% endif %}</td>
-        <td>{{ c.subject }}</td>
-        <td>
-          <form method="POST" action="/teacher/competences/{{ c.id }}/delete" style="display:inline;">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Supprimer cette compétence ?')">Supprimer</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  {% if competences %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Domaine</th>
+            <th>Matière</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in competences %}
+            <tr>
+              <td class="fw-500">{{ c.name }}</td>
+              <td><span class="vox-badge">{{ c.domain or '—' }}</span></td>
+              <td>{{ c.subject or '—' }}</td>
+              <td class="text-end">
+                <form method="POST" action="{{ url_for('teacher_corr.delete_competence', comp_id=c.id) }}" class="d-inline" onsubmit="return confirm('Supprimer cette compétence ?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted text-center py-4">Aucune compétence personnalisée. Importez-les depuis la page Admin.</p>
+  {% endif %}
 </div>
 {% endblock %}

@@ -1,52 +1,44 @@
 {% extends "base.html" %}
-{% block title %}Modifier la classe — VoxCorr{% endblock %}
+{% set breadcrumbs = [{"label": "Classes", "url": "/teacher/classes"}, {"label": classroom.name, "url": None}] %}
+{% block title %}Modifier {{ classroom.name }} — VoxCorr{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-lg-5">
-    <div class="vox-page-hero mb-4">
-      <h1>Modifier la classe</h1>
-      <p>{{ classroom.name }} · {{ classroom.school_year }}</p>
-    </div>
-
+  <div class="col-md-8 col-lg-6">
     <div class="vox-card">
+      <h2 class="h4 mb-4">Modifier la classe</h2>
+      
       <form method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
+        
         <div class="mb-3">
-          <label class="vox-label">Nom de la classe *</label>
-          <input type="text" name="name" class="vox-input"
-                 value="{{ classroom.name }}" required>
+          <label for="name" class="vox-label">Nom de la classe *</label>
+          <input type="text" class="vox-input" id="name" name="name" value="{{ classroom.name }}" required>
         </div>
 
         <div class="mb-3">
-          <label class="vox-label">Niveau</label>
-          <select name="level" class="vox-input">
-            <option value="">— Non renseigné —</option>
+          <label for="level" class="vox-label">Niveau</label>
+          <select class="vox-input" id="level" name="level">
+            <option value="">-- Non renseigné --</option>
             {% for lvl in levels %}
-            <option value="{{ lvl }}" {% if classroom.level == lvl %}selected{% endif %}>
-              {{ lvl }}
-            </option>
+              <option value="{{ lvl }}" {% if classroom.level == lvl %}selected{% endif %}>{{ lvl }}</option>
             {% endfor %}
           </select>
         </div>
 
         <div class="mb-3">
-          <label class="vox-label">Matière</label>
-          <input type="text" name="subject" class="vox-input"
-                 value="{{ classroom.subject or '' }}"
-                 placeholder="ex : SVT, Mathématiques…">
+          <label for="subject" class="vox-label">Matière</label>
+          <input type="text" class="vox-input" id="subject" name="subject" value="{{ classroom.subject or '' }}">
         </div>
 
         <div class="mb-4">
-          <label class="vox-label">Année scolaire</label>
-          <input type="text" name="school_year" class="vox-input"
-                 value="{{ classroom.school_year or '2025-2026' }}">
+          <label for="school_year" class="vox-label">Année scolaire</label>
+          <input type="text" class="vox-input" id="school_year" name="school_year" value="{{ classroom.school_year }}">
         </div>
 
-        <div class="d-flex gap-2">
+        <div class="d-flex justify-content-between">
+          <a href="{{ url_for('teacher_crud.classes') }}" class="btn vox-btn-outline">Annuler</a>
           <button type="submit" class="btn vox-btn-primary">Enregistrer</button>
-          <a href="/teacher/classes" class="btn vox-btn-dark">Annuler</a>
         </div>
       </form>
     </div>

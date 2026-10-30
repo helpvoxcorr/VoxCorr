@@ -2,603 +2,331 @@
 {% set breadcrumbs = [{"label": "Administration", "url": None}] %}
 {% block title %}Administration — VoxCorr{% endblock %}
 
-{% block head %}
-<style>
-.admin-zone {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 2rem;
-}
-.admin-zone-header {
-  background: var(--vox-black);
-  color: #fff;
-  padding: 1.25rem 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-}
-.admin-zone-header .zone-icon {
-  width: 36px; height: 36px;
-  border-radius: 8px;
-  background: rgba(255,255,255,.08);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.1rem;
-  color: var(--vox-neon);
-  flex-shrink: 0;
-}
-.admin-zone-body {
-  background: #fafafa;
-  padding: 1.5rem;
-}
-.admin-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 1.25rem 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  text-decoration: none;
-  color: inherit;
-  transition: border-color .15s, box-shadow .15s, transform .1s;
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-}
-.admin-card:hover {
-  border-color: var(--vox-black);
-  box-shadow: 0 4px 16px rgba(0,0,0,.06);
-  transform: translateY(-1px);
-  color: inherit;
-  text-decoration: none;
-}
-.admin-card.danger:hover { border-color: #e53e3e; }
-.admin-card-icon {
-  width: 44px; height: 44px;
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.2rem;
-  flex-shrink: 0;
-}
-.admin-card-icon.green  { background: #f0fdf4; color: #16a34a; }
-.admin-card-icon.blue   { background: #eff6ff; color: #2563eb; }
-.admin-card-icon.purple { background: #faf5ff; color: #7c3aed; }
-.admin-card-icon.orange { background: #fff7ed; color: #ea580c; }
-.admin-card-icon.grey   { background: #f9fafb; color: #6b7280; }
-.admin-card-icon.red    { background: #fef2f2; color: #e53e3e; }
-.admin-card-icon.neon   { background: #f0fff0; color: #16a34a; }
-.admin-card-label { font-weight: 600; font-size: .95rem; margin-bottom: .15rem; }
-.admin-card-desc  { font-size: .8rem; color: #6b7280; line-height: 1.4; }
-.admin-card-arrow { margin-left: auto; color: #d1d5db; font-size: 1rem; flex-shrink: 0; }
-
-/* Lock screen */
-.admin-lock {
-  max-width: 440px;
-  margin: 4rem auto;
-}
-.admin-lock-icon {
-  width: 64px; height: 64px;
-  border-radius: 16px;
-  background: var(--vox-black);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.8rem;
-  color: var(--vox-neon);
-  margin: 0 auto 1.5rem;
-}
-
-/* Theme swatches */
-.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
-.theme-swatch {
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: border-color .15s, transform .1s;
-}
-.theme-swatch:hover { border-color: var(--vox-black); transform: translateY(-2px); }
-.theme-swatch.active { border-color: var(--vox-neon); border-width: 2px; }
-.theme-swatch-preview {
-  height: 60px;
-  display: flex; align-items: center; justify-content: center;
-}
-.theme-swatch-dot {
-  width: 20px; height: 20px; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,.3);
-}
-.theme-swatch-label {
-  padding: .5rem .75rem;
-  font-size: .8rem;
-  font-weight: 600;
-  border-top: 1px solid #e5e7eb;
-  background: #fff;
-}
-</style>
-{% endblock %}
-
 {% block content %}
-
 {# ── ÉCRAN DE VERROUILLAGE ─────────────────────────────────────────────────── #}
 {% if not session.get('admin_unlocked') %}
-<div class="admin-lock">
-  <div class="vox-card text-center">
-    <div class="admin-lock-icon"><i class="bi bi-shield-lock-fill"></i></div>
-    <h4 class="fw-bold mb-1">Zone protégée</h4>
-    <p class="text-muted small mb-4">
-      Confirmez votre mot de passe pour accéder aux paramètres d'administration.
-    </p>
-    {% if lock_error %}
-    <div class="alert alert-danger py-2 small">{{ lock_error }}</div>
-    {% endif %}
-    <form method="POST" action="/teacher/admin">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="mb-3 text-start">
-        <label class="vox-label">Mot de passe</label>
-        <input type="password" name="password" class="vox-input" autofocus required
-               placeholder="Votre mot de passe VoxCorr">
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="vox-card text-center">
+      <div class="mb-3">
+        <i class="bi bi-shield-lock-fill" style="font-size: 3rem; color: var(--vox-neon);"></i>
       </div>
-      <button type="submit" class="btn vox-btn-primary w-100">
-        <i class="bi bi-unlock me-2"></i>Accéder à l'administration
-      </button>
-      <a href="/teacher/dashboard" class="btn vox-btn-outline w-100 mt-2">Annuler</a>
-    </form>
+      <h2 class="h4 mb-2">Zone protégée</h2>
+      <p class="text-muted mb-4">Confirmez votre mot de passe pour accéder aux paramètres d'administration.</p>
+      
+      {% if lock_error %}
+        <div class="vox-error mb-3">{{ lock_error }}</div>
+      {% endif %}
+      
+      <form method="POST" action="{{ url_for('teacher_admin.admin') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="vox-input-group mb-3">
+          <input type="password" name="password" class="vox-input" placeholder="Mot de passe" required autofocus>
+        </div>
+        <button type="submit" class="vox-btn w-100">Accéder à l'administration</button>
+      </form>
+      
+      <div class="mt-3">
+        <a href="{{ url_for('teacher_crud.dashboard') }}" class="text-muted small">Annuler et retourner au tableau de bord</a>
+      </div>
+    </div>
   </div>
 </div>
 
 {# ── INTERFACE ADMIN ───────────────────────────────────────────────────────── #}
 {% else %}
-
-<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-  <div>
-    <h1 class="mb-0">Administration</h1>
-    <p class="text-muted small mb-0">Session sécurisée active · <a href="/teacher/admin/lock" class="text-muted">Verrouiller</a></p>
-  </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Administration</h1>
+  <a href="{{ url_for('teacher_admin.admin_lock') }}" class="btn vox-btn-outline btn-sm">
+    <i class="bi bi-lock"></i> Verrouiller la session
+  </a>
 </div>
+<p class="text-muted small mb-4"><i class="bi bi-check-circle-fill text-success"></i> Session sécurisée active (expire dans 30 min)</p>
 
-{# ── ZONE 1 — GESTION DES DONNÉES ─────────────────────────────────────────── #}
-<div class="admin-zone">
-  <div class="admin-zone-header">
-    <div class="zone-icon"><i class="bi bi-database"></i></div>
-    <div>
-      <div class="fw-bold">Gestion des données</div>
-      <div style="font-size:.78rem;opacity:.6">Import, export, devoirs et compte</div>
-    </div>
-  </div>
-  <div class="admin-zone-body">
-    <div class="row g-3">
-
-      {# Import CSV Pronote (compétences) #}
-      <div class="col-md-6">
-          <div class="admin-card" data-bs-toggle="modal" data-bs-target="#modal-import-competences">
-              <div class="admin-card-icon green"><i class="bi bi-file-spreadsheet"></i></div>
-              <div>
-                  <div class="admin-card-label">Importer des compétences (CSV Pronote)</div>
-                  <div class="admin-card-desc">Ajoute ou met à jour les compétences évaluables</div>
-              </div>
-              <i class="bi bi-chevron-right admin-card-arrow"></i>
+<div class="row g-4">
+  {# ─ ZONE 1 — GESTION DES DONNÉES ─────────────────────────────────────────── #}
+  <div class="col-lg-6">
+    <div class="vox-card h-100">
+      <h2 class="h5 mb-4"><i class="bi bi-database me-2"></i>Gestion des données</h2>
+      
+      <div class="list-group list-group-flush">
+        <button type="button" class="list-group-item list-group-item-action px-0" data-bs-toggle="modal" data-bs-target="#modalImportCompetences">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-bold">Importer des compétences (CSV Pronote)</div>
+              <div class="small text-muted">Ajoute ou met à jour les compétences évaluables</div>
+            </div>
+            <i class="bi bi-chevron-right text-muted"></i>
           </div>
-      </div>
-
-      {# Import CSV Pronote (Classe entiere) #}
-      <div class="col-md-6">
-        <div class="admin-card" data-bs-toggle="modal" data-bs-target="#modal-import-pronote">
-          <div class="admin-card-icon green"><i class="bi bi-cloud-upload"></i></div>
-          <div>
-            <div class="admin-card-label">Importer mes classes</div>
-            <div class="admin-card-desc">Export Pronote complet → toutes les classes et élèves en une fois</div>
+        </button>
+        
+        <button type="button" class="list-group-item list-group-item-action px-0" data-bs-toggle="modal" data-bs-target="#modalImportPronote">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-bold">Importer mes classes (Export Pronote)</div>
+              <div class="small text-muted">Classes et élèves en une fois</div>
+            </div>
+            <i class="bi bi-chevron-right text-muted"></i>
           </div>
-          <i class="bi bi-chevron-right admin-card-arrow"></i>
-        </div>
-      </div>
+        </button>
 
-      {# Créer ou ajouter des codes élèves #}
-      <div class="col-md-6">
-        <div class="admin-card" data-bs-toggle="modal" data-bs-target="#modal-access-codes">
-          <div class="admin-card-icon blue"><i class="bi bi-key"></i></div>
-          <div>
-            <div class="admin-card-label">Codes d'accès élèves</div>
-            <div class="admin-card-desc">Générer et consulter les codes de connexion élèves</div>
+        <a href="{{ url_for('teacher_admin.access_codes') }}" class="list-group-item list-group-item-action px-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-bold">Codes d'accès élèves</div>
+              <div class="small text-muted">Générer et consulter les codes de connexion</div>
+            </div>
+            <i class="bi bi-chevron-right text-muted"></i>
           </div>
-          <i class="bi bi-chevron-right admin-card-arrow"></i>
-        </div>
-      </div>
+        </a>
 
-      {# Devoir commun #}
-      <div class="col-md-6">
-        <a href="/teacher/assignments/common/new" class="admin-card">
-          <div class="admin-card-icon blue"><i class="bi bi-files"></i></div>
-          <div>
-            <div class="admin-card-label">Créer un devoir commun</div>
-            <div class="admin-card-desc">Un seul devoir assigné à plusieurs classes simultanément</div>
+        <button type="button" class="list-group-item list-group-item-action px-0" data-bs-toggle="modal" data-bs-target="#modalExportNotes">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-bold">Exporter les notes</div>
+              <div class="small text-muted">Classes et période au choix · CSV</div>
+            </div>
+            <i class="bi bi-chevron-right text-muted"></i>
           </div>
-          <i class="bi bi-chevron-right admin-card-arrow"></i>
+        </button>
+
+        <a href="{{ url_for('teacher_corr.list_competences') }}" class="list-group-item list-group-item-action px-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-bold">Mes compétences personnalisées</div>
+              <div class="small text-muted">Voir et supprimer mes compétences</div>
+            </div>
+            <i class="bi bi-chevron-right text-muted"></i>
+          </div>
         </a>
       </div>
-
-      {# Export notes #}
-      <div class="col-md-6">
-        <div class="admin-card" data-bs-toggle="modal" data-bs-target="#modal-export-notes">
-          <div class="admin-card-icon purple"><i class="bi bi-file-earmark-spreadsheet"></i></div>
-          <div>
-            <div class="admin-card-label">Exporter les notes</div>
-            <div class="admin-card-desc">Classes et période au choix · Excel ou PDF</div>
-          </div>
-          <i class="bi bi-chevron-right admin-card-arrow"></i>
-        </div>
-      </div>
-
-      {# Profil #}
-      <div class="col-md-6">
-        <a href="/teacher/profile" class="admin-card">
-          <div class="admin-card-icon grey"><i class="bi bi-person-circle"></i></div>
-          <div>
-            <div class="admin-card-label">Éditer mon profil</div>
-            <div class="admin-card-desc">Nom, établissement, email, mot de passe</div>
-          </div>
-          <i class="bi bi-chevron-right admin-card-arrow"></i>
-        </a>
-      </div>
-
-      {# Suppression compte #}
-      <div class="col-md-6">
-        <div class="admin-card danger" data-bs-toggle="modal" data-bs-target="#modal-delete-account">
-          <div class="admin-card-icon red"><i class="bi bi-person-x"></i></div>
-          <div>
-            <div class="admin-card-label" style="color:#e53e3e">Supprimer mon compte</div>
-            <div class="admin-card-desc">Action irréversible · toutes les données seront effacées</div>
-          </div>
-          <i class="bi bi-chevron-right admin-card-arrow"></i>
-        </div>
-      </div>
-
     </div>
   </div>
-</div>
 
-{# ── ZONE 2 — GESTION DE L'INTERFACE ──────────────────────────────────────── #}
-<div class="admin-zone">
-  <div class="admin-zone-header">
-    <div class="zone-icon"><i class="bi bi-palette"></i></div>
-    <div>
-      <div class="fw-bold">Gestion de l'interface</div>
-      <div style="font-size:.78rem;opacity:.6">Thème visuel de votre espace VoxCorr</div>
-    </div>
-  </div>
-  <div class="admin-zone-body">
-    <p class="text-muted small mb-3">Le thème s'applique à votre espace et à la page de correction vue par vos élèves.</p>
-    <form method="POST" action="/teacher/admin/theme">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="theme-grid mb-4">
-
-        {% set themes = [
-          {"id":"neon",    "label":"Neon",    "bg":"#0a0a0a", "accent":"#39FF14"},
-          {"id":"ardoise", "label":"Ardoise", "bg":"#1e293b", "accent":"#6366f1"},
-          {"id":"soleil",  "label":"Soleil",  "bg":"#92400e", "accent":"#f59e0b"},
-          {"id":"ocean",   "label":"Océan",   "bg":"#0c4a6e", "accent":"#0ea5e9"},
-          {"id":"craie",   "label":"Craie",   "bg":"#374151", "accent":"#000000"},
-        ] %}
-
-        {% for t in themes %}
-        <label class="theme-swatch {% if current_user.theme_primary == t.accent %}active{% endif %}">
-          <input type="radio" name="theme" value="{{ t.id }}"
-                 {% if current_user.theme_primary == t.accent %}checked{% endif %}
-                 class="d-none">
-          <div class="theme-swatch-preview" style="background:{{ t.bg }}">
-            <div class="theme-swatch-dot" style="background:{{ t.accent }}"></div>
+  {# ── ZONE 2 — GESTION DE L'INTERFACE & COMPTE ─────────────────────────────── #}
+  <div class="col-lg-6">
+    <div class="vox-card mb-4">
+      <h2 class="h5 mb-4"><i class="bi bi-palette me-2"></i>Gestion de l'interface</h2>
+      <p class="text-muted small mb-3">Le thème s'applique à votre espace et à la page de correction vue par vos élèves.</p>
+      
+      <form method="POST" action="{{ url_for('teacher_admin.admin_theme') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-2 mb-3">
+          {% set themes = [
+            {"id":"neon", "label":"Neon", "bg":"#0a0a0a", "accent":"#39FF14"},
+            {"id":"ardoise", "label":"Ardoise", "bg":"#1e293b", "accent":"#6366f1"},
+            {"id":"soleil", "label":"Soleil", "bg":"#92400e", "accent":"#f59e0b"},
+            {"id":"ocean", "label":"Océan", "bg":"#0c4a6e", "accent":"#0ea5e9"},
+            {"id":"craie", "label":"Craie", "bg":"#374151", "accent":"#000000"},
+          ] %}
+          {% for t in themes %}
+          <div class="col-6 col-sm-4">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="theme" id="theme_{{ t.id }}" value="{{ t.id }}" {% if current_user.theme_primary == t.accent %}checked{% endif %}>
+              <label class="form-check-label d-flex align-items-center gap-2" for="theme_{{ t.id }}">
+                <span style="width: 16px; height: 16px; border-radius: 50%; background: {{ t.accent }}; display: inline-block;"></span>
+                {{ t.label }}
+              </label>
+            </div>
           </div>
-          <div class="theme-swatch-label">{{ t.label }}</div>
-        </label>
-        {% endfor %}
+          {% endfor %}
+        </div>
+        <button type="submit" class="btn vox-btn-primary btn-sm">Appliquer le thème</button>
+      </form>
+    </div>
 
+    <div class="vox-card border-danger">
+      <h2 class="h5 mb-3 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Zone de danger</h2>
+      <div class="mb-4 pb-4 border-bottom">
+        <p class="fw-bold mb-1">Mise à zéro de l'année scolaire</p>
+        <p class="text-muted small mb-3">Supprime toutes vos classes, élèves, devoirs et corrections. Votre compte est conservé.</p>
+        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalResetYear">
+          <i class="bi bi-arrow-counterclockwise"></i> Remettre à zéro
+        </button>
       </div>
-      <button type="submit" class="btn vox-btn-primary btn-sm">
-        <i class="bi bi-check-lg me-1"></i>Appliquer le thème
+      <p class="text-muted small mb-3">La suppression de votre compte est irréversible. Toutes vos classes, élèves, devoirs et corrections seront définitivement effacés.</p>
+      <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalDeleteAccount">
+        <i class="bi bi-trash"></i> Supprimer mon compte
       </button>
-    </form>
+    </div>
   </div>
 </div>
 
-{# ── MODALE : Import Pronote ───────────────────────────────────────────────── #}
-<div class="modal fade" id="modal-import-pronote" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:12px;overflow:hidden">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold">
-          <i class="bi bi-cloud-upload me-2 text-success"></i>Importer une classe Pronote
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="alert alert-info py-2 small mb-3">
-          <i class="bi bi-info-circle me-1"></i>
-          Dans Pronote → votre classe → Exporter la liste des élèves en CSV.
-          Un fichier par classe.
+{# ── MODALE : Import Pronote (Classes) ─────────────────────────────────────── #}
+<div class="modal fade" id="modalImportPronote" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('teacher_crud.import_pronote_file') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Importer une classe Pronote</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <form method="POST" action="/teacher/import/pronote-file" enctype="multipart/form-data">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body">
+          <p class="small text-muted">Dans Pronote → votre classe → Exporter la liste des élèves en CSV. Un fichier par classe.</p>
           <div class="mb-3">
             <label class="vox-label">Nom de la classe</label>
-            <input type="text" name="class_name" class="vox-input"
-                   placeholder="ex: 31, 3ème B, 4A…" required>
+            <input type="text" name="class_name" class="vox-input" required>
           </div>
-          <div class="row g-2 mb-3">
-            <div class="col">
-              <label class="vox-label">Matière (optionnel)</label>
-              <input type="text" name="subject" class="vox-input"
-                     placeholder="ex: SVT">
-            </div>
-            <div class="col">
-              <label class="vox-label">Année scolaire</label>
-              <input type="text" name="school_year" class="vox-input"
-                     value="2025-2026">
-            </div>
+          <div class="mb-3">
+            <label class="vox-label">Matière (optionnel)</label>
+            <input type="text" name="subject" class="vox-input">
           </div>
-          <div class="mb-4">
+          <div class="mb-3">
+            <label class="vox-label">Année scolaire</label>
+            <input type="text" name="school_year" class="vox-input" value="2025-2026">
+          </div>
+          <div class="mb-3">
             <label class="vox-label">Fichier export Pronote (.csv)</label>
-            <input type="file" name="csv_file" accept=".csv,.txt"
-                   class="form-control" required>
+            <input type="file" name="csv_file" class="form-control" accept=".csv" required>
           </div>
-          <button type="submit" class="btn vox-btn-primary w-100">
-            <i class="bi bi-upload me-1"></i>Importer les élèves
-          </button>
-        </form>
-      </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn vox-btn-primary">Importer les élèves</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ─ MODALE : Import Compétences ───────────────────────────────────────────── #}
+<div class="modal fade" id="modalImportCompetences" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('teacher_admin.import_competences') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Importer des compétences</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="vox-label">Discipline / Matière</label>
+            <input type="text" name="subject" class="vox-input" required placeholder="Ex: SVT, Mathématiques">
+            <small class="text-muted">Ces compétences seront associées à cette matière.</small>
+          </div>
+          <div class="mb-3">
+            <label class="vox-label">Fichier CSV (export Pronote)</label>
+            <input type="file" name="csv_file" class="form-control" accept=".csv" required>
+            <small class="text-muted">Format : export des compétences depuis Pronote (onglet Évaluations).</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn vox-btn-primary">Importer</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
 
 {# ── MODALE : Export notes ─────────────────────────────────────────────────── #}
-<div class="modal fade" id="modal-export-notes" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:12px;overflow:hidden">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-spreadsheet me-2 text-purple"></i>Exporter les notes</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <form method="POST" action="/teacher/admin/export/notes">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="modal fade" id="modalExportNotes" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('teacher_admin.admin_export_notes') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Exporter les notes</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
           <div class="mb-3">
             <label class="vox-label">Classes</label>
-            <div style="max-height:180px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;padding:.75rem">
+            <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
               {% for c in classrooms %}
               <div class="form-check">
-                <input class="form-check-input" type="checkbox"
-                       name="class_ids" value="{{ c.id }}" id="cls-{{ c.id }}" checked>
-                <label class="form-check-label small" for="cls-{{ c.id }}">
-                  {{ c.name }} {% if c.subject %}<span class="text-muted">· {{ c.subject }}</span>{% endif %}
-                </label>
+                <input class="form-check-input" type="checkbox" name="class_ids" value="{{ c.id }}" id="class_{{ c.id }}">
+                <label class="form-check-label" for="class_{{ c.id }}">{{ c.name }} {% if c.subject %}· {{ c.subject }}{% endif %}</label>
               </div>
               {% endfor %}
             </div>
           </div>
-          <div class="row g-2 mb-3">
-            <div class="col">
+          <div class="row g-3">
+            <div class="col-6">
               <label class="vox-label">Du</label>
               <input type="date" name="date_from" class="vox-input">
             </div>
-            <div class="col">
+            <div class="col-6">
               <label class="vox-label">Au</label>
               <input type="date" name="date_to" class="vox-input">
             </div>
           </div>
-          <div class="mb-4">
-            <label class="vox-label">Format</label>
-            <div class="d-flex gap-3">
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="format" value="xlsx" id="fmt-xlsx" checked>
-                <label class="form-check-label small" for="fmt-xlsx"><i class="bi bi-file-earmark-excel me-1 text-success"></i>Excel (.xlsx)</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="format" value="pdf" id="fmt-pdf">
-                <label class="form-check-label small" for="fmt-pdf"><i class="bi bi-file-earmark-pdf me-1 text-danger"></i>PDF</label>
-              </div>
-            </div>
-          </div>
-          <button type="submit" class="btn vox-btn-primary w-100">
-            <i class="bi bi-download me-1"></i>Télécharger
-          </button>
-        </form>
-      </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn vox-btn-primary">Télécharger CSV</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
 
+
 {# ── MODALE : Suppression compte ──────────────────────────────────────────── #}
-<div class="modal fade" id="modal-delete-account" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:12px;overflow:hidden;border:1px solid #fecaca">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Supprimer mon compte</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="alert alert-danger py-2 small">
-          <strong>Action irréversible.</strong> Toutes vos classes, élèves, devoirs et corrections seront définitivement supprimés.
+<div class="modal fade" id="modalDeleteAccount" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-danger">
+      <form method="POST" action="{{ url_for('teacher_admin.admin_delete_account') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Supprimer mon compte</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
-        <form method="POST" action="/teacher/admin/delete-account">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body">
+          <p class="text-danger fw-bold">Action irréversible. Toutes vos données seront effacées.</p>
           <div class="mb-3">
-            <label class="vox-label">Tapez <strong>SUPPRIMER</strong> pour confirmer</label>
-            <input type="text" name="confirm" class="vox-input" placeholder="SUPPRIMER" required
-                   pattern="SUPPRIMER">
+            <label class="vox-label">Tapez SUPPRIMER pour confirmer</label>
+            <input type="text" name="confirm" class="vox-input" required>
           </div>
-          <div class="mb-4">
+          <div class="mb-3">
             <label class="vox-label">Mot de passe</label>
             <input type="password" name="password" class="vox-input" required>
           </div>
-          <button type="submit" class="btn btn-danger w-100">
-            <i class="bi bi-trash me-1"></i>Supprimer définitivement mon compte
-          </button>
-        </form>
-      </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-danger">Supprimer définitivement</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
 
-<!-- MODALE : Import compétences -->
-<div class="modal fade" id="modal-import-competences" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius:12px;overflow:hidden">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">
-                    <i class="bi bi-file-spreadsheet me-2 text-success"></i>Importer des compétences
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form method="POST" action="/teacher/admin/import-competences"
-                      enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="mb-3">
-                        <label class="vox-label">Discipline / Matière</label>
-                        <input type="text" name="subject" class="vox-input" 
-                               placeholder="ex: SVT, Sciences, Technologie" required>
-                        <div class="text-muted small mt-1">Ces compétences seront associées à cette matière.</div>
-                    </div>
-                    <div class="mb-4">
-                        <label class="vox-label">Fichier CSV (export Pronote)</label>
-                        <input type="file" name="csv_file" accept=".csv" class="form-control" required>
-                        <div class="text-muted small mt-1">Format : export des compétences depuis Pronote (onglet Évaluations).</div>
-                    </div>
-                    <button type="submit" class="btn vox-btn-primary w-100">
-                        <i class="bi bi-upload me-1"></i>Importer
-                    </button>
-                </form>
-            </div>
+{# ── MODALE : Mise à zéro année ──────────────────────────────────────────── #}
+<div class="modal fade" id="modalResetYear" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-warning">
+      <form method="POST" action="{{ url_for('teacher_admin.reset_year') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Mise à zéro de l'année</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-    </div>
-</div>
-
-{# ── MODALE : Codes d'accès élèves ───────────────────────────────────────── #}
-<div class="modal fade" id="modal-access-codes" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content" style="border-radius:12px;overflow:hidden">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold">
-          <i class="bi bi-key me-2 text-primary"></i>Codes d'accès élèves
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-
-        <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
-          <button type="button" class="btn vox-btn-primary btn-sm" id="btn-generate-codes">
-            <i class="bi bi-magic me-1"></i>Générer les codes manquants
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <strong>Cette action est irréversible.</strong> Toutes vos classes, élèves, devoirs et corrections seront supprimés. Votre compte et vos compétences sont conservés.
+          </div>
+          <div class="mb-3">
+            <label class="vox-label">Tapez <strong>RESET</strong> pour confirmer</label>
+            <input type="text" name="confirm" class="vox-input" required autocomplete="off">
+          </div>
+          <div class="mb-3">
+            <label class="vox-label">Mot de passe</label>
+            <input type="password" name="password" class="vox-input" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-warning text-dark fw-bold">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Tout supprimer et repartir à zéro
           </button>
-          <span id="generate-result" class="text-muted small"></span>
         </div>
-
-        <div class="d-flex align-items-center gap-3 mb-3">
-          <label class="vox-label mb-0">Classe</label>
-          <select id="filter-class" class="vox-input" style="max-width:200px;">
-            <option value="">Toutes les classes</option>
-          </select>
-          <span class="text-muted small ms-auto" id="codes-count"></span>
-        </div>
-
-        <div style="max-height:400px; overflow-y:auto;">
-          <table class="vox-table w-100" id="codes-table">
-            <thead>
-              <tr>
-                <th>Classe</th>
-                <th>Nom</th>
-                <th>Prénom</th>
-                <th>Alias</th>
-                <th>Code</th>
-              </tr>
-            </thead>
-            <tbody id="codes-tbody">
-              <tr><td colspan="5" class="text-muted text-center py-3">Chargement…</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-      </div>
+      </form>
     </div>
   </div>
 </div>
+
 {% endif %}
-{% block scripts %}
-<script>
-// ── Codes d'accès élèves ──────────────────────────────────────────────────
-let allStudents = [];
-
-document.getElementById('modal-access-codes').addEventListener('show.bs.modal', () => {
-  loadCodes();
-});
-
-function loadCodes(classId) {
-  const url = classId ? `/teacher/admin/access-codes?class_id=${classId}` : '/teacher/admin/access-codes';
-  fetch(url)
-    .then(r => r.json())
-    .then(data => {
-      console.log('data reçue:', data);
-      allStudents = data.students;
-
-      const select = document.getElementById('filter-class');
-      if (select.options.length <= 1) {
-        data.classrooms.forEach(c => {
-          const opt = document.createElement('option');
-          opt.value = c.id;
-          opt.textContent = c.name;
-          select.appendChild(opt);
-        });
-      }
-
-      renderCodes(data.students);
-    })
-    .catch(err => console.error('Erreur fetch codes:', err));
-}
-
-function renderCodes(students) {
-  const tbody = document.getElementById('codes-tbody');
-  document.getElementById('codes-count').textContent = `${students.length} élève(s)`;
-  if (!students.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center py-3">Aucun élève.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = students.map(s => `
-    <tr>
-      <td>${s.classroom}</td>
-      <td>${s.last}</td>
-      <td>${s.first}</td>
-      <td><span class="text-muted small">${s.alias}</span></td>
-      <td>
-        ${s.code
-          ? `<code style="font-size:.85rem;letter-spacing:.05em">${s.code}</code>`
-          : '<span class="text-danger small">— manquant</span>'}
-      </td>
-    </tr>
-  `).join('');
-}
-
-document.getElementById('filter-class').addEventListener('change', function() {
-  const classId = this.value;
-  if (classId) {
-    loadCodes(classId);
-  } else {
-    renderCodes(allStudents);
-  }
-});
-
-document.getElementById('btn-generate-codes').addEventListener('click', function() {
-  const btn = this;
-  btn.disabled = true;
-  btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Génération…';
-  fetch('/teacher/admin/generate-access-codes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
-  })
-  .then(r => r.json())
-  .then(data => {
-    document.getElementById('generate-result').textContent =
-      data.created > 0 ? `${data.created} code(s) généré(s).` : 'Tous les élèves ont déjà un code.';
-    btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-magic me-1"></i>Générer les codes manquants';
-    loadCodes(document.getElementById('filter-class').value || null);
-  });
-});
-</script>
-{% endblock %}
 {% endblock %}

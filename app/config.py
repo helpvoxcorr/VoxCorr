@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-
 load_dotenv()
 
 class Config:
@@ -13,6 +12,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///voxcorr_dev.db'
     if SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace('postgres://', 'postgresql://', 1)
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
@@ -22,12 +22,12 @@ class Config:
 
     # ── Flask-Login ────────────────────────────────────────────────────────────
     REMEMBER_COOKIE_DURATION = 60 * 60 * 24 * 7
-    SESSION_COOKIE_HTTPONLY  = True
-    SESSION_COOKIE_SAMESITE  = 'Lax'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
 
     # ── Cloudinary ─────────────────────────────────────────────────────────────
     CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME')
-    CLOUDINARY_API_KEY    = os.environ.get('CLOUDINARY_API_KEY')
+    CLOUDINARY_API_KEY = os.environ.get('CLOUDINARY_API_KEY')
     CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET')
 
     # ── Mistral ────────────────────────────────────────────────────────────────
@@ -42,13 +42,13 @@ class Config:
     APP_BASE_URL = os.environ.get('APP_BASE_URL', 'http://localhost:5000')
 
     # ── Upload ─────────────────────────────────────────────────────────────────
-    MAX_CONTENT_LENGTH = 50 * 1024 * 1024
+    MAX_CONTENT_LENGTH = 15 * 1024 * 1024  # 15 Mo max (sécurité)
 
     # ── SendGrid ───────────────────────────────────────────────────────────────
-    SENDGRID_API_KEY    = os.environ.get('SENDGRID_API_KEY')
+    SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
     SENDGRID_FROM_EMAIL = os.environ.get('SENDGRID_FROM_EMAIL', 'help.voxcorr@gmail.com')
-    SENDGRID_FROM_NAME  = os.environ.get('SENDGRID_FROM_NAME',  'VoxCorr Team')
+    SENDGRID_FROM_NAME = os.environ.get('SENDGRID_FROM_NAME', 'VoxCorr Team')
 
-    # ── Session ───────────────────────────────────────────────────────────────
+    # ── Session ────────────────────────────────────────────────────────────────
     PERMANENT_SESSION_LIFETIME = 60 * 60 * 24  # 24h pour élèves
     SESSION_COOKIE_SECURE = True  # HTTPS uniquement (en prod)

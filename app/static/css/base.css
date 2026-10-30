@@ -1,0 +1,62 @@
+/* ═══════════════════════════════════════════════════════════════
+   VOXCORR — BASE
+   Reset minimal + typographie globale. S'appuie uniquement sur
+   les variables de tokens.css — jamais de valeur en dur ici.
+   ═══════════════════════════════════════════════════════════════ */
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--black);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text);
+  font-weight: var(--fw-medium);
+  margin: 0;
+}
+
+p {
+  color: var(--text-muted);
+  margin: 0 0 var(--space-md);
+}
+
+a {
+  color: var(--neon);
+  text-decoration: none;
+  transition: var(--tr);
+}
+a:hover { color: var(--neon-d); }
+
+small, .text-muted {
+  color: var(--text-muted) !important;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--space-lg) 0;
+}
+
+/* Surclasse les utilitaires Bootstrap pour rester cohérent en thème sombre */
+.text-neon { color: var(--neon) !important; }
+
+/* Chiffres, notes, données — partout où la précision visuelle compte */
+.font-mono,
+.num {
+  font-family: var(--font-mono);
+}
+
+/* Scrollbar discrète, cohérente avec le thème sombre */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-md);
+  border-radius: var(--radius-pill);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }

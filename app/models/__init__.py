@@ -32,7 +32,7 @@ class Teacher(UserMixin, db.Model):
     # Charte graphique personnalisée
     theme_primary   = db.Column(db.String(7),  default='#39FF14')
     theme_secondary = db.Column(db.String(7),  default='#0a0a0a')
-    theme_bg        = db.Column(db.String(7),  default='#ffffff')
+    theme_bg        = db.Column(db.String(7),  default='#f5f4f0')
  
     classrooms = db.relationship('Classroom', back_populates='teacher',
                                  cascade='all, delete-orphan', lazy='select')
@@ -87,6 +87,8 @@ class Student(db.Model):
     classroom   = db.relationship('Classroom',   back_populates='students')
     corrections = db.relationship('Correction',  back_populates='student',
                                   cascade='all, delete-orphan', lazy='select')
+    pupil       = db.relationship('Pupil', back_populates='student',
+                                  cascade='all, delete-orphan', uselist=False, lazy='select')
  
 class Pupil(db.Model):
     __tablename__ = 'pupils'
@@ -94,7 +96,7 @@ class Pupil(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False, unique=True)
     access_code = db.Column(db.String(8), unique=True, nullable=False, index=True)
     last_login = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    student = db.relationship('Student', backref='pupil', uselist=False)
+    student = db.relationship('Student', back_populates='pupil')
     
     @staticmethod
     def generate_access_code():
@@ -103,7 +105,7 @@ class Pupil(db.Model):
 
 class Assignment(db.Model):
     __tablename__ = 'assignments'
- 
+
     id           = db.Column(db.Integer, primary_key=True)
     classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=False)
     title        = db.Column(db.String(200), nullable=False)
@@ -113,7 +115,9 @@ class Assignment(db.Model):
     class_appreciation = db.Column(db.Text)
     created_at   = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     class_appreciation_audio_url = db.Column(db.String(500), nullable=True)
- 
+    public_token = db.Column(db.String(16), unique=True, nullable=True, index=True,
+                             default=lambda: secrets.token_urlsafe(8))
+
     classroom   = db.relationship('Classroom',   back_populates='assignments')
     questions   = db.relationship('Question',    back_populates='assignment',
                                   cascade='all, delete-orphan',

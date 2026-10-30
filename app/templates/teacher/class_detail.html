@@ -1,394 +1,112 @@
 {% extends "base.html" %}
-{% set breadcrumbs = [
-  {"label": "Classes", "url": "/teacher/classes"},
-  {"label": classroom.name, "url": None}
-] %}
 {% block title %}{{ classroom.name }} — VoxCorr{% endblock %}
 
-{% block head %}
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-.risk-badge {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 6px;
-}
-.risk-text {
-  font-size: 0.75rem;
-}
-</style>
-{% endblock %}
-
 {% block content %}
-
-<!-- Hero -->
-<div class="cls-hero">
-  <div>
-    <div class="cls-hero-number">{{ classroom.name }}</div>
-    <div class="cls-hero-sub">
-      <span>{{ classroom.subject or '—' }}</span> · {{ classroom.school_year }}
-      · <span style="color:rgba(255,255,255,.4)">{{ students|length }} élève{{ 's' if students|length > 1 }}</span>
+{# ── Hero compact ── #}
+<div class="cd-hero">
+  <div class="cd-hero-left">
+    <h1 class="cd-hero-title">{{ classroom.name }}</h1>
+    <div class="cd-hero-meta">
+      <span class="cd-pill">{{ classroom.subject or '—' }}</span>
+      <span>{{ classroom.school_year }}</span>
+      <span class="cd-dot">·</span>
+      <span><strong>{{ students|length }}</strong> élèves</span>
     </div>
   </div>
-  <div class="cls-hero-actions">
-    <a href="/teacher/assignments/new/{{ classroom.id }}" class="btn vox-btn-primary">
-      <i class="bi bi-plus-lg me-1"></i>Nouveau devoir
+  <div class="cd-hero-actions">
+    <a href="{{ url_for('teacher_crud.new_assignment', class_id=classroom.id) }}" class="cd-btn-primary">
+      <i class="bi bi-plus-lg"></i> Nouveau devoir
     </a>
-    <form method="POST" action="/teacher/classes/{{ classroom.id }}/delete"
-          onsubmit="return confirm('Supprimer la classe {{ classroom.name }} ?')">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="btn vox-btn-outline btn-sm"
-              style="border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.5);height:100%">
-        <i class="bi bi-trash me-1"></i>Supprimer
-      </button>
-    </form>
+    <a href="{{ url_for('teacher_crud.edit_class', class_id=classroom.id) }}" class="cd-btn-ghost" title="Modifier la classe">
+      <i class="bi bi-pencil"></i>
+    </a>
   </div>
 </div>
 
-<div class="row g-4">
+{# ── Layout 2 colonnes compact ── #}
+<div class="cd-grid">
 
-  <!-- Élèves -->
-  <div class="col-lg-5">
-    <div class="vox-card">
-      <div class="cls-section-title">
-        <i class="bi bi-people"></i>
-        Élèves
-        <span class="vox-badge ms-1">{{ students|length }}</span>
+  {# ── Colonne Élèves ── #}
+  <div class="cd-col cd-col-main">
+    <div class="cd-card">
+      <div class="cd-card-header">
+        <h2 class="cd-section-title">Élèves</h2>
+        <span class="cd-count">{{ students|length }}</span>
       </div>
 
       {% if students %}
-      <div style="max-height:420px;overflow-y:auto;padding-right:.25rem">
-        {% for s in students %}
-        <div class="cls-student-row" style="flex-wrap:wrap;margin-bottom:12px;">
-          <div style="display:flex;align-items:center;width:100%;">
-            <span class="cls-student-num">{{ s.student_number }}</span>
-            <span class="cls-student-alias">{{ s.alias }}</span>
-            <span class="cls-student-name">{{ s.display_last }}, {{ s.display_first }}</span>
-            <div class="cls-student-actions">
-              <a href="/teacher/classes/{{ classroom.id }}/students/{{ s.id }}/edit"
-                 class="cls-action-btn" title="Modifier">
-                <i class="bi bi-pencil"></i>
-              </a>
-              <button type="button" class="cls-action-btn" title="Statistiques"
-                    data-bs-toggle="modal" data-bs-target="#statsModal"
-                    data-student-id="{{ s.id }}" data-student-name="{{ s.alias }}">
-              <i class="bi bi-graph-up"></i>
-            </button>
-              <form method="POST"
-                    action="/teacher/classes/{{ classroom.id }}/students/{{ s.id }}/delete"
-                    class="d-inline"
-                    onsubmit="return confirm('Supprimer {{ s.alias }} ?')">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="cls-action-btn danger" title="Supprimer">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </form>
+        <div class="cd-student-list">
+          {% for s in students %}
+            <div class="cd-student-row">
+              <span class="cd-student-num">{{ s.student_number }}</span>
+              <span class="cd-alias">{{ s.alias }}</span>
+              <span class="cd-student-name">{{ s.display_last }}, {{ s.display_first }}</span>
+              <div class="cd-student-actions">
+                <a href="{{ url_for('teacher_crud.edit_student', class_id=classroom.id, student_id=s.id) }}" class="cd-icon-btn" title="Modifier">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <form method="POST" action="{{ url_for('teacher_crud.delete_student', class_id=classroom.id, student_id=s.id) }}" class="d-inline" onsubmit="return confirm('Supprimer cet élève ?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="cd-icon-btn cd-icon-danger" title="Supprimer">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
             </div>
-          </div>
-          <!-- Ligne prédiction risque -->
-          <div class="risk-cell mt-1" data-student-id="{{ s.id }}" style="width:100%;font-size:0.7rem;padding-left:40px;">
-            <span class="risk-badge"></span>
-            <span class="risk-text text-muted">Chargement...</span>
-          </div>
+          {% endfor %}
         </div>
-        {% endfor %}
-      </div>
       {% else %}
-      <p class="text-muted small mb-0">Aucun élève.</p>
+        <div class="cd-empty">Aucun élève dans cette classe.</div>
       {% endif %}
-
-      <!-- Ajout élève -->
-      <div class="cls-add-form">
-        <p class="fw-bold small mb-2">Ajouter un élève</p>
-        <form method="POST" action="/teacher/classes/{{ classroom.id }}/students/add">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <div class="row g-2 mb-2">
-            <div class="col">
-              <input type="text" name="first_name" class="vox-input" placeholder="Prénom" required>
-            </div>
-            <div class="col">
-              <input type="text" name="last_name" class="vox-input" placeholder="Nom" required>
-            </div>
-          </div>
-          <button type="submit" class="btn vox-btn-primary btn-sm w-100">
-            <i class="bi bi-person-plus me-1"></i>Ajouter
-          </button>
-        </form>
-      </div>
     </div>
   </div>
 
-  <!-- Devoirs -->
-  <div class="col-lg-7">
-    <div class="vox-card">
-      <div class="cls-section-title">
-        <i class="bi bi-file-text"></i>
-        Devoirs
-        <span class="vox-badge ms-1">{{ assignments|length }}</span>
+  {# ── Colonne latérale ── #}
+  <div class="cd-col cd-col-side">
+
+    {# Devoirs #}
+    <div class="cd-card">
+      <div class="cd-card-header">
+        <h2 class="cd-section-title">Devoirs</h2>
+        <span class="cd-count">{{ assignments|length }}</span>
       </div>
 
       {% if assignments %}
-      {% for a in assignments %}
-      <div class="cls-assignment-row">
-        <a href="/teacher/assignments/{{ a.id }}/corrections"
-           class="cls-assignment-title">{{ a.title }}</a>
-        <span class="cls-assignment-meta">{{ a.date.strftime('%d/%m/%Y') }}</span>
-        <span class="cls-assignment-badge">/ {{ a.total_points }} · {{ a.questions|length }} Q</span>
-        <div class="cls-assignment-actions">
-          <a href="/teacher/assignments/{{ a.id }}/corrections"
-             class="cls-action-btn" title="Corriger"
-             style="background:var(--vox-neon);border-color:var(--vox-neon);color:var(--vox-black)">
-            <i class="bi bi-mic-fill"></i>
-          </a>
-          <a href="/teacher/assignments/{{ a.id }}/edit"
-             class="cls-action-btn" title="Modifier">
-            <i class="bi bi-pencil"></i>
-          </a>
-          <button type="button" class="cls-action-btn danger" 
-                  data-bs-toggle="modal" 
-                  data-bs-target="#modalDeleteAssignment"
-                  data-assignment-id="{{ a.id }}"
-                  data-assignment-title="{{ a.title }}">
-            <i class="bi bi-trash"></i>
-          </button>
+        <div class="cd-assignment-list">
+          {% for a in assignments %}
+            <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=a.id) }}" class="cd-assignment-row">
+              <div class="cd-assignment-main">
+                <span class="cd-assignment-title">{{ a.title }}</span>
+                <span class="cd-assignment-date">{{ a.date.strftime('%d/%m') if a.date else '' }}</span>
+              </div>
+              <div class="cd-assignment-meta">
+                <span>{{ a.total_points }} pts</span>
+                <span class="cd-dot">·</span>
+                <span>{{ a.questions|length }} Q</span>
+              </div>
+            </a>
+          {% endfor %}
         </div>
-      </div>
-      {% endfor %}
       {% else %}
-      <div class="text-center py-4">
-        <p class="text-muted small mb-3">Aucun devoir pour cette classe.</p>
-        <a href="/teacher/assignments/new/{{ classroom.id }}" class="btn vox-btn-primary btn-sm">
-          <i class="bi bi-plus-lg me-1"></i>Créer un devoir
-        </a>
-      </div>
+        <div class="cd-empty">Aucun devoir.</div>
       {% endif %}
     </div>
-  </div>
-</div>
 
-<!-- Collaborateurs -->
-<div class="vox-card mb-3">
-  <div class="fw-bold mb-2">Enseignants partageant cette classe</div>
-  {% for ct in classroom.shared_with %}
-  <div class="d-flex justify-content-between align-items-center mb-1">
-    <span>{{ ct.teacher.full_name }} ({{ ct.role }})</span>
-    {% if ct.teacher_id != classroom.teacher_id %}
-    <form method="POST" action="/teacher/classes/{{ classroom.id }}/remove-teacher/{{ ct.teacher_id }}" class="d-inline">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="btn btn-sm btn-outline-danger">Retirer</button>
-    </form>
-    {% endif %}
-  </div>
-  {% else %}
-  <p class="text-muted small">Aucun autre enseignant.</p>
-  {% endfor %}
-  <hr>
-  <form method="POST" action="/teacher/classes/{{ classroom.id }}/add-teacher" class="row g-2">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="col">
-      <input type="email" name="email" class="vox-input" placeholder="Email de l'enseignant" required>
-    </div>
-    <div class="col-auto">
-      <button type="submit" class="btn vox-btn-primary btn-sm">Inviter</button>
-    </div>
-  </form>
-</div>
-
-<!-- Groupes d'élèves -->
-<div class="vox-card mb-3">
-  <div class="fw-bold mb-2">Groupes d'élèves</div>
-  {% for group in classroom.groups %}
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <span>{{ group.name }} ({{ group.students|length }} élèves)</span>
-    <div>
-      <a href="/teacher/classes/{{ classroom.id }}/group/{{ group.id }}/edit" class="btn btn-sm btn-outline-secondary">Modifier</a>
-      <form method="POST" action="/teacher/classes/{{ classroom.id }}/group/{{ group.id }}/delete" class="d-inline">
+    {# Ajout rapide élève #}
+    <div class="cd-card">
+      <h2 class="cd-section-title">Ajout rapide</h2>
+      <form method="POST" action="{{ url_for('teacher_crud.add_student', class_id=classroom.id) }}" class="cd-add-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+        <div class="cd-add-row">
+          <input type="text" name="first_name" class="cd-input" placeholder="Prénom" required>
+          <input type="text" name="last_name" class="cd-input" placeholder="Nom" required>
+          <button type="submit" class="cd-btn-add" title="Ajouter">
+            <i class="bi bi-plus-lg"></i>
+          </button>
+        </div>
       </form>
     </div>
-  </div>
-  {% else %}
-  <p class="text-muted small">Aucun groupe.</p>
-  {% endfor %}
-  <hr>
-  <form method="POST" action="/teacher/classes/{{ classroom.id }}/group/add" class="row g-2">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="col">
-      <input type="text" name="group_name" class="vox-input" placeholder="Nom du groupe (ex: Groupe A)" required>
-    </div>
-    <div class="col-auto">
-      <button type="submit" class="btn vox-btn-primary btn-sm">Créer groupe</button>
-    </div>
-  </form>
-</div>
 
-<!-- Modal Statistiques élève -->
-<div class="modal fade" id="statsModal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content" style="border-radius:12px;">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold" id="statsModalTitle">Statistiques</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div id="stats-loading" class="text-center py-4">
-          <div class="spinner-border text-neon"></div>
-          <p class="mt-2">Chargement...</p>
-        </div>
-        <div id="stats-content" style="display:none;">
-          <canvas id="evolutionChart" width="400" height="200" style="max-height:300px;"></canvas>
-          <hr>
-          <h6>Compétences</h6>
-          <div id="competence-list"></div>
-        </div>
-      </div>
-      <div class="modal-footer border-0 pt-0">
-        <button type="button" class="btn vox-btn-dark" data-bs-dismiss="modal">Fermer</button>
-      </div>
-    </div>
   </div>
 </div>
-
-<!-- Modal suppression devoir -->
-<div class="modal fade" id="modalDeleteAssignment" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Confirmer la suppression</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <p>Supprimer le devoir <strong id="deleteAssignmentTitle"></strong> ?</p>
-        <p class="text-danger small">Toutes les corrections associées seront définitivement supprimées.</p>
-      </div>
-      <div class="modal-footer">
-        <form method="POST" id="deleteAssignmentForm">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-          <button type="submit" class="btn btn-danger">Supprimer</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-// Chargement des prédictions pour chaque élève
-document.addEventListener('DOMContentLoaded', function() {
-  const riskCells = document.querySelectorAll('.risk-cell');
-  riskCells.forEach(cell => {
-    const studentId = cell.dataset.studentId;
-    fetch(`/teacher/api/student/${studentId}/prediction`)
-      .then(res => res.json())
-      .then(data => {
-        const badge = cell.querySelector('.risk-badge');
-        const textSpan = cell.querySelector('.risk-text');
-        if (data.risk === 'insuffisant') {
-          badge.style.backgroundColor = '#9ca3af';
-          textSpan.innerHTML = '⚠️ ' + data.message;
-          textSpan.classList.add('text-muted');
-        } else {
-          const colors = { 'red': '#ef4444', 'orange': '#f59e0b', 'green': '#22c55e', 'gray': '#9ca3af' };
-          badge.style.backgroundColor = colors[data.color] || '#9ca3af';
-          textSpan.innerHTML = `${data.message} (moy: ${data.avg_score}/20)`;
-          if (data.color === 'red') textSpan.style.color = '#ef4444';
-          else if (data.color === 'orange') textSpan.style.color = '#f59e0b';
-          else textSpan.style.color = '#22c55e';
-        }
-      })
-      .catch(err => {
-        console.error('Erreur chargement prédiction', err);
-        const badge = cell.querySelector('.risk-badge');
-        const textSpan = cell.querySelector('.risk-text');
-        badge.style.backgroundColor = '#9ca3af';
-        textSpan.innerHTML = '⚠️ Données insuffisantes';
-      });
-  });
-});
-</script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script>
-// Modal statistiques élève
-const statsModal = document.getElementById('statsModal');
-if (statsModal) {
-  statsModal.addEventListener('show.bs.modal', async function(event) {
-    const button = event.relatedTarget;
-    const studentId = button.dataset.studentId;
-    const studentName = button.dataset.studentName;
-    document.getElementById('statsModalTitle').innerHTML = `Statistiques - ${studentName}`;
-    document.getElementById('stats-loading').style.display = 'block';
-    document.getElementById('stats-content').style.display = 'none';
-    
-    try {
-      const res = await fetch(`/teacher/api/student/${studentId}/competence-stats`);
-      const data = await res.json();
-      
-      document.getElementById('stats-loading').style.display = 'none';
-      document.getElementById('stats-content').style.display = 'block';
-      
-      // Graphique évolution
-      const ctx = document.getElementById('evolutionChart').getContext('2d');
-      if (window.evolutionChart) window.evolutionChart.destroy();
-      window.evolutionChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: data.evolution.map(e => e.devoir),
-          datasets: [{
-            label: 'Note /20',
-            data: data.evolution.map(e => e.note),
-            borderColor: '#39FF14',
-            backgroundColor: 'rgba(57,255,20,0.1)',
-            tension: 0.2,
-            fill: true
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          scales: { y: { min: 0, max: 20, title: { display: true, text: 'Note' } } }
-        }
-      });
-      
-      // Liste compétences
-      const compList = document.getElementById('competence-list');
-      compList.innerHTML = '';
-      data.competences.forEach(comp => {
-        const trendClass = comp.trend > 0 ? 'text-success' : (comp.trend < 0 ? 'text-danger' : 'text-muted');
-        compList.innerHTML += `
-          <div class="d-flex justify-content-between align-items-center mb-2 p-2" style="border-bottom:1px solid #e5e7eb;">
-            <div>
-              <strong>${comp.name}</strong>
-              <div class="small text-muted">Moyenne: ${comp.average}/20</div>
-            </div>
-            <div class="${trendClass}">
-              ${comp.trend > 0 ? '↑' : (comp.trend < 0 ? '↓' : '→')} ${Math.abs(comp.trend)} pts
-            </div>
-          </div>
-        `;
-      });
-      if (data.competences.length === 0) {
-        compList.innerHTML = '<p class="text-muted">Aucune compétence renseignée.</p>';
-      }
-    } catch (err) {
-      console.error(err);
-      document.getElementById('stats-loading').innerHTML = '<div class="alert alert-danger">Erreur chargement</div>';
-    }
-  });
-}
-
-  const deleteModal = document.getElementById('modalDeleteAssignment');
-  if (deleteModal) {
-    deleteModal.addEventListener('show.bs.modal', function(event) {
-      const button = event.relatedTarget;
-      const assignmentId = button.getAttribute('data-assignment-id');
-      const assignmentTitle = button.getAttribute('data-assignment-title');
-      document.getElementById('deleteAssignmentTitle').textContent = assignmentTitle;
-      const form = document.getElementById('deleteAssignmentForm');
-      form.action = '/teacher/assignments/' + assignmentId + '/delete';
-    });
-  }
-</script>
 {% endblock %}

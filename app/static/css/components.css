@@ -1,0 +1,229 @@
+/* ═══════════════════════════════════════════════════════════════
+   VOXCORR — COMPONENTS
+   Briques réutilisables sur toutes les pages. Remplace vox-card,
+   ac-card, cd-card, dash-stat etc. par un seul vocabulaire commun.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Card ───────────────────────────────────────────────────────
+   Remplace : .vox-card, .ac-card, .cd-card, .dash-stat-card...   */
+.card-vc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+}
+
+.card-vc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border);
+}
+
+.card-vc-title {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+/* ── Badge de statut ────────────────────────────────────────────
+   Pastille discrète : fond teinté faible + point + texte coloré.
+   Remplace : .ac-status-*, .cd-status, .vox-badge couleur-codé   */
+.badge-vc {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  width: fit-content;
+}
+.badge-vc::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.badge-vc-success { background: var(--success-bg); color: var(--success-text); }
+.badge-vc-warning { background: var(--warning-bg); color: var(--warning-text); }
+.badge-vc-danger  { background: var(--danger-bg);  color: var(--danger-text);  }
+.badge-vc-info    { background: var(--info-bg);    color: var(--info-text);    }
+.badge-vc-neutral { background: var(--border);     color: var(--text-muted);   }
+
+/* ── Score / note ───────────────────────────────────────────────
+   Affichage chiffré, toujours en DM Mono.                        */
+.score-vc {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--font-mono);
+}
+.score-vc-val {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-medium);
+  color: var(--neon);
+}
+.score-vc-val.good { color: var(--success-text); }
+.score-vc-val.mid  { color: var(--warning-text); }
+.score-vc-val.bad  { color: var(--danger-text);  }
+.score-vc-max {
+  font-size: var(--fs-base);
+  color: var(--text-faint);
+}
+
+/* ── Barre de progression ──────────────────────────────────────── */
+.bar-vc {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: var(--space-xs);
+  overflow: hidden;
+}
+.bar-vc-fill {
+  height: 100%;
+  background: var(--neon);
+  border-radius: 2px;
+  transition: width .6s ease;
+}
+
+/* ── Boutons ────────────────────────────────────────────────────
+   Remplace : .vox-btn, .ac-btn-primary, .cd-btn-primary,
+              .ac-btn-ghost, .cd-btn-ghost...                     */
+.btn-vc {
+  font-family: var(--font);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-base);
+  padding: .55rem 1.1rem;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  transition: var(--tr);
+  text-decoration: none;
+}
+
+.btn-vc-primary {
+  background: var(--neon);
+  color: var(--black);
+}
+.btn-vc-primary:hover {
+  background: var(--neon-d);
+  box-shadow: var(--shadow-neon);
+  color: var(--black);
+}
+.btn-vc-primary:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+
+.btn-vc-outline {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border-md);
+}
+.btn-vc-outline:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.btn-vc-danger {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-color: rgba(239, 68, 68, .25);
+}
+.btn-vc-danger:hover {
+  background: rgba(239, 68, 68, .2);
+  color: var(--danger-text);
+}
+
+.btn-vc-sm { padding: .4rem .8rem; font-size: var(--fs-sm); }
+
+/* Bouton icône rond — micro, actions ponctuelles */
+.btn-vc-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-md);
+}
+
+/* Bouton icône carré discret — actions de liste (éditer, supprimer) */
+.btn-vc-icon-sq {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-md);
+  background: transparent;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition: var(--tr);
+  text-decoration: none;
+}
+.btn-vc-icon-sq:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn-vc-icon-sq.danger:hover {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-color: rgba(239, 68, 68, .25);
+}
+
+/* ── Champs de formulaire ───────────────────────────────────────
+   Remplace : .vox-input, .ac-textarea                            */
+.label-vc {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.input-vc {
+  width: 100%;
+  background: var(--black);
+  border: 1px solid var(--border-md);
+  border-radius: var(--radius);
+  padding: .6rem .8rem;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  outline: none;
+  transition: var(--tr);
+}
+.input-vc::placeholder { color: var(--text-faint); }
+.input-vc:focus {
+  border-color: var(--neon);
+  box-shadow: 0 0 0 3px var(--neon-glow);
+}
+.input-vc:disabled { opacity: .5; cursor: not-allowed; }
+
+textarea.input-vc { resize: vertical; min-height: 100px; }
+
+/* ── Feedback inline (succès/erreur après une action) ──────────── */
+.feedback-vc {
+  font-size: var(--fs-sm);
+  margin-top: var(--space-xs);
+  min-height: 1.2em;
+}
+.feedback-vc-success { color: var(--success-text); }
+.feedback-vc-error   { color: var(--danger-text);  }

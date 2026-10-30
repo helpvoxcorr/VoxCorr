@@ -3,265 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      font-size: 11pt;
-      color: #1a1a1a;
-      line-height: 1.5;
-      padding: 1.2cm 1.8cm;
-    }
-
-    /* En-tête */
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      border-bottom: 3px solid {{ teacher.theme_primary }};
-      padding-bottom: .8rem;
-      margin-bottom: 1rem;
-    }
-    .header-left h1 { font-size: 15pt; font-weight: 700; }
-    .header-left p  { font-size: 9pt; color: #666; margin-top: .2rem; }
-    .voxcorr-brand  { font-size: 9pt; color: #999; text-align: right; }
-
-    /* Infos devoir + élève */
-    .meta-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: .8rem;
-      margin-bottom: .9rem;
-    }
-    .meta-card {
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: .45rem .75rem;
-    }
-    .meta-label {
-      font-size: 7.5pt;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: #999;
-      margin-bottom: .25rem;
-    }
-    .meta-value { font-weight: 600; font-size: 10.5pt; }
-    .meta-sub   { font-size: 8.5pt; color: #666; }
-
-    /* Appréciation générale */
-    .appreciation-section {
-      margin-bottom: .9rem;
-      padding: .5rem .8rem;
-      background: #f9f9f7;
-      border: 1px solid #e5e7eb;
-      border-left: 3px solid {{ teacher.theme_primary }};
-      border-radius: 6px;
-    }
-    .appreciation-label {
-      font-size: 7.5pt;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: #999;
-      margin-bottom: .3rem;
-    }
-    .appreciation-body {
-      font-size: 9pt;
-      line-height: 1.55;
-      color: #333;
-    }
-    .appreciation-body p { margin-bottom: .3rem; }
-
-    /* Tableau des notes */
-    .scores-section { margin-bottom: .9rem; }
-    .scores-section h2 {
-      font-size: 10.5pt;
-      font-weight: 700;
-      margin-bottom: .5rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .total-badge {
-      background: {{ teacher.theme_primary }};
-      color: #000;
-      font-size: 9.5pt;
-      font-weight: 700;
-      padding: .15rem .65rem;
-      border-radius: 999px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 9pt;
-    }
-    th {
-      text-align: left;
-      font-size: 7.5pt;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      color: #666;
-      border-bottom: 2px solid #e5e7eb;
-      padding: .3rem .5rem;
-    }
-    td {
-      padding: .2rem .5rem;
-      border-bottom: 1px solid #f3f4f6;
-    }
-    .score-val { font-weight: 700; }
-
-    /* Synthèse */
-    .synth-section { margin-bottom: .9rem; }
-    .synth-section h2 {
-      font-size: 10.5pt;
-      font-weight: 700;
-      margin-bottom: .6rem;
-    }
-    .synth-body {
-      font-size: 10pt;
-      line-height: 1.65;
-    }
-    .synth-body section {
-      margin-bottom: .8rem;
-      padding-left: .7rem;
-      border-left: 3px solid {{ teacher.theme_primary }};
-    }
-    .synth-body .section-label {
-      font-size: 7.5pt;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: {{ teacher.theme_primary }};
-      margin-bottom: .25rem;
-    }
-
-    /* Bloc synthèse+QR solidaire — ne se coupe jamais entre les deux */
-    .synth-qr-block {
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-
-    /* QR Code */
-    .qr-section {
-      margin-top: .8rem;
-      padding-top: .8rem;
-      border-top: 1px solid #e5e7eb;
-      display: flex;
-      align-items: center;
-      gap: 1.2rem;
-    }
-    .qr-section img { width: 72px; height: 72px; }
-    .qr-text { font-size: 8.5pt; color: #666; }
-    .qr-text strong { display: block; margin-bottom: .2rem; color: #1a1a1a; }
-
-    /* Pied de page */
-    @page {
-      margin: 0;
-      @bottom-center {
-        content: "VoxCorr · " string(title) " · " counter(page) "/" counter(pages);
-        font-size: 8pt;
-        color: #999;
-      }
-    }
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; font-size: 14px; }
+    .header { border-bottom: 2px solid #39FF14; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { margin: 0; font-size: 24px; color: #0a0a0a; }
+    .header .meta { text-align: right; font-size: 12px; color: #666; }
+    .score-box { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: center; }
+    .score-box .score { font-size: 32px; font-weight: bold; color: #39FF14; }
+    .section { margin-bottom: 20px; }
+    .section h2 { font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; }
+    .question { margin-bottom: 10px; page-break-inside: avoid; }
+    .question-title { font-weight: bold; }
+    .question-score { float: right; color: #39FF14; font-weight: bold; }
+    .qr-section { text-align: center; margin-top: 30px; border-top: 1px dashed #ccc; padding-top: 20px; }
+    .qr-section img { width: 100px; height: 100px; }
+    .footer { text-align: center; font-size: 10px; color: #999; margin-top: 40px; }
   </style>
 </head>
 <body>
 
-  <!-- En-tête -->
   <div class="header">
-    <div class="header-left">
-      <h1>Correction — {{ student_last }} {{ student_first }}</h1>
-      <p>{{ correction.assignment.title }} · {{ correction.assignment.date.strftime('%d/%m/%Y') }}</p>
+    <div>
+      <h1>VoxCorr</h1>
+      <div>{{ assignment.title }}</div>
     </div>
-    <div class="voxcorr-brand">
-      Vox<strong>Corr</strong><br>
-      <span style="font-size:8pt">Généré le {{ now.strftime('%d/%m/%Y') }}</span>
-    </div>
-  </div>
-
-  <!-- Infos -->
-  <div class="meta-grid">
-    <div class="meta-card">
-      <div class="meta-label">Élève</div>
-      <div class="meta-value">{{ student_last }} {{ student_first }}</div>
-      <div class="meta-sub">{{ student.alias }} · {{ correction.assignment.classroom.name }}{% if correction.assignment.classroom.subject %} · {{ correction.assignment.classroom.subject }}{% endif %}</div>
-    </div>
-    <div class="meta-card">
-      <div class="meta-label">Devoir</div>
-      <div class="meta-value">{{ correction.assignment.title }}</div>
-      <div class="meta-sub">{{ assignment_date_fr }} · Barème : {{ correction.assignment.total_points }} pts</div>
+    <div class="meta">
+      <div>{{ student.display_first }} {{ student.display_last }}</div>
+      <div>{{ student.alias }}</div>
+      <div>{{ assignment.classroom.name }} · {{ assignment.date.strftime('%d/%m/%Y') }}</div>
     </div>
   </div>
 
-  <!-- Appréciation générale de la classe -->
-  {% if correction.assignment.class_appreciation %}
-  <div class="appreciation-section">
-    <div class="appreciation-label">Appréciation générale de la classe</div>
-    <div class="appreciation-body">{{ correction.assignment.class_appreciation | safe }}</div>
+  <div class="score-box">
+    <div class="score">{{ '%.1f'|format(correction.total_score) }} <span style="font-size: 16px; color: #666;">/ {{ assignment.total_points }}</span></div>
+  </div>
+
+  <div class="section">
+    <h2>Synthèse de l'enseignant</h2>
+    <div>{{ correction.structured_text | safe }}</div>
+  </div>
+
+  <div class="section">
+    <h2>Détail des notes</h2>
+    {% for qs in scores %}
+      <div class="question">
+        <span class="question-title">{{ qs.label }}</span>
+        <span class="question-score">{{ '%.1f'|format(qs.score) }} / {{ qs.max }}</span>
+        {% if qs.competence %}<div style="font-size: 12px; color: #666;">{{ qs.competence.name }}</div>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if qr_b64 and qr_url %}
+  <div class="qr-section">
+    <img src="{{ qr_b64 }}" alt="QR Code">
+    <div style="margin-top: 10px; font-size: 12px;">Scannez pour écouter la correction orale</div>
+    <div style="font-size: 10px; color: #999; word-break: break-all;">{{ qr_url }}</div>
   </div>
   {% endif %}
 
-  <!-- Notes -->
-  {% if scores %}
-  <div class="scores-section">
-    <h2>
-      Notes
-      <span class="total-badge">
-        {{ '%.1f'|format(correction.total_score) if correction.total_score is not none else '—' }}
-        / {{ correction.assignment.total_points }}
-      </span>
-    </h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Question</th>
-          {% if scores[0].competence %}<th>Compétence</th>{% endif %}
-          <th style="text-align:right">Note</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for s in scores %}
-        <tr>
-          <td>{{ s.label }}</td>
-          {% if scores[0].competence %}<td style="color:#666">{{ s.competence or '—' }}</td>{% endif %}
-          <td style="text-align:right">
-            <span class="score-val">{{ '%.1f'|format(s.score) if s.score is not none else '—' }}</span>
-            <span style="color:#999"> / {{ s.max }}</span>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endif %}
-
-  <!-- Synthèse + QR dans un bloc solidaire -->
-  <div class="synth-qr-block">
-
-    {% if correction.structured_text %}
-    <div class="synth-section">
-      <h2>✦ Commentaires de votre enseignant</h2>
-      <div class="synth-body">
-        {{ correction.structured_text | safe }}
-      </div>
-    </div>
-    {% endif %}
-
-    {% if qr_b64 %}
-    <div class="qr-section">
-      <img src="{{ qr_b64 }}" alt="QR Code">
-      <div class="qr-text">
-        <strong>Accédez à votre correction audio en ligne</strong>
-        Scannez ce QR code ou rendez-vous sur :<br>
-        <span style="color:#2563eb">{{ qr_url }}</span>
-      </div>
-    </div>
-    {% endif %}
-
+  <div class="footer">
+    Généré par VoxCorr le {{ now.strftime('%d/%m/%Y à %H:%M') }}
   </div>
 
 </body>

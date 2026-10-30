@@ -1,197 +1,60 @@
 {% extends "base.html" %}
 {% block title %}Créer un compte — VoxCorr{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">{% endblock %}
 
 {% block content %}
-<div class="min-vh-100 d-flex align-items-center justify-content-center py-4" style="background:var(--vox-grey)">
-  <div class="vox-card" style="width:100%;max-width:480px">
+<div class="auth-vc-container">
+  <div class="auth-vc-card wide">
+    <img src="{{ url_for('static', filename='icons/logo.svg') }}" alt="VoxCorr" class="auth-vc-logo-img">
 
-    <div class="text-center mb-4">
-      <div class="vox-logo-mark mx-auto mb-3" style="width:52px;height:52px;font-size:1.5rem">V</div>
-      <h1 class="h4 fw-bold mb-1">Créer mon espace VoxCorr</h1>
-      <p class="text-muted small mb-0">Gratuit · Sans engagement · Conforme RGPD</p>
-    </div>
+    <div class="auth-vc-logo">Vox<span>Corr</span></div>
+    <p class="auth-vc-subtitle">Gratuit · Sans engagement · Conforme RGPD</p>
 
-    <form method="POST" novalidate>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="auth-vc-error">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-      <div class="row g-3 mb-3">
-        <div class="col">
-          <label class="vox-label" for="first_name">Prénom</label>
-          <input type="text" id="first_name" name="first_name" class="vox-input" required>
+      <div class="row g-3">
+        <div class="col-6">
+          <input type="text" name="first_name" class="input-vc" placeholder="Prénom" required>
         </div>
-        <div class="col">
-          <label class="vox-label" for="last_name">Nom</label>
-          <input type="text" id="last_name" name="last_name" class="vox-input" required>
+        <div class="col-6">
+          <input type="text" name="last_name" class="input-vc" placeholder="Nom" required>
         </div>
       </div>
 
-      <div class="mb-3">
-        <label class="vox-label" for="email">E-mail professionnel</label>
-        <input type="email" id="email" name="email" class="vox-input" required>
+      <div class="auth-vc-group mt-3">
+        <input type="email" name="email" class="input-vc" placeholder="E-mail professionnel" required>
       </div>
 
-      <div class="mb-3">
-        <label class="vox-label" for="school">Établissement <span class="text-muted">(optionnel)</span></label>
-        <input type="text" id="school" name="school" class="vox-input" placeholder="ex : Collège Victor Hugo, Lyon">
+      <div class="auth-vc-group">
+        <input type="text" name="school" class="input-vc" placeholder="Établissement (optionnel)">
       </div>
 
-      <!-- Mot de passe -->
-      <div class="mb-2">
-        <label class="vox-label" for="password">Mot de passe</label>
-        <div class="position-relative">
-          <input type="password" id="password" name="password" class="vox-input pe-5" required
-                 oninput="checkPassword(this.value)">
-          <button type="button" class="btn-eye" onclick="toggleEye('password','eye1')" tabindex="-1">
-            <i class="bi bi-eye" id="eye1"></i>
-          </button>
-        </div>
-
-        <!-- Barre de force -->
-        <div class="mt-2 mb-2">
-          <div style="height:4px;border-radius:2px;background:#e5e7eb;overflow:hidden">
-            <div id="strength-bar" style="height:100%;width:0;transition:width .3s,background .3s;border-radius:2px"></div>
-          </div>
-          <div id="strength-label" style="font-size:.72rem;margin-top:4px;color:var(--vox-muted)"></div>
-        </div>
-
-        <!-- Critères -->
-        <ul class="list-unstyled mb-0" style="font-size:.75rem;display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px!important" id="criteria">
-          <li id="c-len"    class="crit badge bg-light text-dark">🔘 10 caractères</li>
-          <li id="c-upper"  class="crit badge bg-light text-dark">🔘 Une majuscule</li>
-          <li id="c-lower"  class="crit badge bg-light text-dark">🔘 Une minuscule</li>
-          <li id="c-digit"  class="crit badge bg-light text-dark">🔘 Un chiffre</li>
-          <li id="c-special"class="crit badge bg-light text-dark">🔘 Caractère spécial (!@#$...)</li>
-        </ul>
+      <div class="auth-vc-group">
+        <input type="password" name="password" class="input-vc" placeholder="Mot de passe" required>
+        <small style="color:var(--text-faint);display:block;margin-top:.3rem;font-size:.75rem;">
+          10 caractères min., majuscule, minuscule, chiffre et caractère spécial.
+        </small>
       </div>
 
-      <!-- Confirmation mot de passe -->
-      <div class="mb-4">
-        <label class="vox-label" for="confirm_password">Confirmer le mot de passe</label>
-        <div class="position-relative">
-          <input type="password" id="confirm_password" name="confirm_password" class="vox-input pe-5" required
-                 oninput="checkConfirm()">
-          <button type="button" class="btn-eye" onclick="toggleEye('confirm_password','eye2')" tabindex="-1">
-            <i class="bi bi-eye" id="eye2"></i>
-          </button>
-        </div>
-        <div id="confirm-msg" style="font-size:.75rem;margin-top:4px"></div>
+      <div class="auth-vc-group">
+        <input type="password" name="confirm_password" class="input-vc" placeholder="Confirmer le mot de passe" required>
       </div>
 
-      <button type="submit" class="btn vox-btn-primary w-100 py-2">
-        Créer mon compte
-      </button>
+      <button type="submit" class="auth-vc-btn">Créer mon compte</button>
     </form>
 
-    <hr class="my-4">
-    <p class="text-center small text-muted mb-0">
-      Déjà un compte ? <a href="/auth/login" class="text-neon fw-bold">Se connecter</a>
-    </p>
+    <div class="auth-vc-help">
+      Déjà un compte ? <a href="{{ url_for('auth.login') }}">Se connecter</a>
+    </div>
   </div>
 </div>
-
-<style>
-.btn-eye {
-  position:absolute; right:10px; top:50%; transform:translateY(-50%);
-  background:none; border:none; cursor:pointer; color:var(--vox-muted);
-  padding:4px; line-height:1;
-}
-.btn-eye:hover { color: var(--vox-neon); }
-.crit {
-  transition: all .2s;
-}
-.crit.valid {
-  background-color: #22c55e !important;
-  color: white !important;
-}
-.crit.invalid {
-  background-color: #e5e7eb !important;
-  color: #6b7280 !important;
-}
-</style>
-
-<script>
-function toggleEye(inputId, eyeId) {
-  const inp = document.getElementById(inputId);
-  const ico = document.getElementById(eyeId);
-  if (inp.type === 'password') {
-    inp.type = 'text';
-    ico.classList.replace('bi-eye', 'bi-eye-slash');
-  } else {
-    inp.type = 'password';
-    ico.classList.replace('bi-eye-slash', 'bi-eye');
-  }
-}
-
-function checkPassword(val) {
-  const rules = {
-    'c-len':     val.length >= 10,
-    'c-upper':   /[A-Z]/.test(val),
-    'c-lower':   /[a-z]/.test(val),
-    'c-digit':   /\d/.test(val),
-    'c-special': /[!@#$%^&*()\-_=+\[\]{};:'",.<>/?\\|`~]/.test(val),
-  };
-  const labels = {
-    'c-len':     '🔘 10 caractères',
-    'c-upper':   '🔘 Une majuscule',
-    'c-lower':   '🔘 Une minuscule',
-    'c-digit':   '🔘 Un chiffre',
-    'c-special': '🔘 Caractère spécial (!@#$...)'
-  };
-  const validIcons = {
-    'c-len':     '✅ 10 caractères',
-    'c-upper':   '✅ Une majuscule',
-    'c-lower':   '✅ Une minuscule',
-    'c-digit':   '✅ Un chiffre',
-    'c-special': '✅ Caractère spécial (!@#$...)'
-  };
-  const invalidIcons = {
-    'c-len':     '❌ 10 caractères',
-    'c-upper':   '❌ Une majuscule',
-    'c-lower':   '❌ Une minuscule',
-    'c-digit':   '❌ Un chiffre',
-    'c-special': '❌ Caractère spécial (!@#$...)'
-  };
-
-  let score = 0;
-  for (const [id, ok] of Object.entries(rules)) {
-    const el = document.getElementById(id);
-    if (ok) {
-      el.textContent = validIcons[id];
-      el.classList.remove('invalid');
-      el.classList.add('valid');
-      score++;
-    } else {
-      el.textContent = invalidIcons[id];
-      el.classList.remove('valid');
-      el.classList.add('invalid');
-    }
-  }
-
-  const bar   = document.getElementById('strength-bar');
-  const label = document.getElementById('strength-label');
-  const pct   = (score / 5) * 100;
-  const colors = ['#ef4444','#f97316','#eab308','#84cc16','#22c55e'];
-  const texts  = ['Très faible','Faible','Moyen','Fort','Très fort'];
-  bar.style.width      = pct + '%';
-  bar.style.background = colors[score - 1] || '#e5e7eb';
-  label.textContent    = score > 0 ? texts[score - 1] : '';
-  label.style.color    = colors[score - 1] || '#9ca3af';
-
-  checkConfirm();
-}
-
-function checkConfirm() {
-  const pwd     = document.getElementById('password').value;
-  const confirm = document.getElementById('confirm_password').value;
-  const msg     = document.getElementById('confirm-msg');
-  if (!confirm) { msg.textContent = ''; return; }
-  if (pwd === confirm) {
-    msg.textContent = '✓ Les mots de passe correspondent';
-    msg.style.color = '#22c55e';
-  } else {
-    msg.textContent = '✗ Les mots de passe ne correspondent pas';
-    msg.style.color = '#ef4444';
-  }
-}
-</script>
 {% endblock %}

@@ -4,7 +4,7 @@ Synthétise la transcription brute du prof en :
   - formatted_text : texte HTML lisible pour l'élève
   - grades         : [{question, score, max_score}]
 """
-import os, json, re
+import os, json, re, tempfile
 from mistralai import Mistral
 
 SYSTEM_PROMPT = """Tu es un assistant pédagogique. Un enseignant t'envoie la transcription brute \
@@ -99,38 +99,41 @@ def synthesize_with_mistral(raw_text: str, question_labels: list[str], question_
     raw_text = normalize_transcript(raw_text)
     api_key = os.environ.get('MISTRAL_API_KEY')
 
-    if api_key:
-        try:
-            client = Mistral(api_key=api_key)
-            labels_str = ', '.join(
-                f"Q{i+1} (index {i}, label:\"{lbl}\") [max {question_max[i]}]"
-                if question_max else
-                f"Q{i+1} (index {i}, label:\"{lbl}\")"
-                for i, lbl in enumerate(question_labels)
-            )
-            user_msg = (
-                f"Questions du devoir (index : label [max points]) : {labels_str}\n\n"
-                f"Transcription brute :\n{raw_text}"
-            )
-            response = client.chat.complete(
-                model    = 'mistral-small-latest',
-                messages = [
-                    {'role': 'system', 'content': SYSTEM_PROMPT},
-                    {'role': 'user',   'content': user_msg},
-                ],
-                temperature     = 0.2,
-                response_format = {'type': 'json_object'},
-            )
-            raw = response.choices[0].message.content.strip()
-            raw = re.sub(r'^```json\s*', '', raw)
-            raw = re.sub(r'\s*```$',    '', raw)
-            return json.loads(raw)
+    api_key = os.environ.get('GEMINI_API_KEY')
+if api_key:
+    try:
+        from google import genai
+        from google.genai import types
+        client = genai.Client(api_key=api_key)
+        labels_str = ', '.join(
+            f"Q{i+1} (index {i}, label:\"{lbl}\") [max {question_max[i]}]"
+            if question_max else
+            f"Q{i+1} (index {i}, label:\"{lbl}\")"
+            for i, lbl in enumerate(question_labels)
+        )
+        user_msg = (
+            f"Questions du devoir (index : label [max points]) : {labels_str}\n\n"
+            f"Transcription brute :\n{raw_text}"
+        )
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                temperature=0.2,
+                response_mime_type='application/json',
+            ),
+            contents=user_msg,
+        )
+        raw = response.text.strip()
+        raw = re.sub(r'^```json\s*', '', raw)
+        raw = re.sub(r'\s*```$',    '', raw)
+        return json.loads(raw)
 
-        except Exception as e:
-            print(f'[Mistral] Erreur : {e}')
-            return _fallback(raw_text, str(e))
-    else:
-        return _fallback(raw_text, 'MISTRAL_API_KEY absente')
+    except Exception as e:
+        print(f'[Gemini] Erreur : {e}')
+        return _fallback(raw_text, str(e))
+else:
+    return _fallback(raw_text, 'GEMINI_API_KEY absente')
 
 
 def _fallback(transcript: str, reason: str) -> dict:
@@ -174,24 +177,66 @@ def synthesize_appreciation(raw_text: str) -> str:
     Retourne le texte reformulé, ou le texte brut en cas d'erreur.
     """
     raw_text = normalize_transcript(raw_text)
-    api_key  = os.environ.get('MISTRAL_API_KEY')
+    api_key = os.environ.get('GEMINI_API_KEY')
+if not api_key:
+    return raw_text
+try:
+    from google import genai
+    from google.genai import types
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        config=types.GenerateContentConfig(
+            system_instruction=APPRECIATION_PROMPT,
+            temperature=0.3,
+            response_mime_type='application/json',
+        ),
+        contents=f"Transcription brute :\n{raw_text}",
+    )
+    raw = response.text.strip()
+    raw = re.sub(r'^```json\s*', '', raw)
+    raw = re.sub(r'\s*```$',    '', raw)
+    return json.loads(raw).get('formatted_text', raw_text)
+except Exception as e:
+    print(f'[Gemini appreciation] Erreur : {e}')
+    return raw_text
+
+
+def transcribe_with_mistral(audio_bytes: bytes, filename: str = 'audio.webm') -> str:
+    """
+    Transcrit un fichier audio en texte via l'API de transcription Mistral (Voxtral).
+    Utilisée en fallback pour les navigateurs sans Web Speech API (ex. Firefox).
+
+    Args:
+        audio_bytes : contenu brut du fichier audio.
+        filename    : nom de fichier — l'extension sert à Mistral pour le format.
+
+    Returns:
+        Le texte transcrit. Lève une exception si MISTRAL_API_KEY est absente
+        ou si l'appel échoue, à charge de l'appelant de gérer le cas (l'audio
+        est généralement déjà sauvegardé côté appelant avant la transcription).
+    """
+    api_key = os.environ.get('MISTRAL_API_KEY')
     if not api_key:
-        return raw_text
+        raise RuntimeError('MISTRAL_API_KEY absente')
+
+    suffix = '.' + filename.rsplit('.', 1)[-1] if '.' in filename else '.webm'
+
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp.write(audio_bytes)
+        tmp_path = tmp.name
+
     try:
-        client   = Mistral(api_key=api_key)
-        response = client.chat.complete(
-            model    = 'mistral-small-latest',
-            messages = [
-                {'role': 'system', 'content': APPRECIATION_PROMPT},
-                {'role': 'user',   'content': f"Transcription brute :\n{raw_text}"},
-            ],
-            temperature     = 0.3,
-            response_format = {'type': 'json_object'},
-        )
-        raw = response.choices[0].message.content.strip()
-        raw = re.sub(r'^```json\s*', '', raw)
-        raw = re.sub(r'\s*```$',    '', raw)
-        return json.loads(raw).get('formatted_text', raw_text)
+        client = Mistral(api_key=api_key)
+        with open(tmp_path, 'rb') as f:
+            result = client.audio.transcriptions.complete(
+                model    = 'voxtral-mini-latest',
+                file     = {'content': f, 'file_name': filename},
+                language = 'fr',
+            )
+        return result.text
     except Exception as e:
-        print(f'[Mistral appreciation] Erreur : {e}')
-        return raw_text
+        print(f'[Mistral transcribe] Erreur : {e}')
+        raise
+    finally:
+        os.unlink(tmp_path)
