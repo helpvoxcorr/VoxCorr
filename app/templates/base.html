@@ -22,6 +22,8 @@
 
   {# ── Ancien design system (encore utilisé par les pages non migrées) ───── #}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/voxcorr.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
 
 
   {# ── Thème dynamique ─────────────────────────────────────────────────── #}
@@ -37,7 +39,7 @@
   {% block page_css %}{% endblock %}
   {% block head %}{% endblock %}
 </head>
-<body>
+<body class="{{ 'vc-app' if current_user.is_authenticated else '' }}">
 
   <!-- Navbar -->
     <nav class="vox-navbar sticky-top">

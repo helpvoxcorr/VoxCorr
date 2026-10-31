@@ -1,0 +1,120 @@
+/* ═══ VoxCorr — theme.css (refonte, étape 2) ═══
+   Chargé en dernier. S'applique uniquement aux pages enseignant (body.vc-app). */
+
+body.vc-app {
+  --ink: #0a0a0a;
+  --ink-2: #1f2937;
+  --ink-3: #4b5563;
+  --line: #cfd4dc;
+  --neon-ink: #15803d;
+  --good: #047857; --mid: #b45309; --bad: #b91c1c;
+  color: var(--ink);
+  font-size: 16px;
+}
+
+/* 1. Restes du thème sombre neutralisés (sans écraser les couleurs propres aux composants) */
+:where(body.vc-app) :is(h1, h2, h3, h4, h5, h6) { color: inherit; font-weight: 700; letter-spacing: -.02em; }
+:where(body.vc-app) p { color: inherit; }
+body.vc-app small, body.vc-app .text-muted { color: var(--ink-3) !important; }
+body.vc-app :is(.rec-recorder, .cd-hero, .ac-hero, .cd-header, .cd-score-card, .vox-footer) :is(.text-muted, small) {
+  color: rgba(255,255,255,.65) !important;
+}
+body.vc-app .text-neon { color: var(--neon-ink) !important; }
+body.vc-app :is(.vox-navbar, .rec-recorder, .cd-hero, .ac-hero, .cd-header, .cd-score-card, .vox-footer) .text-neon {
+  color: var(--neon) !important;
+}
+
+/* 2. Textes secondaires lisibles */
+body.vc-app :is(.ac-hint, .dash-greeting-sub, .dash-stat-lbl, .dash-class-year, .dash-card-meta,
+  .cd-assignment-date, .cd-assignment-meta, .cd-student-num, .ac-student-num, .ac-student-alias,
+  .ac-stat-lbl, .ac-stat-total, .ac-score-max, .cd-q-max, .cd-q-competence,
+  .dash-section-count, .cd-empty, .ac-empty, .ac-rubric-max) { color: var(--ink-3); }
+body.vc-app :is(.ac-status-none, .ac-score-val.ac-score-none) { color: #6b7280; }
+body.vc-app :is(.cd-section-title, .ac-section-title) { color: var(--ink); font-size: .8rem; letter-spacing: .08em; }
+
+/* 3. Navigation */
+body.vc-app .vox-navbar .nav-link { color: rgba(255,255,255,.8); font-weight: 600; }
+body.vc-app .vox-navbar .nav-link:hover { color: #fff; background: rgba(255,255,255,.12); }
+body.vc-app .vox-navbar .nav-link.active { background: var(--neon); color: var(--ink) !important; box-shadow: none; }
+
+/* 4. Cartes : bordure nette + relief */
+body.vc-app :is(.cd-card, .ac-card, .vox-card, .dash-stat, .ac-stat, .dash-class-card, .dash-empty) {
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(10,10,10,.06), 0 8px 20px rgba(10,10,10,.07);
+}
+body.vc-app :is(.cd-card-header, .ac-card-header) { border-bottom: 2px solid var(--ink); }
+body.vc-app :is(.cd-hero, .ac-hero, .cd-header) { border-bottom: 4px solid var(--neon); border-radius: var(--radius-xl); }
+
+/* Cartes cliquables */
+body.vc-app .vc-card-link { cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s; }
+body.vc-app :is(.vc-card-link, .dash-class-card):hover {
+  transform: translateY(-3px); border-color: var(--ink);
+  box-shadow: 0 0 0 2px var(--ink), 6px 6px 0 var(--neon);
+}
+
+/* 5. Statistiques */
+body.vc-app :is(.dash-stat, .ac-stat) { border-top: 4px solid var(--neon); }
+body.vc-app .dash-stat::after { display: none; }
+body.vc-app .dash-stat-val { font-size: 2.6rem; font-weight: 700; }
+body.vc-app .ac-stat-val { font-size: 2rem; }
+body.vc-app :is(.dash-stat-val.neon, .ac-stat-val.neon, .dash-class-subject, .ac-rubric-num) { color: var(--neon-ink); }
+body.vc-app .dash-greeting-name span {
+  color: var(--ink); background: linear-gradient(transparent 58%, var(--neon) 58%); padding: 0 .15em;
+}
+
+/* 6. Notes : couleurs lisibles sur blanc */
+body.vc-app :is(.ac-stat-val.good, .ac-score-val.good, .q-good .cd-q-val) { color: var(--good); }
+body.vc-app :is(.ac-stat-val.mid,  .ac-score-val.mid,  .q-mid .cd-q-val)  { color: var(--mid); }
+body.vc-app :is(.ac-stat-val.bad,  .ac-score-val.bad,  .q-bad .cd-q-val)  { color: var(--bad); }
+
+/* 7. Boutons */
+body.vc-app :is(.vox-btn-primary, .cd-btn-primary, .ac-btn-primary, .ac-icon-btn-primary, .cd-btn-add) {
+  border: 2px solid var(--ink); box-shadow: 0 3px 0 var(--ink); font-weight: 800;
+}
+body.vc-app :is(.vox-btn-primary, .cd-btn-primary, .ac-btn-primary, .ac-icon-btn-primary, .cd-btn-add):hover {
+  transform: translateY(1px); box-shadow: 0 2px 0 var(--ink);
+}
+body.vc-app :is(.vox-btn-primary, .cd-btn-primary, .ac-btn-primary, .ac-icon-btn-primary, .cd-btn-add):active,
+body.vc-app :is(.ac-btn-primary, .cd-btn-primary):disabled { transform: translateY(3px); box-shadow: none; }
+body.vc-app :is(.vox-btn-outline, .cd-btn-outline) {
+  border: 2px solid var(--ink); background: #fff; color: var(--ink); font-weight: 700;
+}
+body.vc-app :is(.vox-btn-outline, .cd-btn-outline):hover { background: var(--ink); color: #fff; }
+body.vc-app :is(.rec-actions, .rec-nav-post) .cd-btn-ghost {
+  width: auto; height: auto; padding: .65rem 1.2rem; gap: .4rem; font-weight: 700;
+}
+
+/* 8. Listes d'élèves et de devoirs */
+body.vc-app .cd-student-actions .cd-icon-btn {
+  width: 34px; height: 34px; background: #fff; color: var(--ink-2); border: 1.5px solid var(--line);
+}
+body.vc-app .cd-student-actions .cd-icon-btn:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+body.vc-app .cd-student-actions .cd-icon-danger:hover { background: var(--bad); border-color: var(--bad); color: #fff; }
+body.vc-app .ac-icon-btn { border: 1.5px solid var(--line); color: var(--ink-2); }
+body.vc-app .ac-icon-btn:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+body.vc-app .ac-icon-btn-primary { background: var(--neon); color: var(--ink); border-color: var(--ink); }
+body.vc-app :is(.ac-student-row, .cd-student-row):hover { background: #f0fdf4; }
+body.vc-app .ac-student-name { font-size: 1rem; font-weight: 700; }
+body.vc-app .cd-student-name { font-size: 1rem; font-weight: 600; }
+body.vc-app .cd-assignment-row { border: 2px solid var(--line); background: #fff; }
+body.vc-app .cd-assignment-row:hover { border-color: var(--ink); box-shadow: 4px 4px 0 var(--neon); }
+body.vc-app .cd-assignment-title { font-size: .95rem; font-weight: 700; }
+
+/* 9. Pastilles de statut */
+body.vc-app .ac-status, body.vc-app .cd-status { font-weight: 700; }
+body.vc-app :is(.ac-status-published, .status-published) { background: #bbf7d0; color: #14532d; }
+body.vc-app :is(.ac-status-draft, .status-draft) { background: #fde68a; color: #78350f; }
+body.vc-app .ac-status-processing { background: #c7d2fe; color: #312e81; }
+
+/* 10. Titres de niveau (page « Mes classes ») */
+body.vc-app .level-header { background: var(--ink); border-left: 6px solid var(--neon); border-radius: 8px; padding: .6rem 1rem; }
+body.vc-app .level-header h2 { color: #fff !important; }
+body.vc-app .level-header .text-muted { color: rgba(255,255,255,.65) !important; }
+
+/* 11. Champs de saisie */
+body.vc-app :is(.ac-textarea, .vox-input, .cd-input, .form-control, .form-select) {
+  border: 2px solid #9aa1ac; background: #fff; color: var(--ink);
+}
+body.vc-app :is(.ac-textarea, .vox-input, .cd-input, .form-control, .form-select):focus {
+  border-color: var(--ink); box-shadow: 0 0 0 3px var(--neon-glow);
+}

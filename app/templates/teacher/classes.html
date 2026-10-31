@@ -19,11 +19,11 @@
     <div class="row g-3">
       {% for c in items %}
         <div class="col-md-6 col-lg-4">
-          <div class="vox-card h-100 d-flex flex-column">
+          <div class="vox-card vc-card-link position-relative h-100 d-flex flex-column">
             <div class="d-flex justify-content-between align-items-start mb-3">
               <div>
                 <h3 class="h5 mb-1">
-                  <a href="{{ url_for('teacher_crud.class_detail', class_id=c.id) }}" class="text-decoration-none text-dark">
+                  <a href="{{ url_for('teacher_crud.class_detail', class_id=c.id) }}" class="text-decoration-none text-dark stretched-link">
                     {{ c.name }}
                   </a>
                 </h3>
@@ -34,11 +34,11 @@
             
             <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
               <span class="small text-muted">{{ c.assignments|length }} devoir(s)</span>
-              <div class="d-flex gap-2">
+              <div class="d-flex gap-2 position-relative" style="z-index:2">
                 <a href="{{ url_for('teacher_crud.edit_class', class_id=c.id) }}" class="btn btn-sm btn-outline-secondary" title="Modifier">
                   <i class="bi bi-pencil"></i>
                 </a>
-                <button class="btn btn-sm btn-outline-danger btn-trash" onclick="confirmDelete('{{ c.id }}', '{{ c.name }}')" title="Supprimer">
+                <button class="btn btn-sm btn-outline-danger btn-trash" onclick='confirmDelete({{ c.id }}, {{ c.name|tojson }})' title="Supprimer">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
