@@ -7,4 +7,23 @@ __pycache__/
 *.log
 *.sqlite3
 .DS_Store
+migrations_backup/
+
 Thumbs.db
+# Bases locales (peuvent contenir des données d'élèves)
+*.db
+instance/
+
+# Fichiers de test et clés
+test_*.py
+test-*.py
+.env.*
+*.pem
+*.key
+
+# Documents de travail
+arborescence.txt
+project_files.txt
+rapport.md
+AUDIT_VOXCORR_2026.md
+start_ngrok.bat

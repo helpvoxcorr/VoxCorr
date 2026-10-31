@@ -91,7 +91,7 @@
               <button type="button" class="ac-btn-primary ac-btn-sm" id="btnSaveAppreciation">
                 <i class="bi bi-check-lg"></i> Enregistrer
               </button>
-              <button type="button" class="ac-btn-ghost ac-btn-sm" id="btnSynthAppreciation" title="Reformuler avec Mistral">
+              <button type="button" class="ac-btn-ghost ac-btn-sm" id="btnSynthAppreciation" title="Reformuler avec l'IA">
                 <i class="bi bi-stars"></i> IA
               </button>
             </div>
@@ -215,7 +215,8 @@
   const btnSave = document.getElementById('btnSaveAppreciation');
   const btnSynth = document.getElementById('btnSynthAppreciation');
   const textarea = document.querySelector('#appreciationForm textarea');
-  const csrf = document.querySelector('meta[name="csrf-token"]').content;
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.content
+            || document.querySelector('#appreciationForm [name=csrf_token]')?.value || '';
 
   function showFeedback(msg, type) {
     feedbackEl.textContent = msg;
@@ -248,79 +249,78 @@
         body: JSON.stringify({text: textarea.value})
       });
       const data = await res.json();
-      if (res.ok && data.text) { textarea.value = data.text; showFeedback('✓ Texte reformulé par Mistral', 'success'); }
-      else showFeedback('Erreur IA', 'error');
+      if (res.ok && data.text) { textarea.value = data.text; showFeedback("✓ Texte reformulé par l'IA", 'success'); }
+      else showFeedback(data.error || 'Erreur IA', 'error');
     } catch(e) { showFeedback('Erreur réseau', 'error'); }
     finally { btnSynth.disabled = false; btnSynth.innerHTML = '<i class="bi bi-stars"></i> IA'; }
   });
   
-    {# ── Enregistrement audio pour appréciation ────────────────────────────── #}
-  const btnRecordAppreciation = document.getElementById('btnRecordAppreciation');
-  const recordingStatus = document.getElementById('recording-status');
-  const transcriptionInterim = document.getElementById('transcription-interim');
-  let recognition = null;
-  let isRecording = false;
+      /* ── Dictée de l'appréciation ── */
+  const btnRec = document.getElementById('btnRecordAppreciation');
+  const recStatus = document.getElementById('recording-status');
+  const interimEl = document.getElementById('transcription-interim');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null, isRecording = false, wantStop = false;
+  let base = '', committed = '';
 
-  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
+  function setRecUI(on) {
+    isRecording = on;
+    btnRec.innerHTML = on ? '<i class="bi bi-stop-fill"></i>' : '<i class="bi bi-mic-fill"></i>';
+    recStatus.style.display = on ? 'inline' : 'none';
+    if (!on) interimEl.textContent = '';
+  }
+
+  const ERREURS = {
+    'not-allowed': "Micro refusé : clique sur le cadenas à gauche de l'adresse et autorise le micro.",
+    'service-not-allowed': "Reconnaissance vocale bloquée par le navigateur.",
+    'network': "Pas de connexion au service vocal du navigateur. Vérifie ta connexion Internet.",
+    'audio-capture': "Aucun micro détecté.",
+    'no-speech': "Aucune voix détectée, réessaie."
+  };
+
+  if (!SR) {
+    btnRec.style.display = 'none';
+  } else {
+    recognition = new SR();
     recognition.lang = 'fr-FR';
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    recognition.onstart = () => {
-      isRecording = true;
-      btnRecordAppreciation.classList.add('ac-btn-primary');
-      btnRecordAppreciation.innerHTML = '<i class="bi bi-stop-fill"></i>';
-      recordingStatus.style.display = 'inline';
-    };
-
+    recognition.onstart = () => setRecUI(true);
     recognition.onend = () => {
-      isRecording = false;
-      btnRecordAppreciation.classList.remove('ac-btn-primary');
-      btnRecordAppreciation.innerHTML = '<i class="bi bi-mic-fill"></i>';
-      recordingStatus.style.display = 'none';
-      transcriptionInterim.textContent = '';
+      if (isRecording && !wantStop) {            // Chrome coupe après un silence : on relance
+        base = textarea.value; committed = '';
+        try { recognition.start(); return; } catch (e) {}
+      }
+      setRecUI(false);
     };
-
     recognition.onresult = (event) => {
-      let interimTranscript = '';
-      let finalTranscript = '';
-
+      let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interimTranscript += transcript;
-        }
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) committed += t.trim() + ' ';
+        else interim += t;
       }
-
-      if (finalTranscript) {
-        textarea.value += (textarea.value ? ' ' : '') + finalTranscript;
-      }
-      transcriptionInterim.textContent = interimTranscript;
+      const sep = base && !/\s$/.test(base) ? ' ' : '';
+      textarea.value = base + sep + committed + interim;
+      textarea.scrollTop = textarea.scrollHeight;
+      interimEl.textContent = '';
     };
-
     recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      showFeedback('Erreur de reconnaissance vocale: ' + event.error, 'error');
-      isRecording = false;
-      btnRecordAppreciation.classList.remove('ac-btn-primary');
-      btnRecordAppreciation.innerHTML = '<i class="bi bi-mic-fill"></i>';
-      recordingStatus.style.display = 'none';
+      if (event.error === 'no-speech') return;    // silence : on laisse la dictée continuer
+      wantStop = true;
+      setRecUI(false);
+      alert(ERREURS[event.error] || ('Erreur de dictée : ' + event.error));
     };
 
-    btnRecordAppreciation.addEventListener('click', () => {
-      if (isRecording) {
-        recognition.stop();
-      } else {
-        recognition.start();
-      }
+        btnRec.addEventListener('click', () => {
+      if (isRecording) { wantStop = true; recognition.stop(); return; }
+      wantStop = false;
+      base = textarea.value;
+      committed = '';
+      try { recognition.start(); }
+      catch (e) { alert('Impossible de démarrer la dictée : ' + e.message); }
     });
-  } else {
-    btnRecordAppreciation.style.display = 'none';
-    console.warn('Speech recognition not supported');
   }
 </script>
 {% endblock %}

@@ -64,23 +64,17 @@
           <i class="bi bi-mic"></i>
           <p>Synthèse non encore générée.</p>
           {% if correction.raw_transcript %}
-            <form method="POST" action="{{ url_for('teacher_corr.resynthesize_correction', correction_id=correction.id) }}" class="mt-3">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="cd-btn-primary">
-                <i class="bi bi-arrow-clockwise"></i> Générer avec Mistral
-              </button>
-            </form>
+            <button type="button" class="cd-btn-primary mt-3 js-resynth" data-id="{{ correction.id }}">
+              <i class="bi bi-arrow-clockwise"></i> Générer la synthèse
+            </button>
           {% endif %}
         </div>
       {% endif %}
       
       {% if correction.status == 'draft' and correction.structured_text %}
-        <form method="POST" action="{{ url_for('teacher_corr.resynthesize_correction', correction_id=correction.id) }}" class="mt-3">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="cd-btn-ghost cd-btn-sm">
-            <i class="bi bi-arrow-clockwise"></i> Regénérer la synthèse
-          </button>
-        </form>
+        <button type="button" class="cd-btn-ghost cd-btn-sm mt-3 js-resynth" data-id="{{ correction.id }}">
+          <i class="bi bi-arrow-clockwise"></i> Regénérer la synthèse
+        </button>
       {% endif %}
     </div>
 
@@ -194,27 +188,75 @@
       </div>
       
       <div class="cd-actions-list">
+        {% if correction.status != 'published' and correction.raw_transcript %}
+          <button type="button" class="cd-btn-outline w-100 js-resynth" data-id="{{ correction.id }}">
+            <i class="bi bi-arrow-clockwise"></i> Regénérer la synthèse et les notes
+          </button>
+        {% endif %}
         {% if correction.status == 'draft' %}
-          <form method="POST" action="{{ url_for('teacher_corr.publish_correction', correction_id=correction.id) }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="cd-btn-primary w-100">
-              <i class="bi bi-qr-code"></i> Publier et générer QR
-            </button>
-          </form>
+          <button type="button" class="cd-btn-primary w-100 js-publish" data-id="{{ correction.id }}">
+            <i class="bi bi-qr-code"></i> Publier et générer QR
+          </button>
         {% endif %}
         
         <a href="{{ url_for('teacher_corr.record', student_id=student.id, assignment_id=correction.assignment_id) }}" class="cd-btn-outline w-100">
           <i class="bi bi-pencil"></i> Modifier la correction
         </a>
         
-        <form method="POST" action="{{ url_for('teacher_corr.delete_correction', correction_id=correction.id) }}" onsubmit="return confirm('Supprimer définitivement cette correction ?');">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="cd-btn-danger w-100">
-            <i class="bi bi-trash"></i> Supprimer
-          </button>
-        </form>
+        <button type="button" class="cd-btn-danger w-100 js-delete" data-id="{{ correction.id }}">
+          <i class="bi bi-trash"></i> Supprimer
+        </button>
       </div>
     </div>
   </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+async function post(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+    body: JSON.stringify(body || {})
+  });
+  let data = {};
+  try { data = await res.json(); } catch (e) {}
+  if (!res.ok) throw new Error(data.error || ('Erreur ' + res.status));
+  return data;
+}
+
+document.querySelectorAll('.js-resynth').forEach(btn => btn.addEventListener('click', async () => {
+  const id = btn.dataset.id;
+  const before = await fetch('/teacher/api/correction/' + id + '/status').then(r => r.json()).catch(() => ({}));
+  btn.disabled = true; btn.textContent = 'Analyse en cours…';
+  try {
+    await post('/teacher/api/correction/' + id + '/resynthesize');
+    let tries = 0;
+    const timer = setInterval(async () => {
+      tries++;
+      const r = await fetch('/teacher/api/correction/' + id + '/status').then(r => r.json()).catch(() => null);
+      if ((r && r.structured_text && r.structured_text !== before.structured_text) || tries > 30) {
+        clearInterval(timer); location.reload();
+      }
+    }, 2500);
+  } catch (e) { alert(e.message); btn.disabled = false; btn.textContent = 'Réessayer'; }
+}));
+
+document.querySelectorAll('.js-publish').forEach(btn => btn.addEventListener('click', async () => {
+  btn.disabled = true;
+  try { await post('/teacher/api/correction/' + btn.dataset.id + '/publish'); location.reload(); }
+  catch (e) { alert(e.message); btn.disabled = false; }
+}));
+
+document.querySelectorAll('.js-delete').forEach(btn => btn.addEventListener('click', async () => {
+  const pwd = prompt('Entrez votre mot de passe pour supprimer définitivement cette correction :');
+  if (!pwd) return;
+  try {
+    await post('/teacher/api/correction/' + btn.dataset.id + '/delete', {password: pwd});
+    location.href = "{{ url_for('teacher_corr.assignment_corrections', assignment_id=correction.assignment_id) }}";
+  } catch (e) { alert(e.message); }
+}));
+</script>
 {% endblock %}

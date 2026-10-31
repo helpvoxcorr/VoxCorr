@@ -109,6 +109,30 @@
 
     /* ── Hint "cliquez" ───────────────────────────────────────────── */
     .row-hint { font-size: .72rem; color: #666; margin-top: .4rem; }
+  
+      main.container { color: #1f2937; }
+    main .text-muted { color: #6b7280 !important; }
+    .vox-student-hero {
+      background: var(--vox-black, #0a0a0a); border-radius: 16px;
+      padding: 1.25rem 1.5rem; border-bottom: 3px solid var(--vox-neon, #39FF14);
+    }
+    .student-layout { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 1.25rem; align-items: start; }
+    .student-col { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+    .student-col .vox-card { margin-bottom: 0 !important; }
+    @media (max-width: 900px) { .student-layout { grid-template-columns: 1fr; } }
+
+    .note-list { display: flex; flex-direction: column; gap: .6rem; }
+    .note-item { padding: .8rem 1rem; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
+    .note-item:hover { background: #f9fafb; }
+    .note-item.vc-active { background: rgba(57,255,20,.08); border-color: var(--vox-neon); }
+    .note-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+    .note-title { font-weight: 600; font-size: .95rem; }
+    .note-score { font-weight: 700; font-size: 1.1rem; white-space: nowrap; color: #111827; }
+    .note-score span { font-weight: 400; font-size: .8rem; color: #6b7280; }
+    .note-comp { font-size: .78rem; color: #6b7280; margin: .25rem 0 .5rem; }
+    .note-bar { height: 6px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin-top: .5rem; }
+    .note-bar > div { height: 100%; border-radius: 999px; }
+    .note-bar .ok { background: #22c55e; } .note-bar .mid { background: #f97316; } .note-bar .bad { background: #ef4444; }
   </style>
   <script>
     window.VC_TOKEN     = "{{ correction.public_token }}";
@@ -150,7 +174,7 @@
   <span class="vox-badge ms-auto">Ma correction</span>
 </header>
 
-<main class="container py-4" style="max-width:720px">
+<main class="container py-4" style="max-width:1100px">
 
   <!-- ── Hero : infos devoir + jauge score ─────────────────────────── -->
   <div class="vox-student-hero mb-4">
@@ -186,128 +210,110 @@
     </div>
   </div>
 
-  <!-- ── Détail des notes (cliquable → chapitre audio) ─────────────── -->
-  {% if scores %}
-  <div class="vox-card mb-4">
-    <div class="fw-bold mb-3">Détail des notes</div>
-    <div class="table-scroll">
-      <table class="vox-table">
-        <thead>
-          <tr>
-            <th>Question</th>
-            {% if scores[0].competence %}<th>Compétence</th>{% endif %}
-            <th class="text-end">Note</th>
-            <th style="min-width:90px"></th>
-          </tr>
-        </thead>
-        <tbody>
+    <div class="student-layout">
+
+    {# ── Colonne gauche : notes + appréciation ── #}
+    <div class="student-col">
+      {% if scores %}
+      <div class="vox-card">
+        <div class="fw-bold mb-3">Détail des notes</div>
+        <div class="note-list">
           {% for s in scores %}
-          <tr class="chapter-row" data-qi="{{ loop.index0 }}"
-              role="button" tabindex="0"
-              aria-label="Aller au commentaire de {{ s.label }}">
-            <td>
-             <i class="bi bi-play-circle-fill row-nav-icon"
-                style="display:none;color:var(--vox-neon);font-size:.8rem;margin-right:.35rem"
-                aria-hidden="true"></i>{{ s.label }}
-           </td>
-            {% if s.competence %}
-            <td><span class="vox-badge vox-badge-grey">{{ s.competence }}</span></td>
-            {% endif %}
-            <td class="text-end fw-bold">
-              {{ '%.1f'|format(s.score) if s.score is not none else '—' }}
-              <span class="text-muted fw-normal">/ {{ s.max }}</span>
-            </td>
-            <td>
-              <div class="vox-progress">
-                <div class="vox-progress-fill"
-                     style="width:{{ ((s.score / s.max * 100)|round|int) if s.score and s.max else 0 }}%">
-                </div>
+          {% set pct = ((s.score / s.max * 100)|round|int) if s.score is not none and s.max else 0 %}
+          <div class="note-item chapter-row" data-qi="{{ loop.index0 }}"
+               role="button" tabindex="0" aria-label="Aller au commentaire de {{ s.label }}">
+            <div class="note-head">
+              <div class="note-title">
+                <i class="bi bi-play-circle-fill row-nav-icon"
+                   style="display:none;color:var(--vox-neon);margin-right:.35rem" aria-hidden="true"></i>{{ s.label }}
               </div>
-            </td>
-          </tr>
+              <div class="note-score">{{ '%.1f'|format(s.score) if s.score is not none else '—' }}<span> / {{ s.max }}</span></div>
+            </div>
+            {% if s.competence %}<div class="note-comp">{{ s.competence }}</div>{% endif %}
+            <div class="note-bar"><div class="{{ 'ok' if pct >= 75 else ('mid' if pct >= 40 else 'bad') }}" style="width:{{ pct }}%"></div></div>
+          </div>
           {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- ── Appréciation générale ──────────────────────────────────────── -->
-  {% if correction.assignment.class_appreciation %}
-  <div class="vox-card mb-4" style="border-left:3px solid var(--vox-neon)">
-    <div class="fw-bold mb-3">
-      <i class="bi bi-people me-2"></i>Appréciation générale sur le travail de la classe
-    </div>
-    <div style="line-height:1.85">{{ correction.assignment.class_appreciation | safe }}</div>
-  </div>
-  {% endif %}
-
-  <!-- ── Lecteur audio + chapitres ─────────────────────────────────── -->
-  <div class="vox-card mb-4">
-    <div class="fw-bold mb-3"><i class="bi bi-mic me-2"></i>Correction orale</div>
-
-    {% if correction.audio_url %}
-    <audio id="vc-audio" controls class="w-100" preload="none"
-           style="accent-color:var(--vox-neon);border-radius:8px">
-    </audio>
-
-    <!-- Pills générées dynamiquement par JS si sections détectées -->
-    <div id="chapter-pills" class="chapter-pills" aria-label="Navigation par chapitre"></div>
-
-    <div class="d-flex gap-2 align-items-center flex-wrap mt-3">
-      <button id="btn-dl-audio" class="btn vox-btn-dark btn-sm">
-        <i class="bi bi-download me-1"></i>Télécharger pour écoute hors-ligne
-      </button>
-      {% if correction.audio_duration %}
-      <span class="text-muted small">
-        {{ (correction.audio_duration // 60)|int }} min {{ (correction.audio_duration % 60)|int }} s
-      </span>
+        </div>
+      </div>
       {% endif %}
-    </div>
-    <p class="text-muted small mt-2 mb-0">
-      Audio chargé à la demande. Bouton ci-dessus pour usage hors-ligne.
-    </p>
-    {% else %}
-    <p class="text-muted small mb-0">Aucun audio disponible.</p>
-    {% endif %}
 
-    <!-- Confirmation d'écoute -->
-    <div id="read-confirmation" class="mt-4 pt-3" style="border-top:1px solid #e5e7eb">
-      {% if correction.read_at %}
-      <div class="d-flex align-items-center gap-2" style="color:#16a34a">
-        <i class="bi bi-check-circle-fill fs-5"></i>
-        <span class="small fw-semibold">
-          Correction écoutée le {{ correction.read_at.strftime('%d/%m/%Y à %Hh%M') }}
-        </span>
-      </div>
-      {% else %}
-      <div id="read-pending" class="d-flex align-items-center gap-3 flex-wrap">
-        <div class="text-muted small flex-grow-1">
-          <i class="bi bi-hourglass-split me-1"></i>
-          <span id="read-progress-text">Écoutez la correction pour valider</span>
+      {% if correction.assignment.class_appreciation %}
+      <div class="vox-card" style="border-left:3px solid var(--vox-neon)">
+        <div class="fw-bold mb-3">
+          <i class="bi bi-people me-2"></i>Appréciation générale sur le travail de la classe
         </div>
-        <div class="vox-progress flex-grow-1" style="max-width:160px;height:6px">
-          <div id="read-progress-bar" class="vox-progress-fill"
-               style="width:0%;transition:width .5s linear"></div>
-        </div>
-      </div>
-      <div id="read-done" class="d-none align-items-center gap-2" style="color:#16a34a">
-        <i class="bi bi-check-circle-fill fs-5"></i>
-        <span class="small fw-semibold">Correction écoutée — merci !</span>
+        <div style="line-height:1.85; white-space:pre-line">{{ correction.assignment.class_appreciation }}</div>
       </div>
       {% endif %}
     </div>
-  </div>
 
-  <!-- ── Synthèse écrite (transcript structuré) ─────────────────────── -->
-  {% if correction.structured_text %}
-  <div class="vox-card mb-4">
-    <div class="fw-bold mb-3">✦ Commentaires de votre enseignant</div>
-    <div id="transcript-body" style="line-height:1.85">
-      {{ correction.structured_text | safe }}
+    {# ── Colonne droite : audio + synthèse ── #}
+    <div class="student-col">
+      <div class="vox-card">
+        <div class="fw-bold mb-3"><i class="bi bi-mic me-2"></i>Correction orale</div>
+
+        {% if correction.audio_url %}
+        <audio id="vc-audio" controls class="w-100" preload="none"
+               style="accent-color:var(--vox-neon);border-radius:8px">
+        </audio>
+
+        <div id="chapter-pills" class="chapter-pills" aria-label="Navigation par chapitre"></div>
+
+        <div class="d-flex gap-2 align-items-center flex-wrap mt-3">
+          <button id="btn-dl-audio" class="btn vox-btn-dark btn-sm">
+            <i class="bi bi-download me-1"></i>Télécharger pour écoute hors-ligne
+          </button>
+          {% if correction.audio_duration %}
+          <span class="text-muted small">
+            {{ (correction.audio_duration // 60)|int }} min {{ (correction.audio_duration % 60)|int }} s
+          </span>
+          {% endif %}
+        </div>
+        <p class="text-muted small mt-2 mb-0">
+          Audio chargé à la demande. Bouton ci-dessus pour usage hors-ligne.
+        </p>
+        {% else %}
+        <p class="text-muted small mb-0">Aucun audio disponible.</p>
+        {% endif %}
+
+        <div id="read-confirmation" class="mt-4 pt-3" style="border-top:1px solid #e5e7eb">
+          {% if correction.read_at %}
+          <div class="d-flex align-items-center gap-2" style="color:#16a34a">
+            <i class="bi bi-check-circle-fill fs-5"></i>
+            <span class="small fw-semibold">
+              Correction écoutée le {{ correction.read_at.strftime('%d/%m/%Y à %Hh%M') }}
+            </span>
+          </div>
+          {% else %}
+          <div id="read-pending" class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="text-muted small flex-grow-1">
+              <i class="bi bi-hourglass-split me-1"></i>
+              <span id="read-progress-text">Écoutez la correction pour valider</span>
+            </div>
+            <div class="vox-progress flex-grow-1" style="max-width:160px;height:6px">
+              <div id="read-progress-bar" class="vox-progress-fill"
+                   style="width:0%;transition:width .5s linear"></div>
+            </div>
+          </div>
+          <div id="read-done" class="d-none align-items-center gap-2" style="color:#16a34a">
+            <i class="bi bi-check-circle-fill fs-5"></i>
+            <span class="small fw-semibold">Correction écoutée — merci !</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if correction.structured_text %}
+      <div class="vox-card">
+        <div class="fw-bold mb-3">✦ Commentaires de votre enseignant</div>
+        <div id="transcript-body" style="line-height:1.85">
+          {{ correction.structured_text | safe }}
+        </div>
+      </div>
+      {% endif %}
     </div>
+
   </div>
-  {% endif %}
 
   <div class="text-center text-muted small py-3">
     {% if not preview_mode %}

@@ -30,7 +30,7 @@ def student_view(token):
             'label': qs.question.label,
             'score': qs.score,
             'max': qs.question.max_points,
-            'competence': qs.question.competence,
+            'competence': qs.question.competence.name if qs.question.competence else None,
         }
         for qs in corr.scores
     ]

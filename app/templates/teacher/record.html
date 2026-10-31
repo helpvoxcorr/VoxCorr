@@ -124,7 +124,7 @@
         </button>
         <div class="rec-controls-hint">
           Dictez votre correction.<br>
-          <span class="text-neon">Mistral extraira les notes.</span>
+          <span class="text-neon">l'IA extraira les notes.</span>
         </div>
       </div>
 
@@ -173,7 +173,7 @@
           Synthèse pour l'élève
         </h2>
       </div>
-      <div id="ai-formatted-text" class="text-muted"></div>
+      <div id="ai-formatted-text" class="text-muted">{{ (existing.structured_text or '')|safe if existing else '' }}</div>
     </div>
 
     {# QR Code #}

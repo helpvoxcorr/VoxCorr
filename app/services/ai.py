@@ -6,6 +6,100 @@ Synthétise la transcription brute du prof en :
 """
 import os, json, re, tempfile
 from mistralai import Mistral
+import time
+
+LLM_ORDER = [p.strip() for p in os.environ.get('LLM_ORDER', 'mistral,agnes,gemini').split(',') if p.strip()]
+LLM_TIMEOUT = 30  # secondes max par fournisseur
+
+
+def _call_mistral(system_prompt, user_msg, temperature):
+    client = Mistral(api_key=os.environ['MISTRAL_API_KEY'], timeout_ms=LLM_TIMEOUT * 1000)
+    r = client.chat.complete(
+        model=os.environ.get('MISTRAL_MODEL', 'mistral-small-latest'),
+        messages=[{'role': 'system', 'content': system_prompt},
+                  {'role': 'user', 'content': user_msg}],
+        temperature=temperature,
+        response_format={'type': 'json_object'},
+    )
+    return r.choices[0].message.content
+
+
+def _call_agnes(system_prompt, user_msg, temperature):
+    import requests
+    r = requests.post(
+        'https://apihub.agnes-ai.com/v1/chat/completions',
+        headers={'Authorization': 'Bearer ' + os.environ['AGNES_API_KEY']},
+        json={
+            'model': os.environ.get('AGNES_MODEL', 'agnes-2.0-flash'),
+            'messages': [{'role': 'system', 'content': system_prompt},
+                         {'role': 'user', 'content': user_msg}],
+            'temperature': temperature,
+            'response_format': {'type': 'json_object'},
+        },
+        timeout=LLM_TIMEOUT,
+    )
+    if r.status_code >= 400:
+        raise RuntimeError(f'{r.status_code} {r.text[:300]}')
+    return r.json()['choices'][0]['message']['content']
+
+
+GEMINI_MODELS = [m.strip() for m in os.environ.get(
+    'GEMINI_MODELS', 'gemini-3.8-flash,gemini-3.1-flash-lite,gemini-3.5-flash-lite'
+).split(',') if m.strip()]
+
+
+def _call_gemini(system_prompt, user_msg, temperature):
+    from google import genai
+    from google.genai import types
+    client = genai.Client(api_key=os.environ['GEMINI_API_KEY'])
+    last = None
+    for model in GEMINI_MODELS:
+        for attempt in range(2):
+            try:
+                r = client.models.generate_content(
+                    model=model,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        temperature=temperature,
+                        response_mime_type='application/json',
+                        http_options=types.HttpOptions(timeout=LLM_TIMEOUT * 1000),
+                    ),
+                    contents=user_msg,
+                )
+                return r.text
+            except Exception as e:
+                last = e
+                print(f'[IA] gemini/{model} essai {attempt + 1} échec : {str(e)[:100]}', flush=True)
+                time.sleep(3)
+    raise last
+
+
+_PROVIDERS = {
+    'mistral': ('MISTRAL_API_KEY', _call_mistral),
+    'agnes':   ('AGNES_API_KEY',   _call_agnes),
+    'gemini':  ('GEMINI_API_KEY',  _call_gemini),
+}
+
+
+def _call_llm(system_prompt, user_msg, temperature):
+    """Essaie chaque fournisseur dans l'ordre, renvoie le premier JSON valide."""
+    last_error = None
+    for name in LLM_ORDER:
+        entry = _PROVIDERS.get(name)
+        if not entry or not os.environ.get(entry[0]):
+            continue
+        t0 = time.time()
+        try:
+            text = entry[1](system_prompt, user_msg, temperature).strip()
+            text = re.sub(r'^```json\s*', '', text)
+            text = re.sub(r'\s*```$', '', text)
+            data = json.loads(text)
+            print(f'[IA] {name} OK en {time.time() - t0:.1f}s', flush=True)
+            return data
+        except Exception as e:
+            last_error = e
+            print(f'[IA] {name} échec après {time.time() - t0:.1f}s : {e}', flush=True)
+    raise last_error or RuntimeError('Aucune clé IA configurée')
 
 SYSTEM_PROMPT = """Tu es un assistant pédagogique. Un enseignant t'envoie la transcription brute \
 de sa correction orale d'une copie d'élève.
@@ -92,63 +186,44 @@ def normalize_transcript(text: str) -> str:
     return text
 
 def synthesize_with_mistral(raw_text: str, question_labels: list[str], question_max: list[float] | None = None) -> dict:
-    """
-    Appelle Mistral et retourne {"formatted_text": "...", "grades": [...]}.
-    En cas d'erreur API, retourne un fallback sans planter le thread.
-    """
+    """Appelle l'IA (chaîne de fournisseurs) et retourne {"formatted_text": ..., "grades": [...]}."""
     raw_text = normalize_transcript(raw_text)
-    api_key = os.environ.get('MISTRAL_API_KEY')
-
-    api_key = os.environ.get('GEMINI_API_KEY')
-if api_key:
+    labels_str = ', '.join(
+        f"Q{i+1} (index {i}, label:\"{lbl}\") [max {question_max[i]}]"
+        if question_max else
+        f"Q{i+1} (index {i}, label:\"{lbl}\")"
+        for i, lbl in enumerate(question_labels)
+    )
+    user_msg = (
+        f"Questions du devoir (index : label [max points]) : {labels_str}\n\n"
+        f"Transcription brute :\n{raw_text}"
+    )
     try:
-        from google import genai
-        from google.genai import types
-        client = genai.Client(api_key=api_key)
-        labels_str = ', '.join(
-            f"Q{i+1} (index {i}, label:\"{lbl}\") [max {question_max[i]}]"
-            if question_max else
-            f"Q{i+1} (index {i}, label:\"{lbl}\")"
-            for i, lbl in enumerate(question_labels)
-        )
-        user_msg = (
-            f"Questions du devoir (index : label [max points]) : {labels_str}\n\n"
-            f"Transcription brute :\n{raw_text}"
-        )
-        response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                temperature=0.2,
-                response_mime_type='application/json',
-            ),
-            contents=user_msg,
-        )
-        raw = response.text.strip()
-        raw = re.sub(r'^```json\s*', '', raw)
-        raw = re.sub(r'\s*```$',    '', raw)
-        return json.loads(raw)
-
+        return _call_llm(SYSTEM_PROMPT, user_msg, 0.2)
     except Exception as e:
-        print(f'[Gemini] Erreur : {e}')
-        return _fallback(raw_text, str(e))
-else:
-    return _fallback(raw_text, 'GEMINI_API_KEY absente')
+        print(f'[IA] Tous les fournisseurs ont échoué : {e}', flush=True)
+        return _fallback(raw_text, 'IA indisponible', question_max)
 
 
-def _fallback(transcript: str, reason: str) -> dict:
-    """Parsing regex basique si Mistral est indisponible."""
-    grades = []
-    pattern = r'(?:question|q)\s*(\d+[a-z]?)\s*[,:]?\s*([\d.,]+)\s*(?:sur|/|points?|pts?)?\s*([\d.,]+)?'
+def _fallback(transcript: str, reason: str, question_max=None) -> dict:
+    """Secours sans IA : repère « 5 sur 5 », « 3 points sur 8 »… et les rattache aux questions par leur barème."""
+    grades, used = [], set()
+    pattern = r'(\d+(?:[.,]\d+)?)\s*(?:points?|pts?)?\s*sur\s*(\d+(?:[.,]\d+)?)'
     for m in re.finditer(pattern, transcript, re.IGNORECASE):
-        label     = f'Question {m.group(1)}'
-        score     = float(m.group(2).replace(',', '.'))
-        max_score = float(m.group(3).replace(',', '.')) if m.group(3) else None
-        if not any(g['question'] == label for g in grades):
-            grades.append({'question': label, 'score': score, 'max_score': max_score})
-
-    html  = f'<p>{transcript}</p>'
-    html += f'<p class="text-muted small">Note : synthèse IA indisponible ({reason}).</p>'
+        score = float(m.group(1).replace(',', '.'))
+        mx = float(m.group(2).replace(',', '.'))
+        idx = None
+        for i, q in enumerate(question_max or []):
+            if i not in used and abs(float(q) - mx) < 0.01:
+                idx = i
+                break
+        if idx is None:
+            continue
+        used.add(idx)
+        grades.append({'question_index': idx, 'question': f'Q{idx + 1}', 'score': min(score, mx),
+                       'max_score': mx, 'competence': '', 'advice': ''})
+    html = (f'<p>{transcript}</p><p class="text-muted small">Note : synthèse IA indisponible ({reason}). '
+            f'Utilisez « Regénérer la synthèse » plus tard.</p>')
     return {'formatted_text': html, 'grades': grades}
 
 
@@ -172,34 +247,16 @@ Règles :
 """
 
 def synthesize_appreciation(raw_text: str) -> str:
-    """
-    Reformule une appréciation générale dictée oralement.
-    Retourne le texte reformulé, ou le texte brut en cas d'erreur.
-    """
+    """Reformule l'appréciation en texte simple (paragraphes séparés par une ligne vide).
+    Lève une exception si l'IA est indisponible."""
     raw_text = normalize_transcript(raw_text)
-    api_key = os.environ.get('GEMINI_API_KEY')
-if not api_key:
-    return raw_text
-try:
-    from google import genai
-    from google.genai import types
-    client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(
-        model='gemini-2.0-flash',
-        config=types.GenerateContentConfig(
-            system_instruction=APPRECIATION_PROMPT,
-            temperature=0.3,
-            response_mime_type='application/json',
-        ),
-        contents=f"Transcription brute :\n{raw_text}",
-    )
-    raw = response.text.strip()
-    raw = re.sub(r'^```json\s*', '', raw)
-    raw = re.sub(r'\s*```$',    '', raw)
-    return json.loads(raw).get('formatted_text', raw_text)
-except Exception as e:
-    print(f'[Gemini appreciation] Erreur : {e}')
-    return raw_text
+    data = _call_llm(APPRECIATION_PROMPT, f"Transcription brute :\n{raw_text}", 0.3)
+    html = data.get('formatted_text') or ''
+    text = re.sub(r'</p>\s*<p[^>]*>', '\n\n', html)
+    text = re.sub(r'<[^>]+>', '', text).strip()
+    if not text:
+        raise RuntimeError('Réponse IA vide')
+    return text
 
 
 def transcribe_with_mistral(audio_bytes: bytes, filename: str = 'audio.webm') -> str:

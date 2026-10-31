@@ -227,3 +227,78 @@ textarea.input-vc { resize: vertical; min-height: 100px; }
 }
 .feedback-vc-success { color: var(--success-text); }
 .feedback-vc-error   { color: var(--danger-text);  }
+
+/* ── Espace élève connecté (student/correction.html) ── */
+.corr-hero-premium {
+  background: #0a0a0a;
+  border-bottom: 3px solid var(--vox-neon, #39FF14);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.corr-score-ring {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 84px; height: 84px; border-radius: 50%;
+  border: 4px solid var(--vox-neon, #39FF14);
+  color: #fff; line-height: 1.1;
+}
+.corr-score-ring .score-val { font-size: 1.3rem; font-weight: 700; }
+.corr-score-ring .score-max { font-size: .7rem; opacity: .6; }
+
+.glass-card, .corr-question-card {
+  background: #fff; color: #1f2937;
+  border: 1px solid #e5e7eb; border-radius: 14px;
+  padding: 1rem 1.25rem; margin-bottom: .75rem;
+}
+.audio-player audio { width: 100%; }
+.btn-tts-premium {
+  background: #0a0a0a; color: #fff; border: 0; border-radius: 999px;
+  padding: .5rem 1.1rem; font-weight: 600; cursor: pointer;
+}
+.q-score-pill { border-radius: 999px; padding: .2rem .7rem; font-size: .8rem; font-weight: 700; }
+.q-score-good { background: #dcfce7; color: #166534; }
+.q-score-mid  { background: #ffedd5; color: #9a3412; }
+.q-score-bad  { background: #fee2e2; color: #991b1b; }
+.q-score-none { background: #f3f4f6; color: #6b7280; }
+.advice-block { margin-top: .6rem; font-size: .9rem; color: #374151; }
+
+.synth-block {
+  background: #fff; color: #1f2937;
+  border: 1px solid #e5e7eb; border-radius: 14px;
+  padding: 1rem 1.25rem; line-height: 1.8;
+}
+.synth-block section { display: block; margin-bottom: 1rem; }
+.synth-block p { margin: 0 0 .5rem; color: inherit; }
+.synth-block .section-label {
+  font-size: .72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: #6b7280;
+}
+
+.cd-synthesis, #ai-formatted-text, #transcript-body, .synth-block,
+.cd-synthesis section, #ai-formatted-text section, #transcript-body section, .synth-block section,
+.cd-synthesis p, #ai-formatted-text p, #transcript-body p, .synth-block p {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  transform: none !important;
+  color: #1f2937 !important;
+}
+.cd-synthesis section, #ai-formatted-text section, .synth-block section { margin-bottom: 1rem !important; }
+.cd-synthesis .section-label, #ai-formatted-text .section-label, .synth-block .section-label {
+  font-weight: 700 !important; font-size: .75rem !important;
+  text-transform: uppercase !important; color: #6b7280 !important;
+}
+
+#appreciationForm .ac-form-actions { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+#appreciationForm #btnRecordAppreciation {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:40px; height:40px; padding:0; border-radius:50%; flex:0 0 40px;
+}
+#appreciationForm #btnSynthAppreciation {
+  display:inline-flex; align-items:center; gap:.35rem;
+  background:#fff; color:#111827; border:1px solid #d1d5db;
+}
+#appreciationForm #btnSynthAppreciation:hover { background:#f3f4f6; }

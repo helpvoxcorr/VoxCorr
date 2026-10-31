@@ -68,6 +68,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.status === 'draft' || data.status === 'published') {
           clearInterval(pollTimer);
           UI.setState('done', data);
+          const fillSynthese = () => {
+            const box = document.getElementById('ai-formatted-text');
+            const card = document.getElementById('ai-result-section');
+            if (card) card.classList.remove('d-none');
+            if (box && data.structured_text) box.innerHTML = data.structured_text;
+          };
+          fillSynthese();
+          [150, 600, 1500].forEach(ms => setTimeout(fillSynthese, ms));
           fetch('/teacher/api/correction/' + correctionId + '/scores')
             .then(r => r.json())
             .then(scores => {

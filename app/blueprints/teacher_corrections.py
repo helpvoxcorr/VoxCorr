@@ -89,7 +89,7 @@ def preview_correction(correction_id):
     if not corr or corr.assignment.classroom.teacher_id != current_user.id: flash('Accès non autorisé.', 'danger'); return redirect(url_for('teacher_crud.dashboard'))
     if corr.status == 'published': return redirect(url_for('public.student_view', token=corr.public_token))
     if corr.status not in ('draft',): flash(f"Aperçu non disponible — correction en statut « {corr.status} ».", "warning"); return redirect(url_for('teacher_corr.correction_detail', correction_id=correction_id))
-    scores_detail = [{'label': qs.question.label, 'score': qs.score, 'max': qs.question.max_points, 'competence': qs.question.competence} for qs in corr.scores]
+    scores_detail = [{'label': qs.question.label, 'score': qs.score, 'max': qs.question.max_points, 'competence': qs.question.competence.name if qs.question.competence else None,} for qs in corr.scores]
     return render_template('public/student.html', correction=corr, scores=scores_detail, teacher=corr.assignment.classroom.teacher, preview_mode=True)
 
 @teacher_corr_bp.route('/api/correction/save', methods=['POST'])
@@ -117,19 +117,40 @@ def save_correction():
         with app.app_context():
             c = db.session.get(Correction, corr_id)
             if not c: return
+            transcript = c.raw_transcript
+            db.session.commit()
+            db.session.remove()  # libère la connexion avant l'appel IA
             try:
-                result = synthesize_with_mistral(c.raw_transcript, q_labels, q_max); c.structured_text = result.get('formatted_text', c.raw_transcript)
-                existing_scores = {qs.question_id: qs for qs in c.scores}; grades = result.get('grades', [])
-                for ai_score in grades:
+                result = synthesize_with_mistral(transcript, q_labels, q_max)
+                c = db.session.get(Correction, corr_id)  # connexion fraîche
+                c.structured_text = result.get('formatted_text') or transcript
+                existing_scores = {qs.question_id: qs for qs in c.scores}
+                grades = result.get('grades', [])
+                for pos, ai_score in enumerate(grades):
                     idx = ai_score.get('question_index')
-                    if idx is None: idx = grades.index(ai_score)
-                    if idx is None or idx >= len(q_ids): continue
+                    if idx is None:
+                        idx = pos
+                    if idx >= len(q_ids):
+                        continue
                     qid = q_ids[idx]
-                    if qid in existing_scores: continue
-                    raw_score = float(ai_score['score']); safe_score = min(raw_score, q_max[idx]); advice_text = ai_score.get('advice', '')
-                    qs = QuestionScore(correction_id=corr_id, question_id=qid, score=safe_score, advice=advice_text); db.session.add(qs); existing_scores[qid] = qs
+                    safe_score = min(float(ai_score['score']), q_max[idx])
+                    advice_text = ai_score.get('advice', '')
+                    if qid in existing_scores:
+                        qs = existing_scores[qid]
+                        if not qs.score:
+                            qs.score = safe_score
+                        qs.advice = advice_text
+                    else:
+                        qs = QuestionScore(correction_id=corr_id, question_id=qid, score=safe_score, advice=advice_text)
+                        db.session.add(qs)
+                        existing_scores[qid] = qs
                 db.session.flush(); c.compute_total(); c.status = 'draft'; db.session.commit()
-            except Exception as e: db.session.rollback(); c.status = 'draft'; db.session.commit(); print(f"[Mistral] Erreur dans _synthesize: {e}")
+            except Exception as e:
+                db.session.rollback()
+                c = db.session.get(Correction, corr_id)
+                if c:
+                    c.status = 'draft'; db.session.commit()
+                print(f"[Mistral] Erreur dans _synthesize: {e}", flush=True)
     import threading; threading.Thread(target=_synthesize, daemon=True).start()
     return jsonify({'ok': True, 'correction_id': corr_id})
 
@@ -204,22 +225,68 @@ def delete_corrections_bulk():
         if corr and corr.assignment.classroom.teacher_id == current_user.id: db.session.delete(corr); deleted += 1
     db.session.commit(); return jsonify({'ok': True, 'deleted': deleted})
 
+def _apply_ai_grades(c, result, q_ids, q_max):
+    """Enregistre les notes/conseils extraits par l'IA (sans écraser une note déjà saisie)."""
+    existing = {qs.question_id: qs for qs in c.scores}
+    for pos, g in enumerate(result.get('grades', [])):
+        idx = g.get('question_index')
+        if idx is None:
+            idx = pos
+        if idx >= len(q_ids):
+            continue
+        try:
+            raw = float(g['score'])
+        except (KeyError, TypeError, ValueError):
+            continue
+        qid = q_ids[idx]
+        safe = min(raw, q_max[idx])
+        advice = g.get('advice', '')
+        if qid in existing:
+            qs = existing[qid]
+            if not qs.score:
+                qs.score = safe
+            qs.advice = advice
+        else:
+            qs = QuestionScore(correction_id=c.id, question_id=qid, score=safe, advice=advice)
+            db.session.add(qs)
+            existing[qid] = qs
+    db.session.flush()
+    c.compute_total()
+
 @teacher_corr_bp.route('/api/correction/<int:correction_id>/resynthesize', methods=['POST'])
 @login_required
 @limiter.limit("5 per minute; 20 per hour")
 def resynthesize_correction(correction_id):
     corr = db.session.get(Correction, correction_id)
-    if not corr or corr.assignment.classroom.teacher_id != current_user.id: return jsonify({'error': 'Non autorisé'}), 403
-    if corr.status == 'published': return jsonify({'error': 'Impossible de modifier une correction publiée'}), 400
-    if not corr.raw_transcript: return jsonify({'error': 'Aucune transcription disponible.'}), 400
-    questions = corr.assignment.questions; q_labels = [q.label for q in questions]; q_max_points = [q.max_points for q in questions]
+    if not corr or corr.assignment.classroom.teacher_id != current_user.id:
+        return jsonify({'error': 'Non autorisé'}), 403
+    if corr.status == 'published':
+        return jsonify({'error': 'Impossible de modifier une correction publiée'}), 400
+    if not corr.raw_transcript:
+        return jsonify({'error': 'Aucune transcription disponible.'}), 400
+    questions = corr.assignment.questions
+    q_labels = [q.label for q in questions]
+    q_max_points = [q.max_points for q in questions]
+    q_ids = [q.id for q in questions]
+    transcript = corr.raw_transcript
     app_ctx = current_app._get_current_object()
+
     def _do_resynthesize():
         with app_ctx.app_context():
             try:
-                result = synthesize_with_mistral(corr.raw_transcript, q_labels, q_max_points); corr.structured_text = result.get('formatted_text', corr.raw_transcript); corr.status = 'draft'; db.session.commit()
-            except Exception as e: app_ctx.logger.error(f'Resynthesize error corr {correction_id}: {e}')
-    run_in_background(_do_resynthesize); return jsonify({'ok': True})
+                result = synthesize_with_mistral(transcript, q_labels, q_max_points)
+                c = db.session.get(Correction, correction_id)
+                if c:
+                    c.structured_text = result.get('formatted_text') or transcript
+                    _apply_ai_grades(c, result, q_ids, q_max_points)
+                    c.status = 'draft'
+                    db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                app_ctx.logger.error(f'Resynthesize error corr {correction_id}: {e}')
+
+    run_in_background(_do_resynthesize)
+    return jsonify({'ok': True})
 
 @teacher_corr_bp.route('/assignments/<int:assignment_id>/appreciation', methods=['POST'])
 @login_required
@@ -238,7 +305,12 @@ def synthesize_appreciation_route(assignment_id):
     if a.classroom.teacher_id != current_user.id: return jsonify({'error': 'Non autorisé'}), 403
     raw = request.get_json().get('text', '').strip()
     if not raw: return jsonify({'error': 'Texte vide'}), 400
-    result = synthesize_appreciation(raw); return jsonify({'ok': True, 'text': result})
+    try:
+        result = synthesize_appreciation(raw)
+    except Exception as e:
+        print(f'[IA appréciation] {e}', flush=True)
+        return jsonify({'error': "L'IA est indisponible, réessaie dans un instant."}), 503
+    return jsonify({'ok': True, 'text': result})
 
 @teacher_corr_bp.route('/correction/<int:correction_id>/pdf')
 @login_required
@@ -247,7 +319,7 @@ def correction_pdf(correction_id):
     corr = db.session.get(Correction, correction_id)
     if not corr or corr.assignment.classroom.teacher_id != current_user.id: flash('Accès non autorisé.', 'danger'); return redirect(url_for('teacher_crud.dashboard'))
     student = corr.student
-    scores_detail = [{'label': qs.question.label, 'score': qs.score, 'max': qs.question.max_points, 'competence': qs.question.competence} for qs in corr.scores]
+    scores_detail = [{'label': qs.question.label, 'score': qs.score, 'max': qs.question.max_points, 'competence': qs.question.competence.name if qs.question.competence else None,} for qs in corr.scores]
     qr_url = f"{current_app.config['APP_BASE_URL']}/c/{corr.public_token}"; qr_data = make_qr(corr.public_token) if corr.status == 'published' else None; qr_b64 = qr_data['png_b64'] if qr_data else None
     html_str = render_template('teacher/correction_pdf.html', correction=corr, student=student, scores=scores_detail, qr_b64=qr_b64, qr_url=qr_url if corr.status == 'published' else None, teacher=corr.assignment.classroom.teacher, now=datetime.now(timezone.utc))
     try: pdf = HTML(string=html_str, base_url=request.host_url).write_pdf()
