@@ -302,3 +302,11 @@ textarea.input-vc { resize: vertical; min-height: 100px; }
   background:#fff; color:#111827; border:1px solid #d1d5db;
 }
 #appreciationForm #btnSynthAppreciation:hover { background:#f3f4f6; }
+
+/* ── Navigation (refonte, étape 1) ── */
+.vox-navbar .nav-link.active { color: #fff !important; box-shadow: inset 0 -2px 0 var(--neon); }
+.vox-crumbs { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; font-size: .85rem; padding: .15rem 0; }
+.vox-crumb { color: #4b5563; text-decoration: none; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+a.vox-crumb:hover { color: #111827; text-decoration: underline; }
+.vox-crumb-current { color: #111827; font-weight: 600; }
+.vox-crumb-sep { color: #9ca3af; }

@@ -40,43 +40,50 @@
 <body>
 
   <!-- Navbar -->
-  <nav class="vox-navbar sticky-top">
+    <nav class="vox-navbar sticky-top">
     <div class="container d-flex align-items-center justify-content-between">
       <a href="{% if current_user.is_authenticated %}/teacher/dashboard{% else %}/{% endif %}" class="navbar-brand d-flex align-items-center gap-2">
         <span class="vox-logo-mark">V</span>
         <span>Vox<span class="text-neon">Corr</span></span>
       </a>
-      
+
       {% if current_user.is_authenticated %}
-      <div class="d-flex align-items-center gap-2">
-        <a href="/teacher/dashboard" class="nav-link"><i class="bi bi-grid"></i> Tableau de bord</a>
-        <a href="/teacher/classes" class="nav-link"><i class="bi bi-people"></i> Classes</a>
-        <a href="/teacher/admin" class="nav-link"><i class="bi bi-gear"></i> Admin</a>
-        <a href="/auth/logout" class="nav-link vox-logout-btn"><i class="bi bi-box-arrow-right"></i> Déconnexion</a>
+      {% set ep = request.endpoint or '' %}
+      {% set is_home = ep == 'teacher_crud.dashboard' %}
+      {% set is_settings = ep.startswith('teacher_admin.') %}
+      {% set is_classes = (not is_home) and (not is_settings) and ep.startswith('teacher_') %}
+      <div class="d-flex align-items-center gap-1">
+        <a href="/teacher/dashboard" class="nav-link {{ 'active' if is_home }}" title="Accueil">
+          <i class="bi bi-house-door"></i> <span class="d-none d-md-inline">Accueil</span></a>
+        <a href="/teacher/classes" class="nav-link {{ 'active' if is_classes }}" title="Mes classes">
+          <i class="bi bi-people"></i> <span class="d-none d-md-inline">Mes classes</span></a>
+        <a href="/teacher/admin" class="nav-link {{ 'active' if is_settings }}" title="Paramètres">
+          <i class="bi bi-gear"></i> <span class="d-none d-md-inline">Paramètres</span></a>
+        <a href="/auth/logout" class="nav-link vox-logout-btn" title="Déconnexion">
+          <i class="bi bi-box-arrow-right"></i> <span class="d-none d-md-inline">Déconnexion</span></a>
       </div>
       {% endif %}
     </div>
   </nav>
 
-  {% if current_user and current_user.is_authenticated %}
-  <div class="vox-breadcrumb-bar">
-    <div class="container d-flex align-items-center gap-2" style="font-size:.8rem;color:var(--muted)">
-      <a href="{{ url_for('teacher_crud.dashboard') }}" class="text-muted"><i class="bi bi-house-door"></i></a>
-      {% if generate_breadcrumb is defined %}
-        {% set crumbs = generate_breadcrumb() %}
-        {% if crumbs %}
+  {% if current_user and current_user.is_authenticated and generate_breadcrumb is defined %}
+    {% set crumbs = generate_breadcrumb() %}
+    {% if crumbs %}
+    <div class="vox-breadcrumb-bar">
+      <div class="container">
+        <nav aria-label="Fil d'Ariane" class="vox-crumbs">
           {% for crumb in crumbs %}
-            <span class="text-muted">›</span>
+            {% if not loop.first %}<span class="vox-crumb-sep">›</span>{% endif %}
             {% if crumb.url %}
-              <a href="{{ crumb.url }}" class="text-muted">{{ crumb.label }}</a>
+              <a href="{{ crumb.url }}" class="vox-crumb">{% if loop.first %}<i class="bi bi-house-door"></i> {% endif %}{{ crumb.label }}</a>
             {% else %}
-              <span class="fw-600" style="color:var(--black)">{{ crumb.label }}</span>
+              <span class="vox-crumb vox-crumb-current">{{ crumb.label }}</span>
             {% endif %}
           {% endfor %}
-        {% endif %}
-      {% endif %}
+        </nav>
+      </div>
     </div>
-  </div>
+    {% endif %}
   {% endif %}
 
   <!-- Main Content -->

@@ -98,6 +98,6 @@ def create_app(config_class=Config):
                 return []
             return build_breadcrumb(endpoint, dict(request.view_args or {}))
         
-        return dict(generate_breadcrumb=generate_breadcrumb)
+        return dict(generate_breadcrumb=generate_breadcrumb, now=datetime.now(timezone.utc))
 
     return app, socketio

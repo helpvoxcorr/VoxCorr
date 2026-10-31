@@ -2,9 +2,40 @@ services:
   - type: web
     name: voxcorr
     runtime: python
-    pythonVersion: "3.11.9"
     buildCommand: pip install -r requirements.txt
-    startCommand: flask db upgrade && gunicorn app:create_app --workers 2 --bind 0.0.0.0:$PORT
+    startCommand: flask db upgrade && gunicorn server:app --workers 2 --timeout 120 --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
+      - key: FLASK_APP
+        value: server.py
+      - key: LLM_ORDER
+        value: gemini,mistral,agnes
+      - key: AGNES_MODEL
+        value: agnes-2.5-flash
+      - key: SECRET_KEY
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: AGNES_API_KEY
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: SENDGRID_FROM_EMAIL
+        sync: false
+      - key: SENDGRID_FROM_NAME
+        sync: false
