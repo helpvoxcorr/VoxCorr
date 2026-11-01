@@ -55,4 +55,12 @@ export const api = {
   publish(correctionId) {
     return _post(`/teacher/api/correction/${correctionId}/publish`, {});
   },
+  
+  getScores(correctionId) {
+    return _get(`/teacher/api/correction/${correctionId}/scores`);
+  },
+
+  updateScores(correctionId, scores) {
+    return _post(`/teacher/api/correction/${correctionId}/scores/update`, { scores });
+  },
 };

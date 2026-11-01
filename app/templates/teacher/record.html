@@ -7,20 +7,16 @@
     studentId: {{ student.id }},
     assignmentId: {{ assignment.id }},
     correctionId: {{ existing.id if existing else 'null' }},
+    correctionStatus: {{ (existing.status if existing else '')|tojson }},
     prevStudentId: {{ prev_student_id or 'null' }},
     nextStudentId: {{ next_student_id or 'null' }},
-    hasPrevCorrection: {{ 'true' if has_prev_correction else 'false' }},
-    hasNextCorrection: {{ 'true' if has_next_correction else 'false' }},
-    studentIndex: {{ student_index }},
-    studentTotal: {{ student_total }},
-    correctionListUrl: '{{ url_for("teacher_corr.assignment_corrections", assignment_id=assignment.id) }}',
+    nextTodoId: {{ next_todo_id or 'null' }},
     recordBaseUrl: '/teacher/record',
   };
 </script>
 {% endblock %}
 
 {% block content %}
-{# ── Hero ──────────────────────────────────────────────────────────────────── #}
 <div class="cd-hero">
   <div class="cd-hero-left">
     <div class="cd-alias">{{ student.alias }}</div>
@@ -36,32 +32,28 @@
   </div>
   <div class="cd-hero-actions">
     {% if prev_student_id %}
-      <a href="{{ url_for('teacher_corr.record', student_id=prev_student_id, assignment_id=assignment.id) }}" class="cd-btn-ghost" title="Précédent">
-        <i class="bi bi-arrow-left"></i>
+      <a href="{{ url_for('teacher_corr.record', student_id=prev_student_id, assignment_id=assignment.id) }}" class="cd-btn-ghost rec-nav-btn" title="Élève précédent : {{ prev_name }}">
+        <i class="bi bi-arrow-left"></i> <span class="d-none d-md-inline">Précédent</span>
       </a>
     {% endif %}
     {% if next_student_id %}
-      <a href="{{ url_for('teacher_corr.record', student_id=next_student_id, assignment_id=assignment.id) }}" class="cd-btn-ghost" title="Suivant">
-        <i class="bi bi-arrow-right"></i>
+      <a href="{{ url_for('teacher_corr.record', student_id=next_student_id, assignment_id=assignment.id) }}" class="cd-btn-ghost rec-nav-btn" title="Élève suivant : {{ next_name }}">
+        <span class="d-none d-md-inline">Suivant</span> <i class="bi bi-arrow-right"></i>
       </a>
     {% endif %}
-    <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=assignment.id) }}" class="cd-btn-ghost" title="Retour aux corrections">
-      <i class="bi bi-list-check"></i>
+    <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=assignment.id) }}" class="cd-btn-ghost rec-nav-btn" title="Retour à la liste du devoir">
+      <i class="bi bi-list-check"></i> <span class="d-none d-md-inline">Liste</span>
     </a>
   </div>
 </div>
 
-{# ── Layout 2 colonnes ─────────────────────────────────────────────────────── #}
 <div class="rec-grid">
 
-  {# ── Colonne gauche : Notes ──────────────────────────────────────────────── #}
+  {# ── Colonne gauche : notes ── #}
   <div class="rec-col-side">
     <div class="cd-card">
       <div class="cd-card-header">
-        <h2 class="cd-section-title">
-          <i class="bi bi-list-check text-neon"></i>
-          Notes
-        </h2>
+        <h2 class="cd-section-title"><i class="bi bi-list-check text-neon"></i> Notes</h2>
         <span class="cd-count" id="total-score">
           {{ '%.1f'|format(existing.total_score) if existing and existing.total_score else '—' }}
         </span>
@@ -86,28 +78,25 @@
         </div>
         {% endfor %}
       </div>
+      <p class="rec-hint-note">Les notes se remplissent toutes seules après l'analyse. Vous pouvez les corriger à la main : elles s'enregistrent automatiquement.</p>
     </div>
   </div>
 
-  {# ── Colonne droite : Recorder ───────────────────────────────────────────── #}
+  {# ── Colonne droite : dictée ── #}
   <div class="rec-col-main">
 
-    {# Alerte correction existante #}
     {% if existing %}
     <div class="rec-alert">
       <i class="bi bi-exclamation-triangle-fill"></i>
-      <span>Une correction existe déjà. Sauvegarder <strong>remplacera</strong> la correction actuelle.
+      <span>Une correction existe déjà. Refaire la dictée <strong>remplacera</strong> la synthèse et les notes.
         <a href="{{ url_for('teacher_corr.correction_detail', correction_id=existing.id) }}" class="rec-alert-link">Voir →</a>
       </span>
     </div>
     {% endif %}
 
-    {# Recorder #}
     <div class="rec-recorder">
       <div class="rec-recorder-header">
-        <h2 class="rec-recorder-title">
-          <i class="bi bi-mic-fill"></i> Correction orale
-        </h2>
+        <h2 class="rec-recorder-title"><i class="bi bi-mic-fill"></i> Correction orale</h2>
         <div id="recording-status" class="rec-recorder-status">Prêt à enregistrer…</div>
       </div>
 
@@ -116,76 +105,68 @@
       </div>
 
       <div class="rec-controls">
-        <button class="rec-record-btn" id="btn-start" title="Démarrer">
+        <button type="button" class="rec-record-btn" id="btn-start" title="Démarrer la dictée">
           <i class="bi bi-mic-fill"></i>
         </button>
-        <button class="rec-record-btn rec-record-btn-stop d-none" id="btn-stop" title="Arrêter">
+        <button type="button" class="rec-record-btn rec-record-btn-stop d-none" id="btn-stop" title="Arrêter la dictée">
           <i class="bi bi-stop-fill"></i>
         </button>
         <div class="rec-controls-hint">
           Dictez votre correction.<br>
-          <span class="text-neon">l'IA extraira les notes.</span>
+          <span class="text-neon">L'IA extraira les notes et rédigera la synthèse.</span>
         </div>
       </div>
 
-      <label class="rec-label">Transcription temps réel</label>
-      <textarea class="rec-transcript" id="transcription" placeholder="Votre dictée apparaîtra ici…">{{ existing.raw_transcript or '' }}</textarea>
+      <label class="rec-label" for="transcription">Transcription</label>
+      <textarea class="rec-transcript" id="transcription" placeholder="Votre dictée apparaîtra ici. Vous pouvez aussi la corriger ou la taper à la main.">{{ existing.raw_transcript or '' if existing else '' }}</textarea>
       <div id="interim" class="rec-interim"></div>
 
       <div class="rec-actions">
-        <button class="cd-btn-primary d-none" id="btn-save">
-          <i class="bi bi-floppy"></i> Sauvegarder et analyser
+        <button type="button" class="cd-btn-primary d-none" id="btn-save">
+          <i class="bi bi-stars"></i> Analyser avec l'IA
         </button>
-        <button class="cd-btn-ghost d-none" id="btn-publish" style="background: rgba(255,255,255,.1);">
-          <i class="bi bi-qr-code"></i> Publier et générer QR
+        <button type="button" class="cd-btn-primary d-none" id="btn-publish">
+          <i class="bi bi-qr-code"></i> Publier et générer le QR code
         </button>
       </div>
 
-      {# Navigation post-publication #}
+      {# Après publication #}
       <div id="nav-correction" class="rec-nav-post d-none">
         <div class="rec-nav-post-label">
           <i class="bi bi-check-circle-fill text-neon"></i> Correction publiée.
         </div>
         <div class="rec-nav-post-actions">
-          {% if prev_student_id %}
-          <button class="cd-btn-ghost" id="btn-prev-student" style="background: rgba(255,255,255,.1); width: auto; padding: .6rem 1.2rem;">
-            <i class="bi bi-arrow-left"></i> Précédent
-          </button>
-          {% endif %}
-          {% if next_student_id %}
-          <button class="cd-btn-primary" id="btn-next-student">
-            Suivant <i class="bi bi-arrow-right"></i>
+          {% if next_todo_id %}
+          <button type="button" class="cd-btn-primary" id="btn-next-todo">
+            <i class="bi bi-mic-fill"></i> Corriger le suivant : {{ next_todo_name }}
           </button>
           {% else %}
           <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=assignment.id) }}" class="cd-btn-primary">
-            <i class="bi bi-list-check"></i> Voir toutes les corrections
+            <i class="bi bi-check2-all"></i> Terminé : retour au devoir
           </a>
           {% endif %}
+          <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=assignment.id) }}" class="cd-btn-ghost rec-nav-btn">
+            <i class="bi bi-list-check"></i> Retour à la liste
+          </a>
         </div>
       </div>
     </div>
 
-    {# Synthèse IA #}
-    <div id="ai-result-section" class="cd-card mt-3 d-none">
+    {# Synthèse #}
+    <div id="ai-result-section" class="cd-card mt-3 {{ '' if existing and existing.structured_text else 'd-none' }}">
       <div class="cd-card-header">
-        <h2 class="cd-section-title">
-          <i class="bi bi-stars text-neon"></i>
-          Synthèse pour l'élève
-        </h2>
+        <h2 class="cd-section-title"><i class="bi bi-stars text-neon"></i> Synthèse pour l'élève</h2>
       </div>
-      <div id="ai-formatted-text" class="text-muted">{{ (existing.structured_text or '')|safe if existing else '' }}</div>
+      <div id="ai-formatted-text">{{ (existing.structured_text or '')|safe if existing else '' }}</div>
     </div>
 
-    {# QR Code #}
+    {# QR code #}
     <div id="qr-panel" class="cd-card mt-3 d-none">
       <div class="cd-card-header">
-        <h2 class="cd-section-title">
-          <i class="bi bi-qr-code text-neon"></i>
-          Accès élève
-        </h2>
+        <h2 class="cd-section-title"><i class="bi bi-qr-code text-neon"></i> Accès élève</h2>
       </div>
       <div class="cd-qr-section">
-        <img id="qr-img" src="" alt="QR Code" class="cd-qr-img">
+        <img id="qr-img" src="" alt="QR code" class="cd-qr-img">
         <div class="cd-qr-info">
           <div class="cd-qr-label">Scannez pour accéder à la correction</div>
           <a id="qr-url" href="#" target="_blank" class="cd-qr-url"></a>
@@ -201,30 +182,11 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/recorder.js"></script>
-<script type="module" src="/static/js/record_page.js"></script>
-
-<div class="modal fade" id="vox-error-modal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="vox-error-title">Erreur</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <p id="vox-error-body" class="text-muted mb-0"></p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="cd-btn-primary cd-btn-sm" data-bs-dismiss="modal">Compris</button>
-      </div>
-    </div>
-  </div>
-</div>
+<script src="/static/js/recorder.js?v=2"></script>
+<script type="module" src="/static/js/record_page.js?v=2"></script>
 <script>
-window.voxShowError = function(title, message) {
-  document.getElementById('vox-error-title').textContent = title;
-  document.getElementById('vox-error-body').textContent  = message;
-  new bootstrap.Modal(document.getElementById('vox-error-modal')).show();
+window.voxShowError = function (title, message) {
+  window.VoxModal.alert({ type: 'danger', title: title, body: message });
 };
 </script>
 {% endblock %}

@@ -247,3 +247,12 @@ body.vc-app .ac-student-name a:hover { text-decoration: underline; }
 
 body.vc-app .ac-student-row { grid-template-columns: 28px minmax(0, 1fr) 110px 110px 230px; }
 body.vc-app .ac-student-actions { gap: .4rem; }
+
+/* ── Écran de correction (étape 6) ── */
+body.vc-app .rec-recorder .text-success { color: #4ade80 !important; }
+body.vc-app .rec-recorder .text-warning { color: #fbbf24 !important; }
+body.vc-app .rec-recorder .text-danger  { color: #f87171 !important; }
+body.vc-app .rec-recorder .text-neon    { color: var(--neon) !important; }
+body.vc-app .rec-nav-btn { width: auto; height: 40px; padding: 0 .9rem; gap: .4rem; font-size: .85rem; font-weight: 600; }
+body.vc-app :is(.rec-actions, .rec-nav-post) .cd-btn-primary { padding: .75rem 1.4rem; font-size: .95rem; }
+body.vc-app .rec-hint-note { font-size: .8rem; color: var(--ink-3); margin: .9rem 0 0; }

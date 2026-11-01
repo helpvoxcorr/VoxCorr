@@ -29,29 +29,51 @@ def assignment_corrections(assignment_id):
 @teacher_corr_bp.route('/record/<int:student_id>/<int:assignment_id>')
 @login_required
 def record(student_id, assignment_id):
-    student = db.session.get(Student, student_id)
-    if not student: abort(404)
-    try: student_first = decrypt_name(student.encrypted_first_name); student_last = decrypt_name(student.encrypted_last_name)
-    except Exception: student_first = student_last = '—'
     assignment = db.session.get(Assignment, assignment_id)
-    if not assignment: abort(404)
-    if assignment.classroom.teacher_id != current_user.id: return jsonify({'error': 'Non autorisé'}), 403
+    if not assignment:
+        abort(404)
+    if assignment.classroom.teacher_id != current_user.id:
+        abort(403)
     student = db.session.get(Student, student_id)
-    if not student or student.classroom_id != assignment.classroom_id: return jsonify({'error': 'Élève non trouvé dans cette classe'}), 404
+    if not student or student.classroom_id != assignment.classroom_id:
+        abort(404)
+
+    def _label(s):
+        try:
+            return f"{decrypt_name(s.encrypted_last_name)} {decrypt_name(s.encrypted_first_name)}"
+        except Exception:
+            return s.alias
+
+    student_label = _label(student)
+    try:
+        student_first = decrypt_name(student.encrypted_first_name)
+        student_last = decrypt_name(student.encrypted_last_name)
+    except Exception:
+        student_first = student_last = '—'
+
     corr = Correction.query.filter_by(student_id=student_id, assignment_id=assignment_id).first()
     all_students = Student.query.filter_by(classroom_id=assignment.classroom_id).all()
-    def _sort_key(s):
-        try: return decrypt_name(s.encrypted_last_name).lower()
-        except Exception: return s.alias.lower()
-    all_students.sort(key=_sort_key)
+    all_students.sort(key=lambda s: _label(s).lower())
+    by_id = {s.id: s for s in all_students}
     ids = [s.id for s in all_students]
-    try: idx = ids.index(student_id)
-    except ValueError: idx = 0
-    prev_id = ids[idx - 1] if idx > 0 else None; next_id = ids[idx + 1] if idx < len(ids) - 1 else None
-    def _has_correction(sid):
-        if sid is None: return False
-        return Correction.query.filter_by(student_id=sid, assignment_id=assignment_id).first() is not None
-    return render_template('teacher/record.html', student=student, assignment=assignment, questions=assignment.questions, existing=corr, prev_student_id=prev_id, next_student_id=next_id, has_prev_correction=_has_correction(prev_id), has_next_correction=_has_correction(next_id), student_index=idx + 1, student_first=student_first, student_last=student_last, student_total=len(ids))
+    idx = ids.index(student_id) if student_id in ids else 0
+    prev_id = ids[idx - 1] if idx > 0 else None
+    next_id = ids[idx + 1] if idx < len(ids) - 1 else None
+
+    done_ids = {r[0] for r in db.session.query(Correction.student_id).filter_by(assignment_id=assignment_id).all()}
+    todo = [i for i in ids[idx + 1:] if i not in done_ids] or [i for i in ids if i not in done_ids and i != student_id]
+    next_todo_id = todo[0] if todo else None
+
+    return render_template(
+        'teacher/record.html', student=student, assignment=assignment,
+        questions=assignment.questions, existing=corr,
+        prev_student_id=prev_id, next_student_id=next_id,
+        prev_name=_label(by_id[prev_id]) if prev_id else '',
+        next_name=_label(by_id[next_id]) if next_id else '',
+        next_todo_id=next_todo_id,
+        next_todo_name=_label(by_id[next_todo_id]) if next_todo_id else '',
+        student_index=idx + 1, student_total=len(ids),
+        student_first=student_first, student_last=student_last)
 
 @teacher_corr_bp.route('/assignments/<int:assignment_id>/print')
 @login_required
@@ -272,6 +294,33 @@ def publish_all(assignment_id):
         published += 1
     db.session.commit()
     return jsonify({'ok': True, 'published': published, 'skipped': skipped})
+
+@teacher_corr_bp.route('/api/correction/<int:correction_id>/scores/update', methods=['POST'])
+@login_required
+def update_scores(correction_id):
+    corr = db.session.get(Correction, correction_id)
+    if not corr or corr.assignment.classroom.teacher_id != current_user.id:
+        return jsonify({'error': 'Non autorisé'}), 403
+    max_by_id = {q.id: q.max_points for q in corr.assignment.questions}
+    existing = {qs.question_id: qs for qs in corr.scores}
+    for item in (request.get_json(silent=True) or {}).get('scores', []):
+        qid = item.get('question_id')
+        if qid not in max_by_id:
+            continue
+        try:
+            val = float(item.get('score'))
+        except (TypeError, ValueError):
+            continue
+        val = max(0.0, min(val, max_by_id[qid]))
+        if qid in existing:
+            existing[qid].score = val
+        else:
+            db.session.add(QuestionScore(correction_id=corr.id, question_id=qid, score=val))
+    db.session.flush()
+    db.session.expire(corr, ['scores'])
+    corr.compute_total()
+    db.session.commit()
+    return jsonify({'ok': True, 'total_score': corr.total_score})
 
 @teacher_corr_bp.route('/api/correction/<int:correction_id>/resynthesize', methods=['POST'])
 @login_required
