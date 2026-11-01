@@ -9,7 +9,7 @@ import io
 student_bp = Blueprint('student', __name__, url_prefix='/student')
 
 @student_bp.route('/login', methods=['GET', 'POST'])
-@limiter.limit("10 per minute; 100 per hour")
+@limiter.limit("60 per minute; 600 per hour")
 def login():
     if request.method == 'POST':
         code = request.form.get('access_code', '').strip().upper()
@@ -25,41 +25,33 @@ def login():
 def dashboard():
     if 'pupil_id' not in session:
         return redirect(url_for('student.login'))
-
     pupil = db.session.get(Pupil, session['pupil_id'])
     if not pupil:
         session.pop('pupil_id', None)
         return redirect(url_for('student.login'))
-
     corrections = Correction.query.filter_by(
-        student_id=pupil.student_id,
-        status='published'
+        student_id=pupil.student_id, status='published'
     ).order_by(Correction.created_at.desc()).all()
+    try:
+        first_name = decrypt_name(pupil.student.encrypted_first_name)
+    except Exception:
+        first_name = pupil.student.alias
+    return render_template('student/dashboard.html', pupil=pupil,
+                           corrections=corrections, first_name=first_name)
 
-    return render_template('student/dashboard.html', pupil=pupil, corrections=corrections)
 
 @student_bp.route('/correction/<int:correction_id>')
 def view_correction(correction_id):
     if 'pupil_id' not in session:
         return redirect(url_for('student.login'))
-
     pupil = db.session.get(Pupil, session['pupil_id'])
     if not pupil:
         session.pop('pupil_id', None)
         return redirect(url_for('student.login'))
-
     correction = db.session.get(Correction, correction_id)
-    if not correction or correction.student_id != pupil.student_id:
-        abort(403)
-
-    first = decrypt_name(correction.student.encrypted_first_name)
-    last = decrypt_name(correction.student.encrypted_last_name)
-
-    if not correction.read_at:
-        correction.read_at = datetime.now(timezone.utc)
-        db.session.commit()
-
-    return render_template('student/correction.html', correction=correction, first=first, last=last)
+    if not correction or correction.student_id != pupil.student_id or correction.status != 'published':
+        abort(404)
+    return redirect(url_for('public.student_view', token=correction.public_token))
 
 @student_bp.route('/api/tts/<int:correction_id>')
 @limiter.limit("20 per hour")
@@ -72,7 +64,7 @@ def tts_correction(correction_id):
         return jsonify({'error': 'Session invalide'}), 401
 
     correction = db.session.get(Correction, correction_id)
-    if not correction or correction.student_id != pupil.student_id:
+    if not correction or correction.student_id != pupil.student_id or correction.status != 'published':
         abort(403)
 
     if not correction.structured_text:

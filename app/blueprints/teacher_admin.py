@@ -3,6 +3,7 @@ from flask_login import login_required, current_user, logout_user
 from app.extensions import db, limiter
 from app.models import Classroom, Student, Pupil, Teacher, Competence
 from app.services.anonymization import decrypt_name
+from app.services.qrcode import public_base_url
 import io, csv, re
 from datetime import datetime, timezone, timedelta
 
@@ -41,7 +42,7 @@ def admin_lock():
 @login_required
 def admin_theme():
     if not session.get('admin_unlocked') or not is_admin_session_valid(): return redirect(url_for('teacher_admin.admin'))
-    themes = {'neon': {'primary': '#39FF14', 'secondary': '#0a0a0a', 'bg': '#ffffff'}, 'ardoise': {'primary': '#6366f1', 'secondary': '#1e293b', 'bg': '#f8fafc'}, 'soleil': {'primary': '#f59e0b', 'secondary': '#92400e', 'bg': '#fffbeb'}, 'ocean': {'primary': '#0ea5e9', 'secondary': '#0c4a6e', 'bg': '#f0f9ff'}, 'craie': {'primary': '#000000', 'secondary': '#374151', 'bg': '#ffffff'}}
+    themes = {'neon': {'primary': '#39FF14', 'secondary': '#0a0a0a', 'bg': '#ffffff'}, 'ardoise': {'primary': '#6366f1', 'secondary': '#1e293b', 'bg': '#f8fafc'}, 'soleil': {'primary': '#f59e0b', 'secondary': '#92400e', 'bg': '#fffbeb'}, 'ocean': {'primary': '#0ea5e9', 'secondary': '#0c4a6e', 'bg': '#f0f9ff'}}
     t = themes.get(request.form.get('theme', 'neon'))
     if t: current_user.theme_primary = t['primary']; current_user.theme_secondary = t['secondary']; current_user.theme_bg = t['bg']; db.session.commit(); flash('Thème appliqué.', 'success')
     return redirect(url_for('teacher_admin.admin'))
@@ -57,27 +58,45 @@ def admin_delete_account():
 @teacher_admin_bp.route('/admin/generate-access-codes', methods=['POST'])
 @login_required
 def generate_access_codes():
-    if not session.get('admin_unlocked') or not is_admin_session_valid(): return jsonify({'error': 'Non autorisé'}), 403
-    classrooms = Classroom.query.filter_by(teacher_id=current_user.id).all(); created = 0
-    for classroom in classrooms:
-        for student in classroom.students:
-            if not student.pupil: code = Pupil.generate_access_code(); db.session.add(Pupil(student_id=student.id, access_code=code)); created += 1
-    db.session.commit(); return jsonify({'ok': True, 'created': created})
+    if not session.get('admin_unlocked') or not is_admin_session_valid():
+        flash('Accès non autorisé.', 'danger')
+        return redirect(url_for('teacher_admin.admin'))
+    class_id = request.form.get('class_id', type=int)
+    classroom = Classroom.query.filter_by(id=class_id, teacher_id=current_user.id).first_or_404()
+    created = 0
+    for student in classroom.students:
+        if not Pupil.query.filter_by(student_id=student.id).first():
+            db.session.add(Pupil(student_id=student.id, access_code=Pupil.generate_access_code()))
+            created += 1
+    db.session.commit()
+    flash(f'{created} code(s) généré(s).' if created else 'Tous les élèves ont déjà un code.', 'success')
+    return redirect(url_for('teacher_admin.access_codes', class_id=class_id))
+
 
 @teacher_admin_bp.route('/admin/access-codes')
 @login_required
 def access_codes():
-    if not session.get('admin_unlocked') or not is_admin_session_valid(): return jsonify({'error': 'Non autorisé'}), 403
-    class_id = request.args.get('class_id', type=int); classrooms = Classroom.query.filter_by(teacher_id=current_user.id).all(); result = []
-    for classroom in classrooms:
-        if class_id and classroom.id != class_id: continue
-        for student in classroom.students:
-            try: last = decrypt_name(student.encrypted_last_name); first = decrypt_name(student.encrypted_first_name)
-            except Exception: last = first = '—'
-            pupil = Pupil.query.filter_by(student_id=student.id).first()
-            result.append({'classroom': classroom.name, 'last': last, 'first': first, 'alias': student.alias, 'code': pupil.access_code if pupil else None})
-    result.sort(key=lambda x: (x['classroom'], x['last'], x['first'])); classrooms_list = [{'id': c.id, 'name': c.name} for c in classrooms]
-    return jsonify({'students': result, 'classrooms': classrooms_list})
+    if not session.get('admin_unlocked') or not is_admin_session_valid():
+        flash('Saisissez votre mot de passe pour accéder aux codes.', 'warning')
+        return redirect(url_for('teacher_admin.admin'))
+    classrooms = Classroom.query.filter_by(teacher_id=current_user.id).order_by(Classroom.name).all()
+    class_id = request.args.get('class_id', type=int)
+    selected = next((c for c in classrooms if c.id == class_id), classrooms[0] if classrooms else None)
+    rows = []
+    if selected:
+        for s in Student.query.filter_by(classroom_id=selected.id).order_by(Student.student_number).all():
+            try:
+                last = decrypt_name(s.encrypted_last_name)
+                first = decrypt_name(s.encrypted_first_name)
+            except Exception:
+                last = first = '—'
+            pupil = Pupil.query.filter_by(student_id=s.id).first()
+            rows.append({'last': last, 'first': first, 'alias': s.alias,
+                         'code': pupil.access_code if pupil else None})
+        rows.sort(key=lambda r: (r['last'].lower(), r['first'].lower()))
+    missing = sum(1 for r in rows if not r['code'])
+    return render_template('teacher/access_codes.html', classrooms=classrooms, selected=selected,
+                           rows=rows, missing=missing, login_url=f'{public_base_url()}/student/login')
 
 @teacher_admin_bp.route('/admin/export/notes', methods=['POST'])
 @login_required

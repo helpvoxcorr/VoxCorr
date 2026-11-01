@@ -429,5 +429,15 @@ def list_competences():
 @login_required
 def delete_competence(comp_id):
     comp = Competence.query.get_or_404(comp_id)
-    if comp.teacher_id != current_user.id: abort(403)
-    db.session.delete(comp); db.session.commit(); flash('Compétence supprimée.', 'success'); return redirect(url_for('teacher_corr.list_competences'))
+    if comp.teacher_id != current_user.id:
+        abort(403)
+    try:
+        Question.query.filter_by(competence_id=comp.id).update({'competence_id': None})
+        db.session.delete(comp)
+        db.session.commit()
+        flash('Compétence supprimée.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Suppression compétence {comp_id}: {e}')
+        flash('Suppression impossible : cette compétence est encore utilisée.', 'danger')
+    return redirect(url_for('teacher_corr.list_competences'))

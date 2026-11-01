@@ -9,6 +9,8 @@ from app.extensions import db, migrate, login_manager, csrf, limiter, socketio
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     # ── Initialisation des extensions ──────────────────────────────────────────
     db.init_app(app)

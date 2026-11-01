@@ -1,101 +1,80 @@
 {% extends "base.html" %}
-{% block title %}Tableau de bord - {{ pupil.student.alias }}{% endblock %}
+{% block title %}Mes corrections — VoxCorr{% endblock %}
+
+{% block page_css %}
+<style>
+  .sd-wrap { max-width: 900px; margin: 0 auto; }
+  .sd-hero { background: var(--black); border-radius: 16px; padding: 1.5rem 1.75rem; border-bottom: 3px solid var(--neon); margin-bottom: 1.25rem; }
+  .sd-hero h1 { color: #fff; font-size: 1.6rem; font-weight: 800; margin: 0 0 .25rem; }
+  .sd-hero p { color: rgba(255,255,255,.8); margin: 0; }
+  .sd-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.5rem; }
+  .sd-stat { background: #fff; border: 1px solid #cfd4dc; border-top: 3px solid var(--neon); border-radius: 12px; padding: .9rem 1rem; }
+  .sd-stat strong { display: block; font-size: 1.7rem; font-weight: 800; line-height: 1.1; color: #0a0a0a; }
+  .sd-stat span { font-size: .75rem; color: #4b5563; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+  .sd-list { display: flex; flex-direction: column; gap: .75rem; }
+  .sd-card { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; background: #fff; border: 1px solid #cfd4dc; border-radius: 14px; padding: 1rem 1.25rem; color: #0a0a0a; }
+  .sd-card.new { border-color: #0a0a0a; box-shadow: 0 0 0 1px #0a0a0a; }
+  .sd-main { flex: 1 1 220px; min-width: 0; }
+  .sd-title { font-weight: 800; font-size: 1.05rem; margin: 0 0 .15rem; color: #0a0a0a; }
+  .sd-meta { color: #4b5563; font-size: .85rem; margin: 0 0 .4rem; }
+  .sd-score { font-size: 1.6rem; font-weight: 800; white-space: nowrap; color: #0a0a0a; }
+  .sd-score small { font-size: .85rem; font-weight: 600; }
+  .sd-badge { font-size: .75rem; font-weight: 700; border-radius: 999px; padding: .15rem .65rem; }
+  .sd-badge.new { background: var(--neon); color: var(--on-neon, #0a0a0a); }
+  .sd-badge.read { background: #e5e7eb; color: #374151; }
+  @media (max-width: 600px) { .sd-stat strong { font-size: 1.3rem; } .sd-card .btn { width: 100%; justify-content: center; } }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-  <div class="dashboard-header">
-    <h1>Mes corrections</h1>
-    <p class="welcome-text">Retrouve toutes tes corrections audio et suis tes progrès</p>
-    <div class="student-badge">
-      <span>👤</span>
-      <span>{{ pupil.student.alias }}</span>
-    </div>
+{% set ns = namespace(total=0, n=0, read=0) %}
+{% for c in corrections %}
+  {% if c.total_score is not none and c.assignment.total_points %}
+    {% set ns.total = ns.total + (c.total_score / c.assignment.total_points * 20) %}
+    {% set ns.n = ns.n + 1 %}
+  {% endif %}
+  {% if c.read_at %}{% set ns.read = ns.read + 1 %}{% endif %}
+{% endfor %}
+
+<div class="sd-wrap">
+  <div class="sd-hero">
+    <h1>Bonjour {{ first_name }}</h1>
+    <p>Retrouve ici les corrections de tes devoirs : écoute ton professeur et lis ses conseils.</p>
   </div>
 
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon">📝</div>
-      <div class="stat-value">{{ corrections|length }}</div>
-      <div class="stat-label">Corrections disponibles</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">✅</div>
-      <div class="stat-value">{{ corrections|selectattr('read_at')|list|length }}</div>
-      <div class="stat-label">Corrections consultées</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">📊</div>
-      <div class="stat-value">
-        {% set scores = corrections|map(attribute='total_score')|select|list %}
-        {% if scores %}
-          {{ "%.1f"|format(scores|sum / scores|length) }}/20
-        {% else %}
-          —
-        {% endif %}
-      </div>
-      <div class="stat-label">Moyenne générale</div>
-    </div>
+  <div class="sd-stats">
+    <div class="sd-stat"><strong>{{ corrections|length }}</strong><span>Corrections</span></div>
+    <div class="sd-stat"><strong>{{ ns.read }}</strong><span>Écoutées</span></div>
+    <div class="sd-stat"><strong>{% if ns.n %}{{ ('%.1f'|format(ns.total / ns.n))|replace('.', ',') }}{% else %}—{% endif %}</strong><span>Moyenne / 20</span></div>
   </div>
-
-  <h2 class="section-title">
-    <span>🎧</span>
-    <span>Mes devoirs corrigés</span>
-  </h2>
 
   {% if corrections %}
-    <div class="corrections-grid">
-      {% for corr in corrections %}
-        <div class="correction-card {% if corr.read_at %}read{% endif %}">
-          <div class="correction-header">
-            <div class="correction-title">{{ corr.assignment.title }}</div>
-            <div class="correction-date">{{ corr.assignment.date.strftime('%d/%m/%Y') }}</div>
-          </div>
-
-          <div class="correction-meta">
-            <div class="correction-note">
-              <span class="score">{{ '%.1f'|format(corr.total_score) if corr.total_score else '—' }}</span>
-              <span class="total">/ {{ corr.assignment.total_points }}</span>
-            </div>
-            <div class="correction-status {% if corr.read_at %}status-read{% else %}status-new{% endif %}">
-              <span class="status-dot"></span>
-              <span>{% if corr.read_at %}Consulté{% else %}Nouveau{% endif %}</span>
-            </div>
-          </div>
-
-          <div class="correction-actions">
-            <a href="{{ url_for('student.view_correction', correction_id=corr.id) }}" class="btn btn-primary">
-              <span>🎧</span>
-              <span>Voir le détail</span>
-            </a>
-          </div>
-        </div>
-      {% endfor %}
+  <div class="sd-list">
+    {% for c in corrections %}
+    <div class="sd-card {{ '' if c.read_at else 'new' }}">
+      <div class="sd-main">
+        <h2 class="sd-title">{{ c.assignment.title }}</h2>
+        <p class="sd-meta">{% if c.assignment.date %}{{ c.assignment.date.strftime('%d/%m/%Y') }} · {% endif %}{{ c.assignment.classroom.name }}</p>
+        <span class="sd-badge {{ 'read' if c.read_at else 'new' }}">{{ 'Écoutée' if c.read_at else 'Nouveau' }}</span>
+      </div>
+      <div class="sd-score">
+        {% if c.total_score is not none %}{{ ('%g'|format(c.total_score|round(1)))|replace('.', ',') }}{% else %}—{% endif %}
+        <small>/ {{ '%g'|format(c.assignment.total_points) }}</small>
+      </div>
+      <a href="{{ url_for('student.view_correction', correction_id=c.id) }}" class="btn vox-btn-primary">
+        <i class="bi bi-headphones"></i> Ouvrir
+      </a>
     </div>
+    {% endfor %}
+  </div>
   {% else %}
-    <div class="empty-state">
-      <div class="empty-state-icon">📭</div>
-      <h3>Aucune correction disponible</h3>
-      <p>Ton professeur n'a pas encore ajouté de corrections pour le moment.</p>
-      <button class="btn btn-primary" onclick="location.reload()">
-        <span>🔄</span>
-        <span>Rafraîchir la page</span>
-      </button>
+  <div class="sd-card" style="justify-content:center;text-align:center;padding:2rem">
+    <div>
+      <i class="bi bi-inbox" style="font-size:2rem"></i>
+      <h2 class="sd-title mt-2">Aucune correction pour l'instant</h2>
+      <p class="sd-meta mb-0">Ton professeur n'a pas encore publié de correction. Reviens plus tard.</p>
     </div>
+  </div>
   {% endif %}
 </div>
-
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const cards = document.querySelectorAll('.correction-card, .stat-card');
-    cards.forEach((card, index) => {
-      card.style.opacity = '0';
-      card.style.transform = 'translateY(20px)';
-      setTimeout(() => {
-        card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-        card.style.opacity = '1';
-        card.style.transform = 'translateY(0)';
-      }, index * 100);
-    });
-  });
-</script>
 {% endblock %}

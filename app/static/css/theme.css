@@ -256,3 +256,12 @@ body.vc-app .rec-recorder .text-neon    { color: var(--neon) !important; }
 body.vc-app .rec-nav-btn { width: auto; height: 40px; padding: 0 .9rem; gap: .4rem; font-size: .85rem; font-weight: 600; }
 body.vc-app :is(.rec-actions, .rec-nav-post) .cd-btn-primary { padding: .75rem 1.4rem; font-size: .95rem; }
 body.vc-app .rec-hint-note { font-size: .8rem; color: var(--ink-3); margin: .9rem 0 0; }
+
+/* ── Thèmes de couleur : lisibilité quel que soit l'accent (étape 8) ── */
+body.vc-app { --neon-ink: var(--neon-text, #15803d); }
+body.vc-app :is(.vox-btn-primary, .cd-btn-primary, .ac-btn-primary, .ac-icon-btn-primary, .cd-btn-add,
+  .ac-act-primary, .vm-btn-primary, .cd-count, .vox-badge, .cd-alias-badge, .vox-logo-mark):is(:not(:hover), :hover, :focus) {
+  color: var(--on-neon, #0a0a0a);
+}
+body.vc-app .vox-navbar .nav-link.active { color: var(--on-neon, #0a0a0a) !important; }
+body.vc-app .ac-filter.active span { color: var(--on-neon, #0a0a0a); }

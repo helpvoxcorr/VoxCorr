@@ -27,10 +27,18 @@
 
 
   {# ── Thème dynamique ─────────────────────────────────────────────────── #}
-  {% if current_user and current_user.is_authenticated and current_user.theme_primary %}
+  {% set _tp = ((current_user.theme_primary or '')|lower) if (current_user and current_user.is_authenticated) else '' %}
+  {% if _tp and _tp != '#000000' %}
+  {% set _on   = {'#39ff14':'#0a0a0a','#6366f1':'#ffffff','#f59e0b':'#0a0a0a','#0ea5e9':'#0a0a0a'}.get(_tp, '#0a0a0a') %}
+  {% set _text = {'#39ff14':'#15803d','#6366f1':'#4338ca','#f59e0b':'#b45309','#0ea5e9':'#0369a1'}.get(_tp, '#15803d') %}
+  {% set _dark = {'#39ff14':'#2fe00f','#6366f1':'#4f46e5','#f59e0b':'#d97706','#0ea5e9':'#0284c7'}.get(_tp, '#2fe00f') %}
   <style>
     :root {
       --neon: {{ current_user.theme_primary }};
+      --neon-d: {{ _dark }};
+      --neon-glow: color-mix(in srgb, {{ current_user.theme_primary }} 35%, transparent);
+      --on-neon: {{ _on }};
+      --neon-text: {{ _text }};
       --black: {{ current_user.theme_secondary or '#0a0a0a' }};
     }
     body { background: {{ current_user.theme_bg or '#F5F4F0' }}; }
@@ -39,12 +47,12 @@
   {% block page_css %}{% endblock %}
   {% block head %}{% endblock %}
 </head>
-<body class="{{ 'vc-app' if current_user.is_authenticated else '' }}">
+<body class="{{ 'vc-app' if (current_user.is_authenticated or session.get('pupil_id')) else '' }}">
 
   <!-- Navbar -->
     <nav class="vox-navbar sticky-top">
     <div class="container d-flex align-items-center justify-content-between">
-      <a href="{% if current_user.is_authenticated %}/teacher/dashboard{% else %}/{% endif %}" class="navbar-brand d-flex align-items-center gap-2">
+            <a href="{% if current_user.is_authenticated %}/teacher/dashboard{% elif session.get('pupil_id') %}/student/dashboard{% else %}/{% endif %}" class="navbar-brand d-flex align-items-center gap-2">
         <span class="vox-logo-mark">V</span>
         <span>Vox<span class="text-neon">Corr</span></span>
       </a>
@@ -62,6 +70,13 @@
         <a href="/teacher/admin" class="nav-link {{ 'active' if is_settings }}" title="Paramètres">
           <i class="bi bi-gear"></i> <span class="d-none d-md-inline">Paramètres</span></a>
         <a href="/auth/logout" class="nav-link vox-logout-btn" title="Déconnexion">
+          <i class="bi bi-box-arrow-right"></i> <span class="d-none d-md-inline">Déconnexion</span></a>
+      </div>
+      {% elif session.get('pupil_id') %}
+      <div class="d-flex align-items-center gap-1">
+        <a href="/student/dashboard" class="nav-link" title="Mes corrections">
+          <i class="bi bi-headphones"></i> <span class="d-none d-md-inline">Mes corrections</span></a>
+        <a href="/student/logout" class="nav-link vox-logout-btn" title="Déconnexion">
           <i class="bi bi-box-arrow-right"></i> <span class="d-none d-md-inline">Déconnexion</span></a>
       </div>
       {% endif %}

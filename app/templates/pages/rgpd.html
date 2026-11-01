@@ -1,61 +1,69 @@
+{# Texte fidèle au fonctionnement réel. À faire relire par le DPO / le chef d'établissement.
+   À mettre à jour si les fournisseurs d'IA (LLM_ORDER) ou l'hébergement changent. #}
 {% extends "base.html" %}
-{% block title %}Politique RGPD — VoxCorr{% endblock %}
+{% block title %}Protection des données — VoxCorr{% endblock %}
 
 {% block content %}
 <div class="container py-5">
-  <h1 class="mb-4">Protection des données — RGPD</h1>
-  <p class="lead text-muted">Comment VoxCorr protège les données des enseignants et des élèves.</p>
+  <h1 class="mb-3">Protection des données</h1>
+  <p class="lead text-muted">Quelles données VoxCorr enregistre, où elles transitent et comment elles sont protégées.</p>
 
-  <div class="alert alert-success">
-    <strong>Conformité RGPD</strong><br>
-    VoxCorr est conçu avec le principe de privacy by design. Les données sensibles des élèves sont chiffrées, jamais exposées publiquement, et stockées avec le strict minimum nécessaire.
+  <div class="alert alert-info">
+    <strong>Principe.</strong> Le nom d'un élève n'est jamais enregistré en clair : il est chiffré, et les pages consultées par les élèves ne l'affichent pas. L'application se limite aux données nécessaires pour corriger un devoir.
+  </div>
+  <div class="alert alert-warning">
+    <strong>Point d'attention pour les enseignants.</strong> Si vous prononcez le prénom d'un élève pendant la dictée, ce prénom figure dans la transcription, dans la synthèse et dans le texte envoyé au service d'IA. Dictez de préférence sans prénom ni nom.
   </div>
 
-  <h3 class="mt-5 mb-3">Données collectées</h3>
+  <h3 class="mt-5 mb-3">Données enregistrées</h3>
   <div class="table-responsive">
     <table class="table table-striped table-bordered">
       <thead class="table-dark">
-        <tr>
-          <th>Donnée</th>
-          <th>Qui</th>
-          <th>Stockage</th>
-          <th>Protection</th>
-        </tr>
+        <tr><th>Donnée</th><th>Concerne</th><th>Protection</th></tr>
       </thead>
       <tbody>
-        <tr><td>Email + mot de passe</td><td>Enseignant</td><td>Base PostgreSQL</td><td>Hash bcrypt</td></tr>
-        <tr><td>Nom & prénom élève</td><td>Élève</td><td>Base PostgreSQL</td><td>Chiffrement AES-128</td></tr>
-        <tr><td>Alias anonyme</td><td>Élève</td><td>Base PostgreSQL</td><td>Non sensible</td></tr>
-        <tr><td>Enregistrement audio</td><td>Enseignant</td><td>Cloudinary</td><td>HTTPS + accès privé</td></tr>
-        <tr><td>Transcription écrite</td><td>Enseignant</td><td>Base PostgreSQL</td><td>Accès token unique</td></tr>
-        <tr><td>IP de consultation</td><td>Élève</td><td>Base PostgreSQL</td><td>Hash SHA-256 irréversible</td></tr>
+        <tr><td>Adresse e-mail et mot de passe</td><td>Enseignant</td><td>Mot de passe haché, jamais stocké en clair</td></tr>
+        <tr><td>Nom et prénom</td><td>Élève</td><td>Chiffrement (Fernet, AES-128)</td></tr>
+        <tr><td>Alias (ex. Renard-07)</td><td>Élève</td><td>Ne permet pas d'identifier l'élève sans la clé de chiffrement</td></tr>
+        <tr><td>Code d'accès</td><td>Élève</td><td>Code de 8 caractères remis par l'enseignant</td></tr>
+        <tr><td>Dictée (transcription), synthèse, notes</td><td>Élève</td><td>Accessibles à l'enseignant et par le lien ou le QR code personnel de l'élève</td></tr>
+        <tr><td>Enregistrement audio</td><td>Enseignant, élève</td><td>Transmission chiffrée (HTTPS)</td></tr>
+        <tr><td>Journal de consultation</td><td>Élève</td><td>Adresse IP remplacée par une empreinte (HMAC-SHA-256), jamais conservée en clair ; type de navigateur</td></tr>
       </tbody>
     </table>
   </div>
 
-  <h3 class="mt-5 mb-3">Droits des personnes</h3>
-  <p>Conformément au RGPD (Règlement UE 2016/679), vous disposez des droits suivants :</p>
-  <ul>
-    <li><strong>Droit d'accès :</strong> consulter les données vous concernant</li>
-    <li><strong>Droit de rectification :</strong> corriger les données inexactes</li>
-    <li><strong>Droit à l'effacement :</strong> demander la suppression de vos données</li>
-    <li><strong>Droit à la portabilité :</strong> recevoir vos données dans un format structuré</li>
-    <li><strong>Droit d'opposition :</strong> vous opposer au traitement de vos données</li>
-  </ul>
-  <p>Pour exercer ces droits : <a href="mailto:help.voxcorr@gmail.com">help.voxcorr@gmail.com</a></p>
+  <h3 class="mt-5 mb-3">Prestataires et transferts</h3>
+  <div class="table-responsive">
+    <table class="table table-striped table-bordered">
+      <thead class="table-dark">
+        <tr><th>Prestataire</th><th>Rôle</th><th>Données concernées</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Render</td><td>Hébergement de l'application</td><td>Ensemble des échanges avec l'application</td></tr>
+        <tr><td>Neon</td><td>Base de données</td><td>Données du tableau ci-dessus</td></tr>
+        <tr><td>Cloudinary</td><td>Stockage des enregistrements audio</td><td>Audio</td></tr>
+        <tr><td>SendGrid</td><td>E-mail de vérification du compte</td><td>Adresse e-mail de l'enseignant</td></tr>
+        <tr><td>Google (Gemini), Mistral AI, Agnes AI</td><td>Analyse de la dictée : notes et synthèse</td><td>Texte de la dictée, intitulés des questions et barème. Ni le nom enregistré de l'élève, ni son code d'accès.</td></tr>
+        <tr><td>Navigateur (Chrome, Edge)</td><td>Dictée en direct</td><td>Audio de la dictée, traité par le service vocal du navigateur (Google pour Chrome)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="text-muted">Plusieurs de ces prestataires sont établis hors de l'Union européenne. La lecture à voix haute côté élève utilise la voix de son propre navigateur.</p>
 
-  <h3 class="mt-5 mb-3">Durée de conservation</h3>
+  <h3 class="mt-5 mb-3">Droits des personnes</h3>
+  <p>Conformément au RGPD (règlement UE 2016/679), vous pouvez demander l'accès, la rectification, l'effacement, la portabilité de vos données ou vous opposer à leur traitement. Pour exercer ces droits : <a href="mailto:help.voxcorr@gmail.com">help.voxcorr@gmail.com</a></p>
+
+  <h3 class="mt-5 mb-3">Conservation et suppression</h3>
   <ul>
-    <li><strong>Données enseignant :</strong> durée d'utilisation du compte + 3 ans</li>
-    <li><strong>Données élèves :</strong> durée de l'année scolaire + 1 an</li>
-    <li><strong>Enregistrements audio :</strong> supprimés sur demande ou à la fin de l'année scolaire</li>
-    <li><strong>Logs de consultation :</strong> 6 mois glissants</li>
+    <li>Les données restent enregistrées jusqu'à leur suppression par l'enseignant : une correction, un élève, une classe, la « remise à zéro de l'année » ou le compte entier.</li>
+    <li>La suppression d'une classe efface ses élèves, ses devoirs et ses corrections.</li>
+    <li>Les enregistrements audio sont supprimés sur demande.</li>
   </ul>
 
   <h3 class="mt-5 mb-3">Anonymisation des élèves</h3>
-  <p>Le vrai nom de chaque élève est chiffré via l'algorithme Fernet (AES-128-CBC) avec une clé propre à chaque déploiement. Seul l'enseignant connecté peut déchiffrer les noms. Les pages publiques (QR codes, corrections) n'affichent que l'alias anonyme.</p>
-  <p>Exemple d'alias : <code>Renard-07</code> — mnémotechnique pour l'enseignant, opaque pour un tiers.</p>
+  <p>Le nom de chaque élève est chiffré avec une clé propre à l'installation ; seul l'enseignant connecté peut le lire. Les pages consultées via un QR code n'affichent pas ce nom, uniquement la synthèse rédigée à partir de la dictée de l'enseignant (voir le point d'attention ci-dessus).</p>
 
-  <p class="text-center text-muted mt-5 mb-0">Dernière mise à jour : mai 2026 · <a href="mailto:help.voxcorr@gmail.com">Contacter le DPO</a></p>
+  <p class="text-center text-muted mt-5 mb-0">Dernière mise à jour : novembre 2026</p>
 </div>
 {% endblock %}

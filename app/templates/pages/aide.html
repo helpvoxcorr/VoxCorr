@@ -39,11 +39,14 @@
   <h3 class="mb-3">Problèmes courants</h3>
   <div class="accordion" id="faqAccordion">
     {% for titre, corps in [
-      ("Le micro ne démarre pas", "Vérifiez que Chrome a accès au micro (icône cadenas dans la barre d'adresse). VoxCorr requiert Chrome 113+ ou Edge 113+. Firefox ne supporte pas la Web Speech API en temps réel."),
-      ("La transcription est incorrecte", "Parlez distinctement, à distance normale du micro. Mentionnez chaque note clairement : « Question 1, trois virgule cinq sur cinq ». Évitez le bruit ambiant."),
-      ("Mistral ne répond pas", "Si l'analyse prend plus de 30 secondes, vérifiez votre clé API Mistral dans la configuration. En cas de timeout, la transcription brute reste disponible et les notes peuvent être saisies manuellement."),
-      ("Le QR code ne fonctionne pas depuis le téléphone", "L'URL dans le QR code doit être publique. En développement local, utilisez ngrok. En production, configurez APP_BASE_URL avec l'URL de votre hébergement."),
-      ("L'audio ne s'uploade pas", "Vérifiez les trois variables Cloudinary dans votre configuration : CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET."),
+      ("Le micro ne démarre pas", "Utilisez Chrome ou Edge récent. Cliquez sur le cadenas à gauche de l'adresse et autorisez le micro. Firefox ne propose pas la dictée en direct : vous pouvez alors taper le texte à la main."),
+      ("La dictée écrit n'importe quoi", "Parlez distinctement, près du micro, sans bruit autour. Dites chaque note clairement : « Question 1, trois et demi sur cinq ». Vous pouvez corriger le texte avant de lancer l'analyse."),
+      ("L'analyse a échoué ou les notes sont à zéro", "Les services d'IA sont parfois surchargés. Ouvrez la fiche de la correction (bouton Voir dans la liste du devoir) puis cliquez sur « Regénérer la synthèse et les notes ». Vous pouvez aussi saisir les notes à la main sur la page de correction : elles s'enregistrent toutes seules."),
+      ("Corriger une note après coup", "Ouvrez la correction avec le bouton Modifier ou Refaire, changez la note : elle est enregistrée automatiquement, sans dépublier. Refaire la dictée puis relancer l'analyse retire en revanche la correction de la publication."),
+      ("Le QR code ne s'ouvre pas pour l'élève", "Il ne fonctionne que si la correction est publiée. Si le site met du temps à répondre, patientez une minute : l'hébergement gratuit se met en veille. Un QR code imprimé avec une ancienne adresse du site doit être réimprimé."),
+      ("Imprimer les coupons à agrafer", "Page du devoir, bouton « Imprimer les coupons ». Choisissez 4 par page puis Imprimer, ou Enregistrer au format PDF. Seules les corrections publiées sont imprimées."),
+      ("Un élève a perdu son code", "Paramètres, puis « Codes d'accès élèves » : vous retrouvez et imprimez le code de chaque élève de la classe."),
+      ("Supprimer une correction ou une classe", "Une correction demande votre mot de passe, une classe demande d'en taper le nom. Les suppressions sont définitives."),
     ] %}
     <div class="accordion-item">
       <h2 class="accordion-header" id="heading{{ loop.index }}">

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Codes d'accès des élèves — VoxCorr{% endblock %}
+
+{% block head %}
+<style>
+  .code-cell { font-family: var(--font-mono, monospace); font-weight: 700; letter-spacing: .14em; font-size: 1.05rem; }
+  .slips { display: none; }
+  @page { size: A4; margin: 10mm; }
+  @media print {
+    .vox-navbar, .vox-breadcrumb-bar, .vox-footer, .no-print, .screen-only, .alert { display: none !important; }
+    body { background: #fff !important; }
+    main.container { padding: 0 !important; max-width: none !important; }
+    .slips { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+    .slip { border: 1px dashed #6b7280; border-radius: 2mm; padding: 4mm; break-inside: avoid; page-break-inside: avoid; color: #111; }
+    .slip-name { font-size: 12pt; font-weight: 800; }
+    .slip-code { font-family: monospace; font-size: 20pt; font-weight: 800; letter-spacing: .18em; margin: 2mm 0; }
+    .slip-help { font-size: 8.5pt; color: #374151; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="screen-only">
+  <div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Codes d'accès des élèves</h1>
+      <p class="text-muted mb-0">Avec son code, un élève retrouve toutes ses corrections publiées sur <strong>{{ login_url }}</strong>.</p>
+    </div>
+    <a href="{{ url_for('teacher_admin.admin') }}" class="btn vox-btn-outline"><i class="bi bi-arrow-left"></i> Retour aux paramètres</a>
+  </div>
+
+  {% if not classrooms %}
+    <div class="vox-card text-center py-4">Aucune classe : créez-en une d'abord.</div>
+  {% else %}
+  <div class="vox-card mb-3">
+    <div class="d-flex flex-wrap gap-2 align-items-end">
+      <form method="get" class="d-flex flex-column">
+        <label class="vox-label" for="class_id">Classe</label>
+        <select id="class_id" name="class_id" class="vox-input" onchange="this.form.submit()">
+          {% for c in classrooms %}<option value="{{ c.id }}" {{ 'selected' if selected and c.id == selected.id }}>{{ c.name }}</option>{% endfor %}
+        </select>
+      </form>
+      {% if missing %}
+      <form method="post" action="{{ url_for('teacher_admin.generate_access_codes') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="class_id" value="{{ selected.id }}">
+        <button class="btn vox-btn-primary" type="submit">
+          <i class="bi bi-key"></i> Générer {{ 'le code manquant' if missing == 1 else 'les ' ~ missing ~ ' codes manquants' }}
+        </button>
+      </form>
+      {% endif %}
+      {% if rows and missing < rows|length %}
+      <button type="button" class="btn vox-btn-outline" onclick="window.print()"><i class="bi bi-printer"></i> Imprimer les codes à découper</button>
+      {% endif %}
+    </div>
+    <p class="text-muted small mt-3 mb-0">Un code donne accès à toutes les corrections publiées de l'élève : remettez à chacun le sien, ne l'affichez pas à la classe.</p>
+  </div>
+
+  <div class="vox-card">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>#</th><th>Élève</th><th>Alias</th><th>Code</th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ r.last }} {{ r.first }}</td>
+            <td class="text-muted">{{ r.alias }}</td>
+            <td>{% if r.code %}<span class="code-cell">{{ r.code }}</span>{% else %}<span class="text-muted">pas encore généré</span>{% endif %}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="text-center text-muted py-3">Aucun élève dans cette classe.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="slips">
+  {% for r in rows if r.code %}
+  <div class="slip">
+    <div class="slip-name">{{ r.first }} {{ r.last }}</div>
+    <div class="slip-code">{{ r.code }}</div>
+    <div class="slip-help">Pour retrouver tes corrections : va sur {{ login_url }} et saisis ce code.</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

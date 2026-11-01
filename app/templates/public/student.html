@@ -305,7 +305,10 @@
 
       {% if correction.structured_text %}
       <div class="vox-card">
-        <div class="fw-bold mb-3">✦ Commentaires de votre enseignant</div>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <div class="fw-bold">✦ Commentaires de votre enseignant</div>
+      <button type="button" id="btn-tts" class="btn vox-btn-outline btn-sm"><i class="bi bi-volume-up"></i> Lire à voix haute</button>
+    </div>
         <div id="transcript-body" style="line-height:1.85">
           {{ correction.structured_text | safe }}
         </div>
@@ -536,7 +539,21 @@
     }
   });
 
-    // Nettoie d'anciens Service Workers et leurs caches
+  /* ── Lecture à voix haute (voix du navigateur) ── */
+  const ttsBtn = document.getElementById('btn-tts');
+  if (ttsBtn) {
+    const idle = '<i class="bi bi-volume-up"></i> Lire à voix haute';
+    if (!('speechSynthesis' in window)) { ttsBtn.style.display = 'none'; }
+    else ttsBtn.addEventListener('click', () => {
+      if (speechSynthesis.speaking) { speechSynthesis.cancel(); ttsBtn.innerHTML = idle; return; }
+      const u = new SpeechSynthesisUtterance(transcript.innerText);
+      u.lang = 'fr-FR'; u.rate = 0.95;
+      u.onend = u.onerror = () => { ttsBtn.innerHTML = idle; };
+      ttsBtn.innerHTML = '<i class="bi bi-stop-circle"></i> Arrêter';
+      speechSynthesis.speak(u);
+    });
+  }  
+  // Nettoie d'anciens Service Workers et leurs caches
     if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
     if (window.caches) caches.keys().then(ks => ks.forEach(k => caches.delete(k)));
   </script>
