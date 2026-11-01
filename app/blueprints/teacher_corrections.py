@@ -253,6 +253,26 @@ def _apply_ai_grades(c, result, q_ids, q_max):
     db.session.flush()
     c.compute_total()
 
+@teacher_corr_bp.route('/assignments/<int:assignment_id>/publish-all', methods=['POST'])
+@login_required
+def publish_all(assignment_id):
+    a = db.session.get(Assignment, assignment_id)
+    if not a:
+        abort(404)
+    if a.classroom.teacher_id != current_user.id:
+        return jsonify({'error': 'Non autorisé'}), 403
+    drafts = Correction.query.filter_by(assignment_id=assignment_id, status='draft').all()
+    published = skipped = 0
+    for c in drafts:
+        # Une synthèse ratée (IA en panne) ne doit pas partir chez les élèves
+        if c.structured_text and 'synthèse IA indisponible' in c.structured_text:
+            skipped += 1
+            continue
+        c.publish()
+        published += 1
+    db.session.commit()
+    return jsonify({'ok': True, 'published': published, 'skipped': skipped})
+
 @teacher_corr_bp.route('/api/correction/<int:correction_id>/resynthesize', methods=['POST'])
 @login_required
 @limiter.limit("5 per minute; 20 per hour")

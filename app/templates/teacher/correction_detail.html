@@ -214,6 +214,7 @@
 {% block scripts %}
 <script>
 const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+const IS_PUBLISHED = {{ 'true' if correction.status == 'published' else 'false' }};
 
 async function post(url, body) {
   const res = await fetch(url, {
@@ -226,6 +227,8 @@ async function post(url, body) {
   if (!res.ok) throw new Error(data.error || ('Erreur ' + res.status));
   return data;
 }
+
+function fail(title, e) { VoxModal.alert({type: 'danger', title: title, body: e.message || String(e)}); }
 
 document.querySelectorAll('.js-resynth').forEach(btn => btn.addEventListener('click', async () => {
   const id = btn.dataset.id;
@@ -241,22 +244,30 @@ document.querySelectorAll('.js-resynth').forEach(btn => btn.addEventListener('cl
         clearInterval(timer); location.reload();
       }
     }, 2500);
-  } catch (e) { alert(e.message); btn.disabled = false; btn.textContent = 'Réessayer'; }
+  } catch (e) { fail('Analyse impossible', e); btn.disabled = false; btn.textContent = 'Réessayer'; }
 }));
 
 document.querySelectorAll('.js-publish').forEach(btn => btn.addEventListener('click', async () => {
   btn.disabled = true;
   try { await post('/teacher/api/correction/' + btn.dataset.id + '/publish'); location.reload(); }
-  catch (e) { alert(e.message); btn.disabled = false; }
+  catch (e) { fail('Publication impossible', e); btn.disabled = false; }
 }));
 
 document.querySelectorAll('.js-delete').forEach(btn => btn.addEventListener('click', async () => {
-  const pwd = prompt('Entrez votre mot de passe pour supprimer définitivement cette correction :');
+  const pwd = await VoxModal.prompt({
+    type: 'danger',
+    title: 'Supprimer cette correction ?',
+    body: 'La note, la synthèse et l\'audio seront supprimés définitivement.'
+        + (IS_PUBLISHED ? '\nLe QR code de l\'élève cessera de fonctionner.' : ''),
+    label: 'Votre mot de passe',
+    inputType: 'password',
+    okText: 'Supprimer'
+  });
   if (!pwd) return;
   try {
     await post('/teacher/api/correction/' + btn.dataset.id + '/delete', {password: pwd});
     location.href = "{{ url_for('teacher_corr.assignment_corrections', assignment_id=correction.assignment_id) }}";
-  } catch (e) { alert(e.message); }
+  } catch (e) { fail('Suppression impossible', e); }
 }));
 </script>
 {% endblock %}

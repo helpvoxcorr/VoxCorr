@@ -2,7 +2,17 @@
 {% block title %}{{ assignment.title }} — Corrections{% endblock %}
 
 {% block content %}
-{# ── Hero compact ──────────────────────────────────────────────────────────── #}
+{% set total = students|length %}
+{% set done = students|selectattr('correction')|list|length %}
+{% set published = students|selectattr('correction.status', 'eq', 'published')|list|length %}
+{% set drafts = students|selectattr('correction.status', 'eq', 'draft')|list|length %}
+{% set marks = [] %}
+{% for s in students %}
+  {% if s.correction and s.correction.total_score is not none %}{% set _ = marks.append(s.correction.total_score) %}{% endif %}
+{% endfor %}
+{% set avg = (marks|sum / marks|length)|round(1) if marks else None %}
+{% set next_s = students|rejectattr('correction')|first %}
+
 <div class="ac-hero">
   <div class="ac-hero-left">
     <h1 class="ac-hero-title">{{ assignment.title }}</h1>
@@ -16,34 +26,28 @@
     </div>
   </div>
   <div class="ac-hero-actions">
-    <a href="{{ url_for('teacher_crud.edit_assignment', assignment_id=assignment.id) }}" class="ac-btn-ghost" title="Modifier">
-      <i class="bi bi-pencil"></i>
+    <a href="{{ url_for('teacher_crud.edit_assignment', assignment_id=assignment.id) }}" class="ac-btn-ghost" title="Modifier le titre, la date ou le barème">
+      <i class="bi bi-pencil"></i> Modifier le devoir
     </a>
-    <a href="{{ url_for('teacher_corr.print_corrections', assignment_id=assignment.id) }}" class="ac-btn-ghost" target="_blank" title="Imprimer">
-      <i class="bi bi-printer"></i>
-    </a>
-    <a href="{{ url_for('teacher_crud.class_detail', class_id=assignment.classroom_id) }}" class="ac-btn-ghost" title="Retour à la classe">
-      <i class="bi bi-arrow-left"></i>
+    <a href="{{ url_for('teacher_corr.print_corrections', assignment_id=assignment.id) }}" class="ac-btn-ghost" target="_blank" title="Imprimer les synthèses et QR codes des copies publiées">
+      <i class="bi bi-printer"></i> Imprimer synthèses + QR
     </a>
   </div>
 </div>
 
-{# ── Stats rapides ─────────────────────────────────────────────────────────── #}
-{% set total = students|length %}
-{% set done = students|selectattr('correction')|list|length %}
-{% set published = students|selectattr('correction.status', 'eq', 'published')|list|length %}
-{% set scores = students|selectattr('correction.total_score')|map(attribute='correction.total_score')|list %}
-{% set avg = (scores|sum / scores|length)|round(1) if scores else None %}
-
 <div class="ac-stats">
   <div class="ac-stat">
     <div class="ac-stat-val">{{ done }}<span class="ac-stat-total">/{{ total }}</span></div>
-    <div class="ac-stat-lbl">Corrigés</div>
+    <div class="ac-stat-lbl">Copies corrigées</div>
     <div class="ac-stat-bar"><div class="ac-stat-fill" style="width:{{ (done/total*100)|round if total else 0 }}%"></div></div>
   </div>
   <div class="ac-stat">
+    <div class="ac-stat-val {{ 'warn' if drafts }}">{{ drafts }}</div>
+    <div class="ac-stat-lbl">À publier</div>
+  </div>
+  <div class="ac-stat">
     <div class="ac-stat-val neon">{{ published }}</div>
-    <div class="ac-stat-lbl">Publiés</div>
+    <div class="ac-stat-lbl">Publiées</div>
   </div>
   <div class="ac-stat">
     <div class="ac-stat-val {% if avg is not none %}{% if avg >= 14 %}good{% elif avg >= 10 %}mid{% else %}bad{% endif %}{% endif %}">
@@ -51,55 +55,47 @@
     </div>
     <div class="ac-stat-lbl">Moyenne{% if avg is not none %}<span class="ac-stat-max">/{{ assignment.total_points }}</span>{% endif %}</div>
   </div>
-  <div class="ac-stat">
-    <div class="ac-stat-val">{{ (total - done) }}</div>
-    <div class="ac-stat-lbl">Restants</div>
-  </div>
 </div>
 
-{# ── Layout 2 colonnes ─────────────────────────────────────────────────────── #}
 <div class="ac-grid">
 
-  {# ── Colonne gauche : Appréciation + Barème ──────────────────────────────── #}
+  {# ── Colonne gauche : appréciation + barème ── #}
   <div class="ac-col-side">
 
-        {# Appréciation générale #}
-        <div class="ac-card">
-          <div class="ac-card-header">
-            <h2 class="ac-section-title">
-              <i class="bi bi-chat-square-text text-neon"></i>
-              Appréciation générale
-            </h2>
-            <span class="ac-hint">Visible par tous les élèves</span>
-          </div>
-          <form id="appreciationForm">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <textarea class="ac-textarea" name="text" id="appreciation-text" rows="5" placeholder="Dictez ou tapez l'appréciation pour toute la classe...">{{ assignment.class_appreciation or '' }}</textarea>
-            
-            {# Bouton micro #}
-            <div class="d-flex align-items-center gap-2 mt-2 mb-2">
-              <button type="button" class="ac-btn-primary ac-btn-sm" id="btnRecordAppreciation" title="Dicter l'appréciation" style="border-radius:50%;width:40px;height:40px;padding:0;">
-                <i class="bi bi-mic-fill"></i>
-              </button>
-              <span id="recording-status" class="text-muted small" style="display:none">
-                <i class="bi bi-record-fill text-danger"></i> Enregistrement en cours…
-              </span>
-              <span id="transcription-interim" class="text-muted small fst-italic"></span>
-            </div>
-            
-            <div class="ac-form-actions">
-              <button type="button" class="ac-btn-primary ac-btn-sm" id="btnSaveAppreciation">
-                <i class="bi bi-check-lg"></i> Enregistrer
-              </button>
-              <button type="button" class="ac-btn-ghost ac-btn-sm" id="btnSynthAppreciation" title="Reformuler avec l'IA">
-                <i class="bi bi-stars"></i> IA
-              </button>
-            </div>
-            <div id="appreciation-feedback" class="ac-feedback"></div>
-          </form>
+    <div class="ac-card">
+      <div class="ac-card-header">
+        <h2 class="ac-section-title">
+          <i class="bi bi-chat-square-text text-neon"></i>
+          Appréciation générale
+        </h2>
+        <span class="ac-hint">Visible par tous les élèves</span>
+      </div>
+      <form id="appreciationForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <textarea class="ac-textarea" name="text" id="appreciation-text" rows="5" placeholder="Dictez ou tapez l'appréciation pour toute la classe...">{{ assignment.class_appreciation or '' }}</textarea>
+
+        <div class="d-flex align-items-center gap-2 mt-2 mb-2">
+          <button type="button" class="ac-btn-primary ac-btn-sm" id="btnRecordAppreciation" title="Dicter l'appréciation" style="border-radius:50%;width:40px;height:40px;padding:0;">
+            <i class="bi bi-mic-fill"></i>
+          </button>
+          <span id="recording-status" class="text-muted small" style="display:none">
+            <i class="bi bi-record-fill text-danger"></i> Enregistrement en cours…
+          </span>
+          <span id="transcription-interim" class="text-muted small fst-italic"></span>
         </div>
 
-    {# Barème #}
+        <div class="ac-form-actions">
+          <button type="button" class="ac-btn-primary ac-btn-sm" id="btnSaveAppreciation">
+            <i class="bi bi-check-lg"></i> Enregistrer
+          </button>
+          <button type="button" class="ac-btn-ghost ac-btn-sm" id="btnSynthAppreciation" title="Reformuler avec l'IA">
+            <i class="bi bi-stars"></i> IA
+          </button>
+        </div>
+        <div id="appreciation-feedback" class="ac-feedback"></div>
+      </form>
+    </div>
+
     <div class="ac-card">
       <div class="ac-card-header">
         <h2 class="ac-section-title">
@@ -125,7 +121,7 @@
 
   </div>
 
-  {# ── Colonne principale : Liste élèves ───────────────────────────────────── #}
+  {# ── Colonne principale : élèves ── #}
   <div class="ac-col-main">
     <div class="ac-card ac-students-card">
       <div class="ac-card-header">
@@ -133,7 +129,25 @@
           <i class="bi bi-people text-neon"></i>
           Élèves
         </h2>
-        <span class="ac-hint">{{ total }} élèves</span>
+        {% if next_s %}
+          <a href="{{ url_for('teacher_corr.record', student_id=next_s.id, assignment_id=assignment.id) }}" class="ac-btn-primary ac-btn-sm">
+            <i class="bi bi-mic-fill"></i> Corriger le suivant : {{ next_s.display_last }} {{ next_s.display_first }}
+          </a>
+        {% elif total %}
+          <span class="ac-hint">Toutes les copies sont corrigées ✓</span>
+        {% endif %}
+      </div>
+
+      <div class="ac-filters">
+        <button type="button" class="ac-filter active" data-filter="all">Tous <span>{{ total }}</span></button>
+        <button type="button" class="ac-filter" data-filter="none">À corriger <span>{{ total - done }}</span></button>
+        <button type="button" class="ac-filter" data-filter="draft">À publier <span>{{ drafts }}</span></button>
+        <button type="button" class="ac-filter" data-filter="published">Publiés <span>{{ published }}</span></button>
+        {% if drafts %}
+          <button type="button" class="ac-btn-primary ac-btn-sm ac-publish-all" id="btnPublishAll" data-count="{{ drafts }}">
+            <i class="bi bi-send-check"></i> Publier les {{ drafts }} brouillon{{ 's' if drafts > 1 }}
+          </button>
+        {% endif %}
       </div>
 
       <div class="ac-student-list">
@@ -143,57 +157,61 @@
           {% set score = corr.total_score if corr and corr.total_score is not none else None %}
           {% set pct = (score / assignment.total_points * 100)|round if score is not none else 0 %}
 
-          <div class="ac-student-row {% if status == 'published' %}row-published{% elif status == 'draft' %}row-draft{% elif status == 'processing' %}row-processing{% endif %}">
-            
-            {# Numéro #}
+          <div class="ac-student-row {% if status == 'published' %}row-published{% elif status == 'draft' %}row-draft{% elif status == 'processing' %}row-processing{% endif %}" data-status="{{ status }}">
+
             <div class="ac-student-num">{{ s.student_number }}</div>
 
-            {# Infos élève #}
             <div class="ac-student-info">
-              <div class="ac-student-name">{{ s.display_last }}, {{ s.display_first }}</div>
+              <div class="ac-student-name">
+                {% if corr %}
+                  <a href="{{ url_for('teacher_corr.correction_detail', correction_id=corr.id) }}">{{ s.display_last }}, {{ s.display_first }}</a>
+                {% else %}
+                  <a href="{{ url_for('teacher_corr.record', student_id=s.id, assignment_id=assignment.id) }}">{{ s.display_last }}, {{ s.display_first }}</a>
+                {% endif %}
+              </div>
               <div class="ac-student-alias">{{ s.alias }}</div>
             </div>
 
-            {# Statut #}
             <div class="ac-student-status">
               {% if status == 'published' %}
                 <span class="ac-status ac-status-published"><i class="bi bi-check-circle-fill"></i> Publié</span>
               {% elif status == 'processing' %}
                 <span class="ac-status ac-status-processing"><i class="bi bi-hourglass-split"></i> Analyse…</span>
               {% elif status == 'draft' %}
-                <span class="ac-status ac-status-draft"><i class="bi bi-file-earmark"></i> Brouillon</span>
+                <span class="ac-status ac-status-draft"><i class="bi bi-file-earmark"></i> À publier</span>
               {% else %}
-                <span class="ac-status ac-status-none">—</span>
+                <span class="ac-status ac-status-none">À corriger</span>
               {% endif %}
             </div>
 
-            {# Note + barre #}
             <div class="ac-student-score">
               {% if score is not none %}
                 <div class="ac-score-val {% if pct >= 75 %}good{% elif pct >= 40 %}mid{% else %}bad{% endif %}">
                   {{ '%.1f'|format(score) }}
                 </div>
                 <div class="ac-score-max">/{{ assignment.total_points }}</div>
-                <div class="ac-score-bar">
-                  <div class="ac-score-fill" style="width:{{ pct }}%"></div>
-                </div>
               {% else %}
                 <div class="ac-score-val ac-score-none">—</div>
               {% endif %}
             </div>
 
-            {# Actions #}
-            <div class="ac-student-actions">
+                        <div class="ac-student-actions">
               {% if corr %}
-                <a href="{{ url_for('teacher_corr.correction_detail', correction_id=corr.id) }}" class="ac-icon-btn" title="Voir le détail">
-                  <i class="bi bi-eye"></i>
+                <a href="{{ url_for('teacher_corr.correction_detail', correction_id=corr.id) }}" class="ac-act" title="Voir la note, la synthèse et le QR code">
+                  <i class="bi bi-eye"></i> Voir
                 </a>
-                <a href="{{ url_for('teacher_corr.record', student_id=s.id, assignment_id=assignment.id) }}" class="ac-icon-btn" title="Modifier">
-                  <i class="bi bi-pencil"></i>
-                </a>
+                {% if status == 'published' %}
+                  <a href="{{ url_for('teacher_corr.record', student_id=s.id, assignment_id=assignment.id) }}" class="ac-act js-redo" title="Refaire la dictée">
+                    <i class="bi bi-arrow-repeat"></i> Refaire
+                  </a>
+                {% else %}
+                  <a href="{{ url_for('teacher_corr.record', student_id=s.id, assignment_id=assignment.id) }}" class="ac-act" title="Modifier ou refaire la dictée">
+                    <i class="bi bi-pencil"></i> Modifier
+                  </a>
+                {% endif %}
               {% else %}
-                <a href="{{ url_for('teacher_corr.record', student_id=s.id, assignment_id=assignment.id) }}" class="ac-icon-btn ac-icon-btn-primary" title="Corriger">
-                  <i class="bi bi-mic-fill"></i>
+                <a href="{{ url_for('teacher_corr.record', student_id=s.id, assignment_id=assignment.id) }}" class="ac-act ac-act-primary">
+                  <i class="bi bi-mic-fill"></i> Corriger
                 </a>
               {% endif %}
             </div>
@@ -201,6 +219,7 @@
         {% endfor %}
       </div>
 
+      <div id="ac-no-result" class="ac-empty" style="display:none">Aucun élève dans cette catégorie.</div>
       {% if not students %}
         <div class="ac-empty">Aucun élève dans cette classe.</div>
       {% endif %}
@@ -224,6 +243,67 @@
     setTimeout(() => { feedbackEl.textContent = ''; feedbackEl.className = 'ac-feedback'; }, 3000);
   }
 
+  /* ── Filtres de la liste ── */
+  const rows = [...document.querySelectorAll('.ac-student-row')];
+  const noResult = document.getElementById('ac-no-result');
+  document.querySelectorAll('.ac-filter').forEach(btn => btn.addEventListener('click', () => {
+    const f = btn.dataset.filter;
+    document.querySelectorAll('.ac-filter').forEach(b => b.classList.toggle('active', b === btn));
+    let shown = 0;
+    rows.forEach(r => {
+      const ok = f === 'all' || r.dataset.status === f;
+      r.style.display = ok ? '' : 'none';
+      if (ok) shown++;
+    });
+    if (noResult) noResult.style.display = shown ? 'none' : '';
+  }));
+
+    /* ── Refaire une copie déjà publiée ── */
+  document.querySelectorAll('.js-redo').forEach(a => a.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const ok = await VoxModal.confirm({
+      type: 'warning',
+      title: 'Refaire cette correction ?',
+      body: "Elle sera retirée de la publication : le QR code de l'élève ne fonctionnera plus jusqu'à la prochaine publication.",
+      confirmText: 'Refaire la correction'
+    });
+    if (ok) location.href = a.href;
+  }));
+
+  /* ── Publier tous les brouillons ── */
+  document.getElementById('btnPublishAll')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const ok = await VoxModal.confirm({
+      type: 'warning',
+      title: 'Publier ' + btn.dataset.count + ' correction(s) ?',
+      body: "Les élèves pourront les consulter avec leur QR code. Vérifiez d'abord les notes et les synthèses.",
+      confirmText: 'Publier'
+    });
+    if (!ok) return;
+    btn.disabled = true;
+    try {
+      const res = await fetch("{{ url_for('teacher_corr.publish_all', assignment_id=assignment.id) }}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: '{}'
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur ' + res.status);
+      if (data.skipped) {
+        await VoxModal.alert({
+          type: 'warning',
+          title: "Certaines copies n'ont pas été publiées",
+          body: data.skipped + " correction(s) ont une synthèse IA ratée. Ouvrez-les et utilisez « Regénérer la synthèse et les notes »."
+        });
+      }
+      location.reload();
+    } catch (err) {
+      VoxModal.alert({type: 'danger', title: 'Publication impossible', body: err.message});
+      btn.disabled = false;
+    }
+  });
+
+  /* ── Appréciation : enregistrer ── */
   btnSave?.addEventListener('click', async () => {
     btnSave.disabled = true;
     try {
@@ -238,8 +318,9 @@
     finally { btnSave.disabled = false; }
   });
 
+  /* ── Appréciation : reformuler avec l'IA ── */
   btnSynth?.addEventListener('click', async () => {
-    if (!textarea.value.trim()) { showFeedback('Tapez d\'abord un texte', 'error'); return; }
+    if (!textarea.value.trim()) { showFeedback("Tapez d'abord un texte", 'error'); return; }
     btnSynth.disabled = true;
     btnSynth.innerHTML = '<i class="bi bi-hourglass-split"></i> IA…';
     try {
@@ -254,14 +335,14 @@
     } catch(e) { showFeedback('Erreur réseau', 'error'); }
     finally { btnSynth.disabled = false; btnSynth.innerHTML = '<i class="bi bi-stars"></i> IA'; }
   });
-  
-      /* ── Dictée de l'appréciation ── */
+
+  /* ── Dictée de l'appréciation ── */
   const btnRec = document.getElementById('btnRecordAppreciation');
   const recStatus = document.getElementById('recording-status');
   const interimEl = document.getElementById('transcription-interim');
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognition = null, isRecording = false, wantStop = false;
-  let base = '', committed = '';
+  let dictBase = '', dictCommitted = '';
 
   function setRecUI(on) {
     isRecording = on;
@@ -274,8 +355,7 @@
     'not-allowed': "Micro refusé : clique sur le cadenas à gauche de l'adresse et autorise le micro.",
     'service-not-allowed': "Reconnaissance vocale bloquée par le navigateur.",
     'network': "Pas de connexion au service vocal du navigateur. Vérifie ta connexion Internet.",
-    'audio-capture': "Aucun micro détecté.",
-    'no-speech': "Aucune voix détectée, réessaie."
+    'audio-capture': "Aucun micro détecté."
   };
 
   if (!SR) {
@@ -288,8 +368,9 @@
 
     recognition.onstart = () => setRecUI(true);
     recognition.onend = () => {
-      if (isRecording && !wantStop) {            // Chrome coupe après un silence : on relance
-        base = textarea.value; committed = '';
+      if (isRecording && !wantStop) {
+        dictBase = textarea.value;
+        dictCommitted = '';
         try { recognition.start(); return; } catch (e) {}
       }
       setRecUI(false);
@@ -298,28 +379,27 @@
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const t = event.results[i][0].transcript;
-        if (event.results[i].isFinal) committed += t.trim() + ' ';
+        if (event.results[i].isFinal) dictCommitted += t.trim() + ' ';
         else interim += t;
       }
-      const sep = base && !/\s$/.test(base) ? ' ' : '';
-      textarea.value = base + sep + committed + interim;
+      const sep = dictBase && !/\s$/.test(dictBase) ? ' ' : '';
+      textarea.value = dictBase + sep + dictCommitted + interim;
       textarea.scrollTop = textarea.scrollHeight;
-      interimEl.textContent = '';
     };
     recognition.onerror = (event) => {
-      if (event.error === 'no-speech') return;    // silence : on laisse la dictée continuer
+      if (event.error === 'no-speech') return;
       wantStop = true;
       setRecUI(false);
-      alert(ERREURS[event.error] || ('Erreur de dictée : ' + event.error));
+      VoxModal.alert({type: 'danger', title: 'Dictée impossible', body: ERREURS[event.error] || ('Erreur de dictée : ' + event.error)});
     };
 
-        btnRec.addEventListener('click', () => {
+    btnRec.addEventListener('click', () => {
       if (isRecording) { wantStop = true; recognition.stop(); return; }
       wantStop = false;
-      base = textarea.value;
-      committed = '';
+      dictBase = textarea.value;
+      dictCommitted = '';
       try { recognition.start(); }
-      catch (e) { alert('Impossible de démarrer la dictée : ' + e.message); }
+      catch (e) { VoxModal.alert({type: 'danger', title: 'Dictée impossible', body: e.message}); }
     });
   }
 </script>

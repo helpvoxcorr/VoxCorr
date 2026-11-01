@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   UI.btnSave?.addEventListener('click', async () => {
     const text = UI.transcript?.value?.trim() || '';
-    if (!text) { alert('La transcription est vide.'); return; }
+    if (!text) { window.VoxModal.alert({type: 'warning', title: 'Transcription vide', body: 'Dictez ou saisissez votre correction avant de l\'analyser.'}); return; }
 
     UI.setState('processing');
     UI.scoreInputs.forEach(inp => inp.value = '');
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Si pas de connexion, sauvegarde locale
     if (!navigator.onLine) {
       const pendingId = await window.saveCorrectionOffline(correctionData, audioBlob);
-      alert(`⚠️ Pas de connexion. La correction sera envoyée automatiquement quand Internet reviendra. (ID: ${pendingId})`);
+      window.VoxModal.alert({type: 'info', title: 'Pas de connexion', body: 'La correction sera envoyée automatiquement quand Internet reviendra.'});
       UI.setState('idle');
       return;
     }
@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 2000);
 
     } catch (err) {
-      alert('Erreur : ' + err.message);
+      window.VoxModal.alert({type: 'danger', title: 'Analyse impossible', body: err.message});
       UI.setState('stopped');
     }
   });
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Affiche les boutons de navigation inter-élèves
       if (typeof window.voxShowNavButtons === 'function') window.voxShowNavButtons();
     } catch (err) {
-      alert('Erreur publication : ' + err.message);
+      window.VoxModal.alert({type: 'danger', title: 'Publication impossible', body: err.message});
     }
   });
 });

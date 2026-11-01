@@ -184,3 +184,66 @@ body.vc-app .vox-btn {
   font-weight: 700; padding: .6rem 1.2rem; cursor: pointer; box-shadow: 0 1px 2px rgba(10,10,10,.15);
 }
 body.vc-app .vox-btn:hover { box-shadow: 0 4px 14px rgba(57,255,20,.4); }
+
+/* ── Page du devoir (étape 5) ── */
+body.vc-app .ac-hero-actions .ac-btn-ghost { width: auto; height: 40px; padding: 0 1rem; gap: .45rem; font-size: .85rem; font-weight: 600; }
+body.vc-app .ac-stat-val.warn { color: var(--mid); }
+body.vc-app .ac-student-row { grid-template-columns: 28px minmax(0, 1fr) 110px 100px 210px; }
+body.vc-app .ac-student-name a { color: inherit; }
+body.vc-app .ac-student-name a:hover { text-decoration: underline; }
+
+.ac-act { display: inline-flex; align-items: center; gap: .35rem; padding: .4rem .7rem; border-radius: 8px;
+  border: 1.5px solid #9aa1ac; background: #fff; color: #0a0a0a; font-size: .8rem; font-weight: 600; white-space: nowrap; }
+.ac-act:hover { background: #0a0a0a; color: #fff; border-color: #0a0a0a; }
+.ac-act-primary { background: var(--neon); border-color: rgba(10,10,10,.25); font-weight: 700; }
+.ac-act-primary:hover { background: var(--neon-d); color: #0a0a0a; border-color: #0a0a0a; }
+
+.ac-filters { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+.ac-filter { border: 1.5px solid #9aa1ac; background: #fff; color: #0a0a0a; border-radius: 999px;
+  padding: .35rem .9rem; font-weight: 600; font-size: .85rem; cursor: pointer; }
+.ac-filter span { background: #e5e7eb; border-radius: 999px; padding: 0 .45rem; margin-left: .3rem; font-size: .75rem; }
+.ac-filter.active { background: #0a0a0a; color: #fff; border-color: #0a0a0a; }
+.ac-filter.active span { background: var(--neon); color: #0a0a0a; }
+.ac-publish-all { margin-left: auto; }
+
+@media (max-width: 700px) {
+  body.vc-app .ac-student-row { grid-template-columns: 24px minmax(0, 1fr); }
+  body.vc-app .ac-student-status, body.vc-app .ac-student-score { display: none; }
+  body.vc-app .ac-student-actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
+/* Boutons de la colonne Actions : tous centrés et de même hauteur */
+.cd-actions-list .cd-btn-primary,
+.cd-actions-list .cd-btn-outline,
+.cd-actions-list .cd-btn-danger {
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  width: 100%; padding: .7rem 1.2rem; text-align: center;
+}
+
+/* ── Fenêtres de dialogue (VoxModal) ── */
+.modal-content { border: 1px solid #cfd4dc; border-radius: 16px; box-shadow: 0 24px 60px rgba(10,10,10,.28); overflow: hidden; }
+.modal-backdrop.show { opacity: .55; }
+.vm .modal-dialog { max-width: 440px; }
+.vm-head { display: flex; align-items: center; gap: .75rem; padding: 1.25rem 1.5rem .25rem; }
+.vm-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; }
+.vm-danger .vm-icon  { background: #fee2e2; color: #b91c1c; }
+.vm-warning .vm-icon { background: #fef3c7; color: #b45309; }
+.vm-success .vm-icon { background: #dcfce7; color: #15803d; }
+.vm-info .vm-icon    { background: #e0e7ff; color: #3730a3; }
+.vm-title { font-size: 1.1rem; font-weight: 800; margin: 0; color: #0a0a0a; }
+.vm-body { padding: .5rem 1.5rem 1rem; }
+.vm-text { color: #374151; line-height: 1.55; white-space: pre-line; margin: 0 0 .75rem; }
+.vm-error { color: #b91c1c; font-size: .85rem; min-height: 1.2em; margin-top: .35rem; }
+.vm-foot { display: flex; gap: .6rem; padding: 0 1.5rem 1.25rem; }
+.vm-foot .btn { flex: 1; padding: .6rem 1rem; font-weight: 700; }
+.vm-btn-primary { background: var(--neon); color: #0a0a0a; border: 1px solid rgba(10,10,10,.25); }
+.vm-btn-primary:hover { background: var(--neon-d); color: #0a0a0a; }
+.vm-btn-danger { background: #dc2626; color: #fff; border: 1px solid #b91c1c; }
+.vm-btn-danger:hover { background: #b91c1c; color: #fff; }
+.vm .vox-btn-outline { border: 1.5px solid #9aa1ac; background: #fff; color: #0a0a0a; }
+
+/* Boutons des fenêtres de dialogue : texte centré */
+.vm-foot .btn { display: inline-flex; align-items: center; justify-content: center; text-align: center; }
+
+body.vc-app .ac-student-row { grid-template-columns: 28px minmax(0, 1fr) 110px 110px 230px; }
+body.vc-app .ac-student-actions { gap: .4rem; }

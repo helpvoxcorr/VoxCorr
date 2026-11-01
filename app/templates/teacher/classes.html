@@ -58,35 +58,26 @@
 {% endif %}
 
 <!-- Modale de confirmation suppression -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Confirmer la suppression</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <p>Êtes-vous sûr de vouloir supprimer la classe <strong id="deleteClassName"></strong> ?</p>
-        <p class="text-danger small">Cette action est irréversible. Tous les élèves et devoirs associés seront supprimés.</p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-        <form id="deleteForm" method="POST">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-danger">Supprimer définitivement</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
+<form id="deleteForm" method="POST" class="d-none">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
 {% endblock %}
 
 {% block scripts %}
 <script>
-function confirmDelete(id, name) {
-  document.getElementById('deleteClassName').textContent = name;
-  document.getElementById('deleteForm').action = "/teacher/classes/" + id + "/delete";
-  new bootstrap.Modal(document.getElementById('deleteModal')).show();
+async function confirmDelete(id, name) {
+  const value = await VoxModal.prompt({
+    type: 'danger',
+    title: 'Supprimer la classe « ' + name + ' » ?',
+    body: 'Tous ses élèves, devoirs et corrections seront supprimés définitivement.',
+    label: 'Tapez le nom de la classe pour confirmer',
+    expected: name,
+    okText: 'Supprimer la classe'
+  });
+  if (value === null) return;
+  const f = document.getElementById('deleteForm');
+  f.action = '/teacher/classes/' + id + '/delete';
+  f.submit();
 }
 </script>
 {% endblock %}

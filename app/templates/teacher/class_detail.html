@@ -82,7 +82,9 @@
                 <a href="{{ url_for('teacher_crud.edit_student', class_id=classroom.id, student_id=s.id) }}" class="cd-icon-btn" title="Modifier cet élève">
                   <i class="bi bi-pencil"></i>
                 </a>
-                <form method="POST" action="{{ url_for('teacher_crud.delete_student', class_id=classroom.id, student_id=s.id) }}" class="d-inline" onsubmit="return confirm('Supprimer cet élève et ses corrections ?');">
+                                <form method="POST" action="{{ url_for('teacher_crud.delete_student', class_id=classroom.id, student_id=s.id) }}" class="d-inline"
+                      data-confirm-type="danger" data-confirm-title="Supprimer cet élève ?"
+                      data-confirm-body="Ses corrections et ses notes seront supprimées définitivement." data-confirm-text="Supprimer l'élève">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="cd-icon-btn cd-icon-danger" title="Supprimer cet élève">
                     <i class="bi bi-trash"></i>
