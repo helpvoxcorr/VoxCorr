@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Tableau de bord — VoxCorr{% endblock %}
+{% block title %}Accueil — VoxCorr{% endblock %}
 
 {% block content %}
 <div class="dash-greeting">
   <div>
-    <div class="dash-greeting-name">Bonjour, <span>{{ current_user.first_name or 'Enseignant' }}</span> </div>
+    <div class="dash-greeting-name">Bonjour, <span>{{ current_user.first_name or 'Enseignant' }}</span></div>
     <div class="dash-greeting-sub">{{ current_user.school or 'VoxCorr — Espace enseignant' }}</div>
   </div>
-  <a href="{{ url_for('teacher_crud.new_class') }}" class="btn vox-btn-primary">
+  <a href="{{ url_for('teacher_crud.new_class') }}" class="btn vox-btn-outline">
     <i class="bi bi-plus-lg"></i> Nouvelle classe
   </a>
 </div>
@@ -25,95 +25,109 @@
   </div>
   <div class="dash-stat">
     <div class="dash-stat-icon"><i class="bi bi-journal-check"></i></div>
-    <div class="dash-stat-val">{{ total_corrections }}</div>
+    <div class="dash-stat-val">{{ total_assignments }}</div>
     <div class="dash-stat-lbl">Devoirs</div>
   </div>
   <div class="dash-stat">
-    <div class="dash-stat-icon"><i class="bi bi-stars"></i></div>
-    <div class="dash-stat-val neon">IA</div>
-    <div class="dash-stat-lbl">IA actif</div>
+    <div class="dash-stat-icon"><i class="bi bi-check2-circle"></i></div>
+    <div class="dash-stat-val neon">{{ corrected_total }}<span class="ac-stat-total">/{{ expected_total }}</span></div>
+    <div class="dash-stat-lbl">Copies corrigées</div>
   </div>
 </div>
 
-{% if classrooms %}
-  {% set disciplines = {} %}
-  {% for c in classrooms %}
-    {% set disc = c.subject or 'Autre' %}
-    {% if disc not in disciplines %}{% set _ = disciplines.update({disc: []}) %}{% endif %}
-    {% set _ = disciplines[disc].append(c) %}
-  {% endfor %}
-
-  {% for discipline, classes in disciplines.items() %}
-    <div class="dash-section-header">
-      <span class="vox-disc vox-disc-default"><i class="bi bi-book"></i> {{ discipline }}</span>
-      <span class="dash-section-count">{{ classes|length }} classe{{ 's' if classes|length > 1 }}</span>
-      <div class="dash-section-line"></div>
-    </div>
-
-    <div class="dash-classes">
-      {% for c in classes %}
-        <div class="dash-class-card" onclick="window.location='{{ url_for('teacher_crud.class_detail', class_id=c.id) }}'">
-          <div class="dash-card-top">
-            <div>
-              <div class="dash-class-name">{{ c.name }}</div>
-              <div class="dash-class-subject">{{ c.subject or '—' }}</div>
-              <div class="dash-class-year">{{ c.school_year }}</div>
-            </div>
-            <span class="dash-badge-students">{{ c.students|length }}</span>
-          </div>
-          
-          <div class="dash-card-footer">
-            <div class="dash-card-meta"><i class="bi bi-file-text"></i> {{ c.assignments|length }} devoir{{ 's' if c.assignments|length > 1 }}</div>
-            <button class="dash-trash" onclick="event.stopPropagation(); showDeleteModal('{{ c.id }}','{{ c.name }}')" title="Supprimer">
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% endfor %}
-{% else %}
+{% if not classrooms %}
   <div class="dash-empty">
-    <i class="bi bi-people" style="font-size:3rem;opacity:.15;display:block;margin-bottom:1rem"></i>
+    <i class="bi bi-people" style="font-size:3rem;opacity:.25;display:block;margin-bottom:1rem"></i>
     <h5 class="fw-600 mb-2">Aucune classe pour l'instant</h5>
     <p class="text-muted mb-4">Créez votre première classe pour commencer.</p>
     <a href="{{ url_for('teacher_crud.new_class') }}" class="btn vox-btn-primary">
       <i class="bi bi-plus-lg"></i> Créer ma première classe
     </a>
   </div>
-{% endif %}
+{% else %}
 
-<!-- Modale suppression -->
-<div class="modal fade" id="modal-delete-class" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:12px;overflow:hidden;border:1px solid #fecaca">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Supprimer la classe</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  {# ── À faire ── #}
+  <h2 class="todo-heading"><i class="bi bi-list-check"></i> À faire <span class="dash-section-count">{{ todo|length }}</span></h2>
+
+  {% if todo %}
+  <div class="todo-grid">
+    {% for t in todo %}
+    <div class="todo-card">
+      <div>
+        <h3 class="todo-title">
+          <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=t.assignment.id) }}">{{ t.assignment.title }}</a>
+        </h3>
+        <div class="todo-meta">
+          <a href="{{ url_for('teacher_crud.class_detail', class_id=t.classroom.id) }}" class="todo-pill">{{ t.classroom.name }}</a>
+          {% if t.assignment.date %}<span>{{ t.assignment.date.strftime('%d/%m/%Y') }}</span>{% endif %}
+        </div>
       </div>
-      <div class="modal-body">
-        <p class="mb-0">Supprimer <strong id="modal-class-name"></strong> ?</p>
-        <p class="text-muted small mt-1 mb-0">Tous les élèves, devoirs et corrections seront supprimés.</p>
+
+      <div>
+        <div><span class="todo-count">{{ t.done }}/{{ t.total }}</span> copies corrigées</div>
+        <div class="todo-bar"><div style="width:{{ t.pct }}%"></div></div>
+        <div class="todo-meta mt-1">
+          <span>{{ t.published }} publiée{{ 's' if t.published > 1 }}</span>
+          {% if t.drafts %}<span>·</span><span class="todo-warn">{{ t.drafts }} à publier</span>{% endif %}
+        </div>
       </div>
-      <div class="modal-footer border-0 pt-0">
-        <button type="button" class="btn vox-btn-outline btn-sm" data-bs-dismiss="modal">Annuler</button>
-        <form id="form-delete-class" method="POST" class="d-inline">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash me-1"></i>Supprimer</button>
-        </form>
+
+      <div class="todo-actions">
+        {% if t.next_id %}
+          <a href="{{ url_for('teacher_corr.record', student_id=t.next_id, assignment_id=t.assignment.id) }}"
+             class="btn {{ 'vox-btn-primary' if loop.first else 'vox-btn-outline' }}">
+            <i class="bi bi-mic-fill"></i> Continuer : {{ t.next_name }}
+          </a>
+        {% elif t.total == 0 %}
+          <a href="{{ url_for('teacher_crud.class_detail', class_id=t.classroom.id) }}" class="btn vox-btn-outline">
+            <i class="bi bi-person-plus"></i> Ajouter des élèves
+          </a>
+        {% else %}
+          <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=t.assignment.id) }}"
+             class="btn {{ 'vox-btn-primary' if loop.first else 'vox-btn-outline' }}">
+            <i class="bi bi-send-check"></i> Publier les corrections
+          </a>
+        {% endif %}
+        <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=t.assignment.id) }}" class="btn vox-btn-outline">
+          <i class="bi bi-list-ul"></i> Voir la liste
+        </a>
       </div>
     </div>
+    {% endfor %}
   </div>
-</div>
+  {% else %}
+  <div class="todo-empty">
+    {% if finished %}
+      <i class="bi bi-check-circle-fill"></i> Tout est corrigé et publié. Bravo !
+    {% else %}
+      <i class="bi bi-file-earmark-plus"></i> Aucun devoir pour l'instant. Ouvrez une classe puis cliquez sur « Nouveau devoir ».
+    {% endif %}
+  </div>
+  {% endif %}
 
-{% endblock %}
+  {# ── Terminés ── #}
+  {% if finished %}
+  <h2 class="todo-heading"><i class="bi bi-check2-all"></i> Terminés <span class="dash-section-count">{{ finished|length }}</span></h2>
+  <div class="todo-done-list">
+    {% for t in finished %}
+    <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=t.assignment.id) }}" class="todo-done-row">
+      <span><i class="bi bi-check-circle-fill"></i> {{ t.assignment.title }}</span>
+      <span class="todo-meta">{{ t.classroom.name }} · {{ t.published }}/{{ t.total }} publiées</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
 
-{% block scripts %}
-<script>
-function showDeleteModal(classId, className) {
-  document.getElementById('modal-class-name').textContent = className;
-  document.getElementById('form-delete-class').action = "/teacher/classes/" + classId + "/delete";
-  new bootstrap.Modal(document.getElementById('modal-delete-class')).show();
-}
-</script>
+  {# ── Mes classes ── #}
+  <h2 class="todo-heading"><i class="bi bi-people"></i> Mes classes</h2>
+  <div class="todo-grid todo-grid-sm">
+    {% for c in classrooms %}
+    <a href="{{ url_for('teacher_crud.class_detail', class_id=c.id) }}" class="class-link-card vc-card-link">
+      <strong>{{ c.name }}</strong>
+      <span>{{ c.students|length }} élève{{ 's' if c.students|length > 1 }} · {{ c.assignments|length }} devoir{{ 's' if c.assignments|length > 1 }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  <a href="{{ url_for('teacher_crud.classes') }}" class="todo-more">Gérer mes classes <i class="bi bi-arrow-right"></i></a>
+{% endif %}
 {% endblock %}

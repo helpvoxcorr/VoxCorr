@@ -118,3 +118,69 @@ body.vc-app :is(.ac-textarea, .vox-input, .cd-input, .form-control, .form-select
 body.vc-app :is(.ac-textarea, .vox-input, .cd-input, .form-control, .form-select):focus {
   border-color: var(--ink); box-shadow: 0 0 0 3px var(--neon-glow);
 }
+
+/* ── Accueil « À faire » (étape 3) ── */
+.todo-heading { font-size: 1.15rem; font-weight: 800; margin: 2rem 0 1rem; display: flex; align-items: center; gap: .5rem; }
+.todo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
+.todo-grid-sm { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.todo-card { background: #fff; border: 1px solid #cfd4dc; border-radius: 14px; padding: 1.25rem;
+  box-shadow: 0 1px 2px rgba(10,10,10,.06), 0 8px 20px rgba(10,10,10,.07);
+  display: flex; flex-direction: column; gap: 1rem; }
+.todo-title { font-size: 1.1rem; font-weight: 800; margin: 0 0 .35rem; }
+.todo-title a { color: inherit; }
+.todo-title a:hover { text-decoration: underline; }
+.todo-meta { color: #4b5563; font-size: .85rem; display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+.todo-pill { background: #0a0a0a; color: #fff !important; padding: .1rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+.todo-count { font-size: 1.4rem; font-weight: 800; }
+.todo-bar { height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin-top: .4rem; }
+.todo-bar > div { height: 100%; background: var(--neon); }
+.todo-warn { color: #b45309; font-weight: 700; }
+.todo-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: auto; }
+.todo-empty { background: #fff; border: 2px dashed #9aa1ac; border-radius: 14px; padding: 1.5rem; text-align: center; font-weight: 600; }
+.todo-done-list { display: flex; flex-direction: column; gap: .5rem; }
+.todo-done-row { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; background: #fff; border: 1px solid #cfd4dc;
+  border-radius: 10px; padding: .7rem 1rem; color: #0a0a0a; font-weight: 600; }
+.todo-done-row .bi { color: #15803d; }
+.todo-done-row:hover { border-color: #0a0a0a; }
+.class-link-card { display: flex; flex-direction: column; gap: .2rem; background: #fff; border: 1px solid #cfd4dc;
+  border-radius: 12px; padding: 1rem 1.25rem; color: #0a0a0a; }
+.class-link-card strong { font-size: 1.1rem; }
+.class-link-card span { color: #4b5563; font-size: .85rem; }
+.todo-more { display: inline-block; margin-top: 1rem; font-weight: 700; color: #0a0a0a; border-bottom: 2px solid var(--neon); }
+
+/* Boutons ronds : pas d'ombre décalée (sinon ils paraissent ovales) */
+body.vc-app #btnRecordAppreciation { box-shadow: none !important; transform: none !important; }
+
+/* ── Adoucissement : boutons et cartes moins "cartoon" ── */
+body.vc-app :is(.vox-btn-primary, .cd-btn-primary, .ac-btn-primary, .ac-icon-btn-primary, .cd-btn-add) {
+  border: 1px solid rgba(10,10,10,.25); box-shadow: 0 1px 2px rgba(10,10,10,.15); font-weight: 700;
+}
+body.vc-app :is(.vox-btn-primary, .cd-btn-primary, .ac-btn-primary, .ac-icon-btn-primary, .cd-btn-add):hover {
+  transform: translateY(-1px); box-shadow: 0 4px 14px rgba(57,255,20,.4);
+}
+body.vc-app :is(.vox-btn-primary, .cd-btn-primary, .ac-btn-primary, .ac-icon-btn-primary, .cd-btn-add):active {
+  transform: none; box-shadow: none;
+}
+body.vc-app :is(.vox-btn-outline, .cd-btn-outline) {
+  border: 1.5px solid #9aa1ac; background: #fff; color: var(--ink); font-weight: 600;
+}
+body.vc-app :is(.vox-btn-outline, .cd-btn-outline):hover { background: #f3f4f6; border-color: var(--ink); color: var(--ink); }
+
+body.vc-app :is(.cd-card-header, .ac-card-header) { border-bottom: 1px solid var(--line); }
+body.vc-app :is(.dash-stat, .ac-stat) { border-top: 3px solid var(--neon); }
+body.vc-app :is(.cd-hero, .ac-hero, .cd-header) { border-bottom: 3px solid var(--neon); }
+
+body.vc-app :is(.vc-card-link, .dash-class-card):hover {
+  transform: translateY(-2px); border-color: var(--ink); box-shadow: 0 10px 24px rgba(10,10,10,.12);
+}
+body.vc-app .cd-assignment-row { border: 1.5px solid var(--line); }
+body.vc-app .cd-assignment-row:hover { border-color: var(--ink); box-shadow: 0 6px 16px rgba(10,10,10,.1); }
+body.vc-app :is(.ac-textarea, .vox-input, .cd-input, .form-control, .form-select) { border-width: 1.5px; }
+
+/* ── Éléments qui n'avaient aucun style ── */
+body.vc-app .vox-label { display: block; font-weight: 600; font-size: .85rem; margin-bottom: .35rem; color: var(--ink-2); }
+body.vc-app .vox-btn {
+  background: var(--neon); color: var(--ink); border: 1px solid rgba(10,10,10,.25); border-radius: var(--radius);
+  font-weight: 700; padding: .6rem 1.2rem; cursor: pointer; box-shadow: 0 1px 2px rgba(10,10,10,.15);
+}
+body.vc-app .vox-btn:hover { box-shadow: 0 4px 14px rgba(57,255,20,.4); }

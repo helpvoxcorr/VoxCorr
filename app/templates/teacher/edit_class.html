@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% set breadcrumbs = [{"label": "Classes", "url": "/teacher/classes"}, {"label": classroom.name, "url": None}] %}
 {% block title %}Modifier {{ classroom.name }} — VoxCorr{% endblock %}
 
 {% block content %}
@@ -37,7 +36,7 @@
         </div>
 
         <div class="d-flex justify-content-between">
-          <a href="{{ url_for('teacher_crud.classes') }}" class="btn vox-btn-outline">Annuler</a>
+            <a href="{{ url_for('teacher_crud.class_detail', class_id=classroom.id) }}" class="btn vox-btn-outline">Annuler</a>
           <button type="submit" class="btn vox-btn-primary">Enregistrer</button>
         </div>
       </form>

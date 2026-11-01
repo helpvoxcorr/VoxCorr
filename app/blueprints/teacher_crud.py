@@ -21,17 +21,52 @@ def sanitize_csv_field(value):
 @teacher_crud_bp.route('/dashboard')
 @login_required
 def dashboard():
-    classrooms = Classroom.query.filter_by(teacher_id=current_user.id).all()
+    classrooms = Classroom.query.filter_by(teacher_id=current_user.id).order_by(Classroom.name).all()
     total_students = sum(len(c.students) for c in classrooms)
-    total_devoirs = sum(len(c.assignments) for c in classrooms)
-    assign_stats = {}
+    total_assignments = sum(len(c.assignments) for c in classrooms)
+    todo, finished = [], []
+    corrected_total = expected_total = 0
+
     for c in classrooms:
-        total = len(c.students)
+        students = sorted(c.students, key=lambda s: s.student_number or 0)
+        student_ids = {s.id for s in students}
+        total = len(students)
         for a in c.assignments:
-            done = db.session.query(db.func.count(Correction.id)).filter_by(assignment_id=a.id, status='published').scalar()
-            pct = int(done / total * 100) if total > 0 else 0
-            assign_stats[a.id] = {'done': done, 'total': total, 'pct': pct}
-    return render_template('teacher/dashboard.html', classrooms=classrooms, assign_stats=assign_stats, total_students=total_students, total_corrections=total_devoirs)
+            corrected_ids = {row[0] for row in db.session.query(Correction.student_id)
+                             .filter_by(assignment_id=a.id).all()}
+            published = db.session.query(db.func.count(Correction.id)) \
+                .filter_by(assignment_id=a.id, status='published').scalar() or 0
+            done = len(corrected_ids & student_ids)
+            drafts = max(done - published, 0)
+            nxt = next((s for s in students if s.id not in corrected_ids), None)
+            next_name = ''
+            if nxt:
+                try:
+                    next_name = f"{decrypt_name(nxt.encrypted_last_name)} {decrypt_name(nxt.encrypted_first_name)}"
+                except Exception:
+                    next_name = nxt.alias
+            item = {
+                'assignment': a, 'classroom': c, 'total': total, 'done': done,
+                'published': published, 'drafts': drafts,
+                'pct': int(done / total * 100) if total else 0,
+                'next_id': nxt.id if nxt else None, 'next_name': next_name,
+            }
+            corrected_total += done
+            expected_total += total
+            if total > 0 and done >= total and drafts == 0:
+                finished.append(item)
+            else:
+                todo.append(item)
+
+    def _by_date(t):
+        return t['assignment'].date.isoformat() if t['assignment'].date else ''
+    todo.sort(key=_by_date, reverse=True)
+    finished.sort(key=_by_date, reverse=True)
+
+    return render_template('teacher/dashboard.html', classrooms=classrooms,
+                           total_students=total_students, total_assignments=total_assignments,
+                           corrected_total=corrected_total, expected_total=expected_total,
+                           todo=todo, finished=finished)
 
 @teacher_crud_bp.route('/classes')
 @login_required
@@ -45,15 +80,25 @@ def classes():
         if items: grouped[key] = items
     return render_template('teacher/classes.html', classrooms=classrooms, grouped=grouped)
 
+def _default_school_year():
+    now = datetime.now()
+    start = now.year if now.month >= 8 else now.year - 1
+    return f'{start}-{start + 1}'
+
+CLASS_LEVELS = ['6ème', '5ème', '4ème', '3ème', '2nde', '1ère', 'Terminale', 'Autre']
+
 @teacher_crud_bp.route('/classes/new', methods=['GET', 'POST'])
 @login_required
 def new_class():
     if request.method == 'POST':
-        c = Classroom(teacher_id=current_user.id, name=request.form['name'].strip(), subject=request.form.get('subject', '').strip(), school_year=request.form.get('school_year', '2025-2026'))
+        c = Classroom(teacher_id=current_user.id, name=request.form['name'].strip(),
+                      subject=request.form.get('subject', '').strip() or None,
+                      level=request.form.get('level', '').strip() or None,
+                      school_year=request.form.get('school_year', '').strip() or _default_school_year())
         db.session.add(c); db.session.commit()
         flash(f'Classe « {c.name} » créée.', 'success')
         return redirect(url_for('teacher_crud.class_detail', class_id=c.id))
-    return render_template('teacher/new_class.html')
+    return render_template('teacher/new_class.html', levels=CLASS_LEVELS, default_year=_default_school_year())
 
 @teacher_crud_bp.route('/classes/<int:class_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -64,7 +109,7 @@ def edit_class(class_id):
         c.name = request.form['name'].strip(); c.subject = request.form.get('subject', '').strip()
         c.school_year = request.form.get('school_year', '2025-2026').strip(); c.level = request.form.get('level', '').strip() or None
         db.session.commit(); flash(f'Classe « {c.name} » mise à jour.', 'success')
-        return redirect(url_for('teacher_crud.classes'))
+        return redirect(url_for('teacher_crud.class_detail', class_id=c.id))
     return render_template('teacher/edit_class.html', classroom=c, levels=LEVELS)
 
 @teacher_crud_bp.route('/classes/<int:class_id>')
@@ -76,7 +121,16 @@ def class_detail(class_id):
         try: s.display_first = decrypt_name(s.encrypted_first_name); s.display_last = decrypt_name(s.encrypted_last_name)
         except Exception: s.display_first = s.display_last = '—'
     assignments = Assignment.query.filter_by(classroom_id=class_id).order_by(Assignment.date.desc()).all()
-    return render_template('teacher/class_detail.html', classroom=c, students=students, assignments=assignments)
+    total = len(students)
+    ids = {s.id for s in students}
+    progress = {}
+    for a in assignments:
+        corrected = {row[0] for row in db.session.query(Correction.student_id).filter_by(assignment_id=a.id).all()} & ids
+        published = db.session.query(db.func.count(Correction.id)).filter_by(assignment_id=a.id, status='published').scalar() or 0
+        progress[a.id] = {'done': len(corrected), 'total': total, 'published': published,
+                          'pct': int(len(corrected) / total * 100) if total else 0}
+    return render_template('teacher/class_detail.html', classroom=c, students=students,
+                           assignments=assignments, progress=progress)
 
 @teacher_crud_bp.route('/classes/<int:class_id>/students/add', methods=['POST'])
 @login_required
@@ -125,8 +179,12 @@ def import_csv_class(class_id):
     f = request.files.get('csv_file')
     if not f: flash('Aucun fichier sélectionné.', 'danger'); return redirect(url_for('teacher_crud.class_detail', class_id=class_id))
     try:
-        content = f.read().decode('latin-1')
-        reader = csv.DictReader(io.StringIO(content), delimiter='\t' if '\t' in content.split('\n')[0] else ',')
+        raw = f.read()
+        try: content = raw.decode('utf-8-sig')
+        except UnicodeDecodeError: content = raw.decode('latin-1')
+        first_line = content.split('\n')[0]
+        delim = '\t' if '\t' in first_line else (';' if first_line.count(';') > first_line.count(',') else ',')
+        reader = csv.DictReader(io.StringIO(content), delimiter=delim)
         rows = list(reader)
         if not rows: flash('Fichier vide.', 'danger'); return redirect(url_for('teacher_crud.class_detail', class_id=class_id))
         cols = {k.strip().lower(): k for k in rows[0].keys()}

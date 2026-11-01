@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% set breadcrumbs = [{"label": "Classes", "url": None}] %}
 {% block title %}Mes classes — VoxCorr{% endblock %}
 
 {% block content %}
@@ -27,13 +26,13 @@
                     {{ c.name }}
                   </a>
                 </h3>
-                <div class="small text-muted">{{ c.subject or '—' }} · {{ c.school_year }}</div>
+                  <div class="small text-muted">{% if c.subject %}{{ c.subject }} · {% endif %}{{ c.school_year }}</div>
               </div>
               <span class="vox-badge">{{ c.students|length }} élèves</span>
             </div>
             
             <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
-              <span class="small text-muted">{{ c.assignments|length }} devoir(s)</span>
+                <span class="small text-muted">{{ c.assignments|length }} devoir{{ 's' if c.assignments|length > 1 }}</span>
               <div class="d-flex gap-2 position-relative" style="z-index:2">
                 <a href="{{ url_for('teacher_crud.edit_class', class_id=c.id) }}" class="btn btn-sm btn-outline-secondary" title="Modifier">
                   <i class="bi bi-pencil"></i>

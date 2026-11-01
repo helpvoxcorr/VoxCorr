@@ -2,15 +2,15 @@
 {% block title %}{{ classroom.name }} — VoxCorr{% endblock %}
 
 {% block content %}
-{# ── Hero compact ── #}
 <div class="cd-hero">
   <div class="cd-hero-left">
     <h1 class="cd-hero-title">{{ classroom.name }}</h1>
     <div class="cd-hero-meta">
-      <span class="cd-pill">{{ classroom.subject or '—' }}</span>
+      {% if classroom.level %}<span class="cd-pill">{{ classroom.level }}</span>{% endif %}
+      {% if classroom.subject %}<span class="cd-pill">{{ classroom.subject }}</span>{% endif %}
       <span>{{ classroom.school_year }}</span>
       <span class="cd-dot">·</span>
-      <span><strong>{{ students|length }}</strong> élèves</span>
+      <span><strong>{{ students|length }}</strong> élève{{ 's' if students|length > 1 }}</span>
     </div>
   </div>
   <div class="cd-hero-actions">
@@ -23,12 +23,49 @@
   </div>
 </div>
 
-{# ── Layout 2 colonnes compact ── #}
 <div class="cd-grid">
 
-  {# ── Colonne Élèves ── #}
+  {# ── Colonne principale : devoirs puis élèves ── #}
   <div class="cd-col cd-col-main">
-    <div class="cd-card">
+
+    <h2 class="todo-heading" style="margin-top:0"><i class="bi bi-journal-check"></i> Devoirs
+      <span class="dash-section-count">{{ assignments|length }}</span></h2>
+
+    {% for a in assignments %}
+      {% set p = progress[a.id] %}
+      <div class="todo-card mb-3">
+        <div>
+          <h3 class="todo-title">
+            <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=a.id) }}">{{ a.title }}</a>
+          </h3>
+          <div class="todo-meta">
+            {% if a.date %}<span>{{ a.date.strftime('%d/%m/%Y') }}</span><span>·</span>{% endif %}
+            <span>/{{ a.total_points }} pts</span><span>·</span>
+            <span>{{ a.questions|length }} question{{ 's' if a.questions|length > 1 }}</span>
+          </div>
+        </div>
+        <div>
+          <div><span class="todo-count">{{ p.done }}/{{ p.total }}</span> copies corrigées · {{ p.published }} publiée{{ 's' if p.published > 1 }}</div>
+          <div class="todo-bar"><div style="width:{{ p.pct }}%"></div></div>
+        </div>
+        <div class="todo-actions">
+          <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=a.id) }}"
+             class="btn {{ 'vox-btn-primary' if p.done < p.total else 'vox-btn-outline' }}">
+            <i class="bi bi-mic-fill"></i> {{ 'Continuer à corriger' if p.done < p.total else 'Voir les corrections' }}
+          </a>
+          <a href="{{ url_for('teacher_crud.edit_assignment', assignment_id=a.id) }}" class="btn vox-btn-outline">
+            <i class="bi bi-pencil"></i> Modifier le devoir
+          </a>
+        </div>
+      </div>
+    {% else %}
+      <div class="todo-empty">
+        <i class="bi bi-file-earmark-plus"></i> Aucun devoir.
+        <a href="{{ url_for('teacher_crud.new_assignment', class_id=classroom.id) }}">Créer le premier</a>
+      </div>
+    {% endfor %}
+
+    <div class="cd-card mt-4">
       <div class="cd-card-header">
         <h2 class="cd-section-title">Élèves</h2>
         <span class="cd-count">{{ students|length }}</span>
@@ -42,12 +79,12 @@
               <span class="cd-alias">{{ s.alias }}</span>
               <span class="cd-student-name">{{ s.display_last }}, {{ s.display_first }}</span>
               <div class="cd-student-actions">
-                <a href="{{ url_for('teacher_crud.edit_student', class_id=classroom.id, student_id=s.id) }}" class="cd-icon-btn" title="Modifier">
+                <a href="{{ url_for('teacher_crud.edit_student', class_id=classroom.id, student_id=s.id) }}" class="cd-icon-btn" title="Modifier cet élève">
                   <i class="bi bi-pencil"></i>
                 </a>
-                <form method="POST" action="{{ url_for('teacher_crud.delete_student', class_id=classroom.id, student_id=s.id) }}" class="d-inline" onsubmit="return confirm('Supprimer cet élève ?');">
+                <form method="POST" action="{{ url_for('teacher_crud.delete_student', class_id=classroom.id, student_id=s.id) }}" class="d-inline" onsubmit="return confirm('Supprimer cet élève et ses corrections ?');">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="cd-icon-btn cd-icon-danger" title="Supprimer">
+                  <button type="submit" class="cd-icon-btn cd-icon-danger" title="Supprimer cet élève">
                     <i class="bi bi-trash"></i>
                   </button>
                 </form>
@@ -56,54 +93,33 @@
           {% endfor %}
         </div>
       {% else %}
-        <div class="cd-empty">Aucun élève dans cette classe.</div>
+        <div class="cd-empty">Aucun élève : ajoutez-les à droite, un par un ou depuis un fichier CSV.</div>
       {% endif %}
     </div>
   </div>
 
-  {# ── Colonne latérale ── #}
+  {# ── Colonne latérale : ajouter des élèves ── #}
   <div class="cd-col cd-col-side">
 
-    {# Devoirs #}
     <div class="cd-card">
-      <div class="cd-card-header">
-        <h2 class="cd-section-title">Devoirs</h2>
-        <span class="cd-count">{{ assignments|length }}</span>
-      </div>
-
-      {% if assignments %}
-        <div class="cd-assignment-list">
-          {% for a in assignments %}
-            <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=a.id) }}" class="cd-assignment-row">
-              <div class="cd-assignment-main">
-                <span class="cd-assignment-title">{{ a.title }}</span>
-                <span class="cd-assignment-date">{{ a.date.strftime('%d/%m') if a.date else '' }}</span>
-              </div>
-              <div class="cd-assignment-meta">
-                <span>{{ a.total_points }} pts</span>
-                <span class="cd-dot">·</span>
-                <span>{{ a.questions|length }} Q</span>
-              </div>
-            </a>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="cd-empty">Aucun devoir.</div>
-      {% endif %}
-    </div>
-
-    {# Ajout rapide élève #}
-    <div class="cd-card">
-      <h2 class="cd-section-title">Ajout rapide</h2>
+      <h2 class="cd-section-title mb-2">Ajouter un élève</h2>
       <form method="POST" action="{{ url_for('teacher_crud.add_student', class_id=classroom.id) }}" class="cd-add-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="cd-add-row">
           <input type="text" name="first_name" class="cd-input" placeholder="Prénom" required>
           <input type="text" name="last_name" class="cd-input" placeholder="Nom" required>
-          <button type="submit" class="cd-btn-add" title="Ajouter">
-            <i class="bi bi-plus-lg"></i>
-          </button>
+          <button type="submit" class="cd-btn-add" title="Ajouter l'élève"><i class="bi bi-plus-lg"></i></button>
         </div>
+      </form>
+    </div>
+
+    <div class="cd-card">
+      <h2 class="cd-section-title mb-2">Importer une liste</h2>
+      <p class="text-muted small">Fichier CSV avec les colonnes « Nom » et « Prénom » (export Pronote ou tableur). Les doublons sont ignorés.</p>
+      <form method="POST" action="{{ url_for('teacher_crud.import_csv_class', class_id=classroom.id) }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="file" name="csv_file" accept=".csv,.tsv,.txt" class="form-control mb-2" required>
+        <button type="submit" class="btn vox-btn-outline w-100"><i class="bi bi-upload"></i> Importer</button>
       </form>
     </div>
 
