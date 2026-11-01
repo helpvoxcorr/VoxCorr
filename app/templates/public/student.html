@@ -536,8 +536,10 @@
     }
   });
 
-  if ('serviceWorker' in navigator)
-    navigator.serviceWorker.register('/static/js/sw.js').catch(() => {});
+    // Nettoie d'anciens Service Workers et leurs caches
+    if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
+    if (window.caches) caches.keys().then(ks => ks.forEach(k => caches.delete(k)));
+  </script>
 </script>
 </body>
 </html>

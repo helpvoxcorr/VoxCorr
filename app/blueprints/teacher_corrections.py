@@ -75,23 +75,39 @@ def record(student_id, assignment_id):
         student_index=idx + 1, student_total=len(ids),
         student_first=student_first, student_last=student_last)
 
+def _make_card(corr, with_qr=True):
+    """Données d'un coupon imprimable : nom, notes, synthèse, QR code."""
+    s = corr.student
+    try:
+        first = decrypt_name(s.encrypted_first_name)
+        last = decrypt_name(s.encrypted_last_name)
+    except Exception:
+        first = last = '—'
+    scores = [{'label': qs.question.label, 'score': qs.score,
+               'max': qs.question.max_points, 'advice': qs.advice or ''}
+              for qs in sorted(corr.scores, key=lambda x: (x.question.order or 0, x.question_id))]
+    qr = make_qr(corr.public_token) if with_qr else None
+    return {'alias': s.alias, 'first_name': first, 'last_name': last, 'score': corr.total_score,
+            'text': corr.structured_text or '', 'scores': scores,
+            'qr_b64': qr['png_b64'] if qr else None, 'qr_url': qr['url'] if qr else None}
+
+
 @teacher_corr_bp.route('/assignments/<int:assignment_id>/print')
 @login_required
 def print_corrections(assignment_id):
     a = db.session.get(Assignment, assignment_id)
-    if not a: abort(404)
-    if a.classroom.teacher_id != current_user.id: flash('Accès non autorisé.', 'danger'); return redirect(url_for('teacher_crud.dashboard'))
-    students = Student.query.filter_by(classroom_id=a.classroom_id).order_by(Student.student_number).all()
+    if not a:
+        abort(404)
+    if a.classroom.teacher_id != current_user.id:
+        flash('Accès non autorisé.', 'danger')
+        return redirect(url_for('teacher_crud.dashboard'))
     cards = []
-    for s in students:
-        try: first = decrypt_name(s.encrypted_first_name); last = decrypt_name(s.encrypted_last_name)
-        except Exception: first = last = '—'
-        corr = Correction.query.filter_by(student_id=s.id, assignment_id=assignment_id, status='published').first()
-        if not corr: continue
-        qr = make_qr(corr.public_token)
-        cards.append({'alias': s.alias, 'first_name': first, 'last_name': last, 'score': corr.total_score, 'text': corr.structured_text or ' ', 'qr_b64': qr['png_b64'], 'qr_url': qr['url']})
-    cards.sort(key=lambda c: c['last_name'].lower())
-    return render_template('teacher/print_corrections.html', assignment=a, cards=cards)
+    for corr in Correction.query.filter_by(assignment_id=assignment_id, status='published').all():
+        cards.append(_make_card(corr))
+    cards.sort(key=lambda c: (c['last_name'].lower(), c['first_name'].lower()))
+    return render_template('teacher/print_corrections.html', assignment=a, cards=cards,
+                           back_url=url_for('teacher_corr.assignment_corrections', assignment_id=a.id),
+                           back_label='Retour au devoir')
 
 @teacher_corr_bp.route('/correction/<int:correction_id>')
 @login_required
@@ -384,16 +400,14 @@ def synthesize_appreciation_route(assignment_id):
 @teacher_corr_bp.route('/correction/<int:correction_id>/pdf')
 @login_required
 def correction_pdf(correction_id):
-    from weasyprint import HTML
     corr = db.session.get(Correction, correction_id)
-    if not corr or corr.assignment.classroom.teacher_id != current_user.id: flash('Accès non autorisé.', 'danger'); return redirect(url_for('teacher_crud.dashboard'))
-    student = corr.student
-    scores_detail = [{'label': qs.question.label, 'score': qs.score, 'max': qs.question.max_points, 'competence': qs.question.competence.name if qs.question.competence else None,} for qs in corr.scores]
-    qr_url = f"{current_app.config['APP_BASE_URL']}/c/{corr.public_token}"; qr_data = make_qr(corr.public_token) if corr.status == 'published' else None; qr_b64 = qr_data['png_b64'] if qr_data else None
-    html_str = render_template('teacher/correction_pdf.html', correction=corr, student=student, scores=scores_detail, qr_b64=qr_b64, qr_url=qr_url if corr.status == 'published' else None, teacher=corr.assignment.classroom.teacher, now=datetime.now(timezone.utc))
-    try: pdf = HTML(string=html_str, base_url=request.host_url).write_pdf()
-    except Exception: flash("Erreur lors de la génération du PDF.", "danger"); return redirect(url_for('teacher_corr.correction_detail', correction_id=correction_id))
-    return current_app.response_class(pdf, mimetype='application/pdf', headers={'Content-Disposition': f'attachment; filename="correction-{student.alias}-{corr.assignment.title}.pdf"'})
+    if not corr or corr.assignment.classroom.teacher_id != current_user.id:
+        flash('Accès non autorisé.', 'danger')
+        return redirect(url_for('teacher_crud.dashboard'))
+    card = _make_card(corr, with_qr=(corr.status == 'published'))
+    return render_template('teacher/print_corrections.html', assignment=corr.assignment, cards=[card],
+                           back_url=url_for('teacher_corr.correction_detail', correction_id=corr.id),
+                           back_label='Retour à la correction')
 
 @teacher_corr_bp.route('/api/tts/<int:correction_id>')
 @login_required

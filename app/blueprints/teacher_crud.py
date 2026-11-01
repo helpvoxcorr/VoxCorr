@@ -262,6 +262,9 @@ def new_assignment(class_id):
             labels = request.form.getlist('q_label'); maxpts = request.form.getlist('q_max'); competence_ids = request.form.getlist('q_competence_id')
             for i, (lbl, mx, comp_id) in enumerate(zip(labels, maxpts, competence_ids)):
                 if lbl.strip(): db.session.add(Question(assignment_id=a.id, label=lbl.strip(), max_points=float(mx or 1), competence_id=int(comp_id) if comp_id and comp_id.isdigit() else None, order=i))
+            q_total = sum(float(mx or 1) for lbl, mx in zip(labels, maxpts) if lbl.strip())
+            if abs(q_total - a.total_points) > 0.01:
+                flash(f'Attention : les questions totalisent {q_total:g} points pour un devoir noté sur {a.total_points:g}. Vous pouvez corriger depuis « Modifier le devoir ».', 'warning')
             db.session.commit(); flash(f'Devoir « {a.title} » créé.', 'success'); return redirect(url_for('teacher_corr.assignment_corrections', assignment_id=a.id))
         except Exception as e: db.session.rollback(); current_app.logger.error(f'[new_assignment] {e}'); flash("Erreur lors de la création du devoir.", 'danger')
     return render_template('teacher/new_assignment.html', classroom=c, now=datetime.today(), competences_by_domain=competences_by_subject, competences_by_domain_json=competences_by_domain_json)

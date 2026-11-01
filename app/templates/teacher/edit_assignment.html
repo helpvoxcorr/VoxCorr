@@ -7,7 +7,7 @@
     <div class="vox-card">
       <h2 class="h4 mb-4">Modifier le devoir</h2>
       
-      <form method="POST">
+      <form method="POST" id="editForm">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
         <div class="row g-3 mb-4">
@@ -72,4 +72,24 @@
     </div>
   </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.getElementById('editForm').addEventListener('submit', async function (e) {
+    const f = this;
+    if (f.dataset.confirmed === '1') return;
+    const total = parseFloat(f.querySelector('[name=total_points]').value) || 0;
+    const sum = [...f.querySelectorAll('[name^=q_max_]')].reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+    if (Math.abs(sum - total) < 0.01) return;
+    e.preventDefault();
+    const fmt = (n) => Number(n).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+    const ok = await window.VoxModal.confirm({
+      type: 'warning',
+      title: 'Le total ne correspond pas',
+      body: 'Les questions totalisent ' + fmt(sum) + ' points, mais le devoir est noté sur ' + fmt(total) + '.\nLes pourcentages et la moyenne seraient faussés.',
+      confirmText: 'Enregistrer quand même'
+    });
+    if (ok) { f.dataset.confirmed = '1'; f.submit(); }
+  });
+</script>
 {% endblock %}

@@ -1,73 +1,79 @@
 {% extends "base.html" %}
-{% block title %}Corrections — {{ assignment.title }}{% endblock %}
+{% from "teacher/_coupon.html" import coupon %}
+{% block title %}Coupons — {{ assignment.title }}{% endblock %}
 
-{% block head %}
-<style>
-  @media print {
-    .no-print { display: none !important; }
-    .print-card { page-break-inside: avoid; border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; }
-    body { background: #fff; }
-  }
-  .print-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; background: #fff; }
-  .print-card { color: #111827; }
-  .print-card .text-muted { color: #6b7280 !important; }
-  .print-card section { display: block; margin-bottom: .75rem; }
-  .print-card p { color: inherit; margin: 0 0 .4rem; }
-  .print-card .section-label { font-weight: 700; font-size: .75rem; text-transform: uppercase; color: #6b7280; }
-</style>
-{% endblock %}
+{% block head %}{% include "teacher/_coupon_styles.html" %}{% endblock %}
 
 {% block content %}
-<div class="no-print d-flex justify-content-between align-items-center mb-4">
+<div class="no-print coupon-bar">
   <div>
-    <h1 class="h3 mb-1">{{ assignment.title }}</h1>
-    <div class="text-muted">{{ assignment.classroom.name }} · {{ assignment.date.strftime('%d/%m/%Y') }} · /{{ assignment.total_points }} pts</div>
+    <h1>Coupons à découper</h1>
+    <div class="text-muted">{{ assignment.classroom.name }} · {{ assignment.title }} · {{ cards|length }} coupon{{ 's' if cards|length > 1 }}</div>
   </div>
-  <button onclick="window.print()" class="btn vox-btn-primary">
-    <i class="bi bi-printer"></i> Imprimer / Exporter PDF
-  </button>
+  <div class="cb-controls">
+    <label>Disposition
+      <select id="optLayout">
+        <option value="l4">4 par page (2 × 2)</option>
+        <option value="l6">6 par page (2 × 3)</option>
+        <option value="l2">2 par page (1 × 2)</option>
+      </select>
+    </label>
+    <label>Texte
+      <select id="optSize">
+        <option value="8pt">Petit</option>
+        <option value="9pt" selected>Normal</option>
+        <option value="10.5pt">Grand</option>
+      </select>
+    </label>
+    <label class="cb-check"><input type="checkbox" id="optAdvice"> Conseils par question</label>
+    <button type="button" class="btn vox-btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> Imprimer / PDF</button>
+    <a href="{{ back_url }}" class="btn vox-btn-outline">{{ back_label }}</a>
+  </div>
 </div>
 
-<div class="mb-3 no-print">
-  <span class="vox-badge">{{ cards|length }} correction(s) publiée(s)</span>
-</div>
+<p class="no-print cb-tip">
+  Dans la fenêtre d'impression : papier A4, échelle 100 %. Pour un PDF, choisissez « Enregistrer au format PDF ».
+  Si un coupon est trop long, passez à « 4 par page » ou réduisez le texte.
+</p>
 
 {% if cards %}
-  {% for c in cards %}
-  <div class="print-card">
-    <div class="d-flex justify-content-between align-items-start mb-3 border-bottom pb-2">
-      <div>
-        <h2 class="h5 mb-1">{{ c.last_name }}, {{ c.first_name }}</h2>
-        <div class="small text-muted">{{ c.alias }}</div>
-      </div>
-      <div class="text-end">
-        <div class="fw-bold fs-4 text-neon">{{ '%.1f'|format(c.score) if c.score is not none else '—' }} <span class="fs-6 text-muted">/ {{ assignment.total_points }}</span></div>
-      </div>
-    </div>
-
-    <div class="mb-3">
-      <h3 class="h6 text-muted text-uppercase small">Synthèse</h3>
-      {% if c.text %}
-        <div style="line-height: 1.6;">{{ c.text | safe }}</div>
-      {% else %}
-        <p class="text-muted fst-italic">Synthèse non encore générée.</p>
-      {% endif %}
-    </div>
-
-    <div class="d-flex align-items-center gap-3 mt-4 pt-3 border-top">
-      <img src="{{ c.qr_b64 }}" alt="QR Code" style="width: 80px; height: 80px;">
-      <div>
-        <div class="small fw-bold">Accès à la correction audio</div>
-        <div class="small text-muted text-break">{{ c.qr_url }}</div>
-      </div>
-    </div>
+<div class="coupon-sheet">
+  <div id="coupons" class="l4 hide-advice">
+    {% for c in cards %}{{ coupon(c, assignment, assignment.classroom) }}{% endfor %}
   </div>
-  {% endfor %}
+</div>
 {% else %}
-  <div class="text-center py-5 bg-light rounded">
-    <h3 class="text-muted">Aucune correction publiée</h3>
-    <p class="text-muted">Publiez au moins une correction pour générer cette page.</p>
-    <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=assignment.id) }}" class="btn vox-btn-outline">Retour aux corrections</a>
-  </div>
+<div class="no-print text-center py-5">
+  <h3>Aucune correction publiée</h3>
+  <p class="text-muted">Publiez au moins une correction pour imprimer son coupon.</p>
+  <a href="{{ back_url }}" class="btn vox-btn-outline">{{ back_label }}</a>
+</div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const box = document.getElementById('coupons');
+  if (!box) return;
+  const selL = document.getElementById('optLayout'), selS = document.getElementById('optSize'), chk = document.getElementById('optAdvice');
+  const KEY = 'vc-coupon-opts';
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+  if (saved.layout) selL.value = saved.layout;
+  if (saved.size) selS.value = saved.size;
+  if (typeof saved.advice === 'boolean') chk.checked = saved.advice;
+  if (!selL.value) selL.value = 'l4';
+  if (!selS.value) selS.value = '9pt';
+  function apply() {
+    box.classList.remove('l6', 'l4', 'l2');
+    box.classList.add(selL.value);
+    box.style.setProperty('--fs', selS.value);
+    box.classList.toggle('hide-advice', !chk.checked);
+    try { localStorage.setItem(KEY, JSON.stringify({ layout: selL.value, size: selS.value, advice: chk.checked })); } catch (e) {}
+  }
+  [selL, selS, chk].forEach(function (el) { el.addEventListener('change', apply); });
+  apply();
+})();
+</script>
 {% endblock %}

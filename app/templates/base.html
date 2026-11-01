@@ -119,9 +119,10 @@
   
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script type="module">
-    if ('serviceWorker' in navigator)
-      navigator.serviceWorker.register('/static/js/sw.js').catch(() => {});
+  <script>
+    // Nettoie d'anciens Service Workers et leurs caches
+    if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
+    if (window.caches) caches.keys().then(ks => ks.forEach(k => caches.delete(k)));
   </script>
   {% block scripts %}{% endblock %}
 </body>

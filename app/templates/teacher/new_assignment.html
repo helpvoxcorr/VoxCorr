@@ -1,48 +1,58 @@
 {% extends "base.html" %}
-{% set breadcrumbs = [{"label": "Classes", "url": "/teacher/classes"}, {"label": classroom.name, "url": "/teacher/classes/" ~ classroom.id}, {"label": "Nouveau devoir", "url": None}] %}
 {% block title %}Nouveau devoir — VoxCorr{% endblock %}
+
+{% block head %}
+<style>
+  .qsum { font-weight: 700; padding: .35rem .8rem; border-radius: 999px; display: inline-block; }
+  .qsum.ok  { background: #dcfce7; color: #14532d; }
+  .qsum.bad { background: #fee2e2; color: #991b1b; }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-lg-10">
     <div class="vox-card">
       <h2 class="h4 mb-4">Nouveau devoir pour {{ classroom.name }}</h2>
-      
+
       <form method="POST" id="assignmentForm">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        
+
         <div class="row g-3 mb-4">
           <div class="col-md-6">
             <label class="vox-label">Titre du devoir *</label>
-            <input type="text" name="title" class="vox-input" required placeholder="Ex: Contrôle de mathématiques n°1">
+            <input type="text" name="title" class="vox-input" required placeholder="Ex : DS n°1 — Notre environnement proche">
           </div>
           <div class="col-md-3">
             <label class="vox-label">Date</label>
             <input type="date" name="date" class="vox-input" value="{{ now.strftime('%Y-%m-%d') }}">
           </div>
           <div class="col-md-3">
-            <label class="vox-label">Total points *</label>
-            <input type="number" name="total_points" class="vox-input" value="20" step="0.5" required>
+            <label class="vox-label">Total des points *</label>
+            <input type="number" name="total_points" class="vox-input" value="20" step="0.5" min="0.5" required>
           </div>
         </div>
 
         <div class="mb-3">
-          <label class="vox-label">Description (optionnelle)</label>
+          <label class="vox-label">Description <span class="text-muted fw-normal">(facultatif)</span></label>
           <textarea name="description" class="vox-input" rows="2"></textarea>
         </div>
 
         <hr class="my-4">
-        
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h3 class="h5 mb-0">Questions</h3>
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <h3 class="h5 mb-0">Questions et barème</h3>
           <button type="button" class="btn btn-sm vox-btn-outline" id="addQuestionBtn">
             <i class="bi bi-plus-lg"></i> Ajouter une question
           </button>
         </div>
 
-        <div id="questionsContainer">
-          <!-- Les questions seront ajoutées ici via JS -->
+        <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
+          <span id="questionsSum" class="qsum ok" aria-live="polite"></span>
+          <button type="button" id="fixTotal" class="btn btn-sm vox-btn-outline d-none"></button>
         </div>
+
+        <div id="questionsContainer"></div>
 
         <div class="d-flex justify-content-between mt-4">
           <a href="{{ url_for('teacher_crud.class_detail', class_id=classroom.id) }}" class="btn vox-btn-outline">Annuler</a>
@@ -57,46 +67,83 @@
 {% block scripts %}
 <script>
   const competencesData = {{ competences_by_domain_json | safe }};
-  let questionCount = 0;
+  const form = document.getElementById('assignmentForm');
+  const container = document.getElementById('questionsContainer');
+  const totalInput = form.querySelector('[name=total_points]');
+  const sumEl = document.getElementById('questionsSum');
+  const fixBtn = document.getElementById('fixTotal');
+  const fmt = (n) => Number(n).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  function createQuestionRow(index) {
+  function currentSum() {
+    return [...form.querySelectorAll('[name=q_max]')].reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+  }
+
+  function refreshSum() {
+    const sum = currentSum();
+    const total = parseFloat(totalInput.value) || 0;
+    const ok = Math.abs(sum - total) < 0.01;
+    sumEl.textContent = 'Total des questions : ' + fmt(sum) + ' / ' + fmt(total) + ' points' + (ok ? ' ✓' : '');
+    sumEl.className = 'qsum ' + (ok ? 'ok' : 'bad');
+    fixBtn.classList.toggle('d-none', ok || sum <= 0);
+    fixBtn.textContent = 'Mettre le total du devoir à ' + fmt(sum);
+  }
+
+  function renumber() {
+    container.querySelectorAll('.question-num').forEach((el, i) => { el.textContent = 'Q' + (i + 1); });
+  }
+
+  function createQuestionRow() {
+    const options = Object.keys(competencesData).map((subject) =>
+      '<optgroup label="' + esc(subject) + '">' +
+      competencesData[subject].map((c) => '<option value="' + c.id + '">' + esc(c.name) + '</option>').join('') +
+      '</optgroup>').join('');
     const div = document.createElement('div');
     div.className = 'card mb-3 question-row';
-    div.innerHTML = `
-      <div class="card-body">
-        <div class="row g-2 align-items-center">
-          <div class="col-md-1 text-center fw-bold">Q${index + 1}</div>
-          <div class="col-md-5">
-            <input type="text" name="q_label" class="form-control" placeholder="Libellé de la question" required>
-          </div>
-          <div class="col-md-2">
-            <input type="number" name="q_max" class="form-control" placeholder="Note max" step="0.5" required>
-          </div>
-          <div class="col-md-3">
-            <select name="q_competence_id" class="form-select">
-              <option value="">-- Compétence --</option>
-              ${Object.keys(competencesData).map(subject => 
-                `<optgroup label="${subject}">` + 
-                competencesData[subject].map(c => `<option value="${c.id}">${c.name}</option>`).join('') + 
-                `</optgroup>`
-              ).join('')}
-            </select>
-          </div>
-          <div class="col-md-1 text-end">
-            <button type="button" class="btn btn-sm btn-outline-danger remove-btn"><i class="bi bi-trash"></i></button>
-          </div>
-        </div>
-      </div>
-    `;
-    div.querySelector('.remove-btn').addEventListener('click', () => div.remove());
+    div.innerHTML =
+      '<div class="card-body"><div class="row g-2 align-items-center">' +
+      '<div class="col-md-1 text-center fw-bold question-num"></div>' +
+      '<div class="col-md-5"><input type="text" name="q_label" class="form-control" placeholder="Libellé de la question" required></div>' +
+      '<div class="col-md-2"><input type="number" name="q_max" class="form-control" placeholder="Points" step="0.5" min="0.5" required></div>' +
+      '<div class="col-md-3"><select name="q_competence_id" class="form-select"><option value="">— Compétence —</option>' + options + '</select></div>' +
+      '<div class="col-md-1 text-end"><button type="button" class="btn btn-sm vox-btn-outline remove-btn" title="Supprimer cette question"><i class="bi bi-trash"></i></button></div>' +
+      '</div></div>';
+    div.querySelector('.remove-btn').addEventListener('click', () => { div.remove(); renumber(); refreshSum(); });
     return div;
   }
 
-  document.getElementById('addQuestionBtn').addEventListener('click', () => {
-    document.getElementById('questionsContainer').appendChild(createQuestionRow(questionCount++));
-  });
+  function addQuestion() {
+    container.appendChild(createQuestionRow());
+    renumber();
+    refreshSum();
+  }
 
-  // Ajouter 3 questions par défaut au chargement
-  for(let i=0; i<3; i++) document.getElementById('addQuestionBtn').click();
+  document.getElementById('addQuestionBtn').addEventListener('click', addQuestion);
+  form.addEventListener('input', refreshSum);
+  fixBtn.addEventListener('click', () => { totalInput.value = String(currentSum()); refreshSum(); });
+  for (let i = 0; i < 3; i++) addQuestion();
+
+  form.addEventListener('submit', async (e) => {
+    if (form.dataset.confirmed === '1') return;
+    e.preventDefault();
+    if (!container.querySelector('.question-row')) {
+      window.VoxModal.alert({ type: 'warning', title: 'Aucune question', body: 'Ajoutez au moins une question avec son barème.' });
+      return;
+    }
+    const sum = currentSum();
+    const total = parseFloat(totalInput.value) || 0;
+    if (Math.abs(sum - total) >= 0.01) {
+      const ok = await window.VoxModal.confirm({
+        type: 'warning',
+        title: 'Le total ne correspond pas',
+        body: 'Les questions totalisent ' + fmt(sum) + ' points, mais le devoir est noté sur ' + fmt(total) +
+              '.\nLes pourcentages et la moyenne seraient faussés.',
+        confirmText: 'Créer quand même'
+      });
+      if (!ok) return;
+    }
+    form.dataset.confirmed = '1';
+    form.submit();
+  });
 </script>
 {% endblock %}

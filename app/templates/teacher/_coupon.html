@@ -1,0 +1,44 @@
+{# Un coupon = une copie. Utilisé par print_corrections.html #}
+{% macro fmt(x) -%}{{ ('%g'|format(x))|replace('.', ',') }}{%- endmacro %}
+
+{% macro coupon(c, assignment, classroom) %}
+<article class="coupon">
+  <header class="c-head">
+    <div class="c-id">
+      <div class="c-name">{{ c.last_name }} {{ c.first_name }}</div>
+      <div class="c-meta">{{ classroom.name }} · {{ assignment.title }}{% if assignment.date %} · {{ assignment.date.strftime('%d/%m/%Y') }}{% endif %}</div>
+    </div>
+    <div class="c-total">
+      {% if c.score is not none %}<strong>{{ fmt(c.score) }}</strong><span>/ {{ fmt(assignment.total_points) }}</span>{% else %}<strong>—</strong>{% endif %}
+    </div>
+  </header>
+
+  {% if c.scores %}
+  <table class="c-grades">
+    {% for s in c.scores %}
+    <tr>
+      <th>Q{{ loop.index }}</th>
+      <td>{{ s.label }}{% if s.advice %}<div class="c-advice">{{ s.advice }}</div>{% endif %}</td>
+      <td class="c-pts">{% if s.score is not none %}{{ fmt(s.score) }}{% else %}—{% endif %} / {{ fmt(s.max) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <div class="c-text">
+    {% if c.text %}{{ c.text | safe }}{% else %}<em>Pas de commentaire.</em>{% endif %}
+  </div>
+
+  <footer class="c-foot">
+    {% if c.qr_b64 %}
+      <img src="{{ c.qr_b64 }}" alt="QR code" class="c-qr">
+      <div class="c-qrtext">
+        <strong>Scanne pour écouter ta correction orale</strong>
+        <span>{{ c.qr_url }}</span>
+      </div>
+    {% else %}
+      <div class="c-qrtext"><span>Le QR code sera disponible après la publication de la correction.</span></div>
+    {% endif %}
+  </footer>
+</article>
+{% endmacro %}
