@@ -1,57 +1,72 @@
 {% extends "base.html" %}
-{% block title %}Connexion Élève - VoxCorr{% endblock %}
-{% block page_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">{% endblock %}
+{% block title %}Mes corrections — VoxCorr{% endblock %}
+{% block body_class %}vc-app{% endblock %}
+
+{% block page_css %}
+<style>
+  .sl-wrap { min-height: 65vh; display: flex; align-items: center; justify-content: center; padding: .5rem 0; }
+  .sl-card { width: 100%; max-width: 440px; background: #fff; border: 1px solid #cfd4dc; border-radius: 20px; overflow: hidden;
+             box-shadow: 0 1px 2px rgba(10,10,10,.06), 0 24px 48px rgba(10,10,10,.12); }
+  .sl-top { background: #0a0a0a; border-bottom: 4px solid #39FF14; padding: 1.4rem 1.5rem 1.2rem; text-align: center; }
+  .sl-logo { display: block; width: 64px; height: 64px; margin: 0 auto .5rem; }
+  .sl-brand { color: #fff; font-size: 1.7rem; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+  .sl-brand span { color: #39FF14; }
+  .sl-body { padding: 1.5rem; }
+  .sl-body .sl-title { color: #0a0a0a; font-size: 1.35rem; font-weight: 800; letter-spacing: -.02em; margin: 0 0 .4rem; }
+  .sl-body p { color: #374151; margin: 0 0 1.25rem; line-height: 1.5; }
+  .sl-label { display: block; font-weight: 700; color: #0a0a0a; margin-bottom: .4rem; font-size: .95rem; }
+  .sl-input { width: 100%; min-height: 58px; padding: .6rem .75rem; border: 2px solid #0a0a0a; border-radius: 14px;
+              background: #fff; color: #0a0a0a; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.7rem;
+              font-weight: 700; letter-spacing: .3em; text-align: center; text-transform: uppercase; outline: none; }
+  .sl-input::placeholder { color: #9ca3af; }
+  .sl-input:focus { box-shadow: 0 0 0 4px rgba(57,255,20,.5); }
+  .sl-btn { width: 100%; min-height: 54px; margin-top: 1rem; border: 1px solid rgba(10,10,10,.3); border-radius: 14px;
+            background: #39FF14; color: #0a0a0a; font-weight: 800; font-size: 1.05rem; cursor: pointer;
+            box-shadow: 0 1px 2px rgba(10,10,10,.15); }
+  .sl-btn:hover { background: #2fe00f; box-shadow: 0 6px 18px rgba(57,255,20,.4); }
+  .sl-help { display: flex; gap: .6rem; align-items: flex-start; margin-top: 1.25rem; padding: .8rem 1rem;
+             background: #f3f4f6; border-radius: 12px; color: #374151; font-size: .9rem; line-height: 1.45; }
+  .sl-help i { font-size: 1.1rem; color: #0a0a0a; margin-top: .1rem; }
+  .sl-foot { padding: .9rem 1.5rem; border-top: 1px solid #e5e7eb; text-align: center; font-size: .9rem; }
+  .sl-foot a { color: #0a0a0a; font-weight: 600; text-decoration: underline; }
+  @media (max-width: 480px) { .sl-input { font-size: 1.5rem; letter-spacing: .22em; } }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="auth-vc-container">
-  <div class="auth-vc-card">
-    <img src="{{ url_for('static', filename='icons/logo.svg') }}" alt="VoxCorr" class="auth-vc-logo-img">
-
-    <div class="auth-vc-logo">Vox<span>Corr</span></div>
-    <p class="auth-vc-subtitle">Entre ton code d'accès</p>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="auth-vc-error">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <form method="POST" action="{{ url_for('student.login') }}" id="loginForm" novalidate>
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-      <div class="auth-vc-group">
-        <input
-          type="text"
-          name="access_code"
-          id="access_code"
-          class="input-vc auth-vc-code-input"
-          placeholder="CODE"
-          maxlength="8"
-          autocomplete="off"
-          required
-          autofocus
-        >
-      </div>
-
-      <button type="submit" class="auth-vc-btn">ACCÉDER À MES CORRECTIONS</button>
-    </form>
-
-    <div class="auth-vc-help">
-      Tu n'as pas ton code ou il ne marche pas ? Demande-le à ton professeur.
+<div class="sl-wrap">
+  <div class="sl-card">
+    <div class="sl-top">
+      <img src="{{ url_for('static', filename='icons/logo.svg') }}" alt="" class="sl-logo" width="64" height="64">
+      <div class="sl-brand">Vox<span>Corr</span></div>
     </div>
+
+    <div class="sl-body">
+      <h1 class="sl-title">Retrouve tes corrections</h1>
+      <p>Écoute ton professeur et lis ses conseils sur tes devoirs. Entre le code que ton professeur t'a donné.</p>
+
+      <form method="POST" action="{{ url_for('student.login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="sl-label" for="access_code">Ton code d'accès</label>
+        <input type="text" name="access_code" id="access_code" class="sl-input" placeholder="CODE"
+               autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"
+               enterkeyhint="go" required autofocus>
+        <button type="submit" class="sl-btn">Voir mes corrections</button>
+      </form>
+
+      <div class="sl-help">
+        <i class="bi bi-info-circle"></i>
+        <div>Tu n'as pas ton code ou il ne marche pas ? Demande-le à ton professeur : il te l'a remis sur un papier.</div>
+      </div>
+    </div>
+
+    <div class="sl-foot"><a href="{{ url_for('auth.login') }}">Je suis enseignant</a></div>
   </div>
 </div>
 
 <script>
-  document.getElementById('access_code').addEventListener('input', function(e) {
-    this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  });
-
-  window.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('access_code');
-    if (input && !input.value) input.focus();
+  document.getElementById('access_code').addEventListener('input', function () {
+    this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
   });
 </script>
 {% endblock %}

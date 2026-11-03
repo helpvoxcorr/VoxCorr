@@ -265,3 +265,7 @@ body.vc-app :is(.vox-btn-primary, .cd-btn-primary, .ac-btn-primary, .ac-icon-btn
 }
 body.vc-app .vox-navbar .nav-link.active { color: var(--on-neon, #0a0a0a) !important; }
 body.vc-app .ac-filter.active span { color: var(--on-neon, #0a0a0a); }
+
+/* Liens dans les textes (aide, RGPD, documentation…) */
+body.vc-app main :is(p, li, td, dd, .alert, .card-text) a:not([class]) { color: #1d4ed8; text-decoration: underline; }
+body.vc-app main :is(p, li, td, dd, .alert, .card-text) a:not([class]):hover { color: #1e3a8a; }

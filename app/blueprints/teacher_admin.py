@@ -1,10 +1,10 @@
-from flask import (Blueprint, render_template, redirect, url_for, request, jsonify, flash, send_file, current_app, session)
+from flask import (Blueprint, render_template, redirect, url_for, request, jsonify, flash, send_file, current_app, session, abort)
 from flask_login import login_required, current_user, logout_user
 from app.extensions import db, limiter
 from app.models import Classroom, Student, Pupil, Teacher, Competence
 from app.services.anonymization import decrypt_name
 from app.services.qrcode import public_base_url
-import io, csv, re
+import io, csv, re, os
 from datetime import datetime, timezone, timedelta
 
 teacher_admin_bp = Blueprint('teacher_admin', __name__, url_prefix='/teacher')
@@ -14,6 +14,11 @@ def is_admin_session_valid():
     if not unlocked_at: return False
     try: unlocked_dt = datetime.fromisoformat(unlocked_at); return datetime.now(timezone.utc) - unlocked_dt < timedelta(minutes=30)
     except Exception: return False
+
+def is_site_admin():
+    """Administrateur du site : l'adresse e-mail est dans la variable ADMIN_EMAIL."""
+    admin = os.environ.get('ADMIN_EMAIL', '').strip().lower()
+    return bool(admin) and current_user.is_authenticated and (current_user.email or '').lower() == admin
 
 def sanitize_csv_field(value):
     if not value: return value
@@ -31,7 +36,8 @@ def admin():
         return redirect(url_for('teacher_admin.admin'))
     lock_error = session.pop('admin_lock_error', None); classrooms = []
     if session.get('admin_unlocked') and is_admin_session_valid(): classrooms = Classroom.query.filter_by(teacher_id=current_user.id).order_by(Classroom.name).all()
-    return render_template('teacher/admin.html', classrooms=classrooms, lock_error=lock_error)
+    return render_template('teacher/admin.html', classrooms=classrooms, lock_error=lock_error,
+                           is_site_admin=is_site_admin())
 
 @teacher_admin_bp.route('/admin/lock')
 @login_required

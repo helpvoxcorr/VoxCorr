@@ -151,6 +151,10 @@ def save_correction():
     corr.compute_total(); db.session.commit()
     q_labels = [q.label for q in assignment.questions]; q_ids = [q.id for q in assignment.questions]; q_max = [q.max_points for q in assignment.questions]
     app = current_app._get_current_object()
+    try:
+        names = (decrypt_name(student.encrypted_first_name), decrypt_name(student.encrypted_last_name))
+    except Exception:
+        names = None
     def _synthesize():
         with app.app_context():
             c = db.session.get(Correction, corr_id)
@@ -159,7 +163,7 @@ def save_correction():
             db.session.commit()
             db.session.remove()  # libère la connexion avant l'appel IA
             try:
-                result = synthesize_with_mistral(transcript, q_labels, q_max)
+                result = synthesize_with_mistral(transcript, q_labels, q_max, student_names=names)
                 c = db.session.get(Correction, corr_id)  # connexion fraîche
                 c.structured_text = result.get('formatted_text') or transcript
                 existing_scores = {qs.question_id: qs for qs in c.scores}
@@ -356,10 +360,14 @@ def resynthesize_correction(correction_id):
     transcript = corr.raw_transcript
     app_ctx = current_app._get_current_object()
 
+    try:
+        names = (decrypt_name(corr.student.encrypted_first_name), decrypt_name(corr.student.encrypted_last_name))
+    except Exception:
+        names = None
     def _do_resynthesize():
         with app_ctx.app_context():
             try:
-                result = synthesize_with_mistral(transcript, q_labels, q_max_points)
+                result = synthesize_with_mistral(transcript, q_labels, q_max_points, student_names=names)
                 c = db.session.get(Correction, correction_id)
                 if c:
                     c.structured_text = result.get('formatted_text') or transcript

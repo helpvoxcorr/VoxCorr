@@ -1,99 +1,103 @@
 {% extends "base.html" %}
 {% block title %}Documentation — VoxCorr{% endblock %}
+{% block body_class %}vc-app{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-  <h1 class="mb-4">Documentation</h1>
-  <p class="lead text-muted">Guide complet d'utilisation de VoxCorr pour les enseignants.</p>
+<div class="container py-4" style="max-width:860px">
+  <h1 class="mb-2">Documentation</h1>
+  <p class="lead text-muted">Guide d'utilisation de VoxCorr pour les enseignants.</p>
 
-  <nav class="mb-5 p-4 bg-light rounded">
+  <nav class="mb-5 p-4 rounded" style="background:#fff;border:1px solid #cfd4dc">
     <h5 class="mb-3">Sommaire</h5>
-    <ul class="list-unstyled mb-0">
-      <li><a href="#intro">Introduction</a></li>
-      <li><a href="#classes">Créer une classe</a></li>
-      <li><a href="#eleves">Ajouter des élèves</a></li>
+    <ul class="mb-0">
+      <li><a href="#demarrage">Démarrage rapide</a></li>
+      <li><a href="#classes">Classes et élèves</a></li>
       <li><a href="#devoirs">Créer un devoir</a></li>
-      <li><a href="#correction">Enregistrer une correction</a></li>
-      <li><a href="#qr">QR Code & page élève</a></li>
-      <li><a href="#impression">Imprimer les corrections</a></li>
-      <li><a href="#rgpd-doc">Anonymisation RGPD</a></li>
-      <li><a href="#faq">FAQ</a></li>
+      <li><a href="#correction">Corriger une copie</a></li>
+      <li><a href="#publier">Publier et imprimer les coupons</a></li>
+      <li><a href="#eleves">Ce que voient les élèves</a></li>
+      <li><a href="#donnees">Données et IA</a></li>
+      <li><a href="#faq">Questions fréquentes</a></li>
     </ul>
   </nav>
 
-  <section id="intro" class="mb-5">
-    <h2>Introduction</h2>
-    <p>VoxCorr est une application de correction audio de copies d'élèves. L'enseignant dicte sa correction oralement, l'IA (Mistral) la transcrit et structure automatiquement le retour écrit. Un QR code est généré pour chaque élève, donnant accès à sa correction sans compte requis.</p>
-    <p><strong>Démarrage rapide :</strong> Créez une classe → ajoutez vos élèves → créez un devoir → enregistrez les corrections → publiez et partagez les QR codes.</p>
-  </section>
-
-  <section id="classes" class="mb-5">
-    <h2>Créer une classe</h2>
-    <p>Depuis le tableau de bord, cliquez sur <em>Nouvelle classe</em>. Renseignez le nom de la classe, la discipline et l'année scolaire.</p>
+  <section id="demarrage" class="mb-5">
+    <h2>Démarrage rapide</h2>
+    <p>VoxCorr transforme votre correction orale en note, synthèse écrite et audio, accessibles à l'élève avec un QR code ou un code d'accès.</p>
     <ol>
-      <li>Cliquer sur <em>Nouvelle classe</em> dans le tableau de bord.</li>
-      <li>Renseigner le nom (ex : 3ème B), la discipline (ex : SVT) et l'année.</li>
-      <li>Valider. La classe apparaît dans la section correspondant à sa discipline.</li>
+      <li>Créez un compte (réservé aux enseignants invités : le code d'invitation vous est transmis par l'administrateur).</li>
+      <li>Créez une classe, puis ajoutez les élèves.</li>
+      <li>Créez un devoir avec ses questions et son barème.</li>
+      <li>Dictez la correction de chaque élève, vérifiez les notes, publiez.</li>
+      <li>Imprimez les coupons et agrafez-les sur les copies.</li>
     </ol>
   </section>
 
-  <section id="eleves" class="mb-5">
-    <h2>Ajouter des élèves</h2>
-    <p>Dans la page de la classe, utilisez le formulaire en bas de la liste pour ajouter un élève. Le prénom et le nom réel sont chiffrés (AES-256) en base de données. Un alias mnémotechnique est généré automatiquement (ex : Renard-07).</p>
-    <div class="alert alert-info">Le vrai nom n'est jamais affiché publiquement. Seul l'enseignant connecté peut le déchiffrer.</div>
+  <section id="classes" class="mb-5">
+    <h2>Classes et élèves</h2>
+    <p><em>Mes classes</em> puis <em>Nouvelle classe</em> : nom, niveau, matière (facultative) et année scolaire. Sur la page de la classe :</p>
+    <ul>
+      <li><strong>Ajouter un élève</strong> : prénom et nom.</li>
+      <li><strong>Importer une liste</strong> : fichier CSV avec les colonnes « Nom » et « Prénom » (export Pronote ou tableur). Les doublons sont ignorés.</li>
+    </ul>
+    <p>Chaque élève reçoit un alias (par exemple Renard-07). Son vrai nom est chiffré et visible uniquement par vous.</p>
   </section>
 
   <section id="devoirs" class="mb-5">
     <h2>Créer un devoir</h2>
-    <p>Dans la page d'une classe, cliquez sur <em>Nouveau devoir</em>. Renseignez le titre, la date, le total de points, et ajoutez autant de questions que nécessaire avec leur barème.</p>
-    <div class="alert alert-warning">Définissez bien vos questions avant de commencer les corrections — Mistral s'appuie sur leurs libellés pour extraire les notes automatiquement.</div>
+    <p>Sur la page de la classe, <em>Nouveau devoir</em> : titre, date, total des points, puis les questions avec leur barème (et une compétence, si vous en utilisez).</p>
+    <div class="alert alert-warning">Le compteur « Total des questions » doit être égal au total du devoir, sinon les pourcentages et la moyenne sont faussés. Libellés et barèmes servent aussi à l'IA pour retrouver chaque note dans votre dictée : soignez-les avant de commencer.</div>
   </section>
 
   <section id="correction" class="mb-5">
-    <h2>Enregistrer une correction</h2>
-    <p>Sur la page du devoir, cliquez sur <em>Corriger</em> en face d'un élève.</p>
+    <h2>Corriger une copie</h2>
+    <p>Depuis l'accueil, <em>Continuer : NOM</em> ouvre la prochaine copie à corriger. Depuis la page du devoir, c'est <em>Corriger le suivant</em>.</p>
     <ol>
-      <li>Cliquer sur le bouton micro vert pour démarrer l'enregistrement.</li>
-      <li>Dicter la correction en mentionnant explicitement les notes : « Question 1, trois virgule cinq sur cinq… »</li>
-      <li>Cliquer sur le bouton stop rouge.</li>
-      <li>Cliquer sur <em>Sauvegarder et analyser</em>. Mistral génère la synthèse et extrait les notes.</li>
-      <li>Vérifier les notes, ajuster si besoin, puis <em>Publier et générer QR</em>.</li>
+      <li>Cliquez sur le micro et dictez, en annonçant clairement chaque note : « Question 1, trois et demi sur cinq… ». Utilisez Chrome ou Edge.</li>
+      <li>Arrêtez la dictée. Vous pouvez corriger le texte ou le taper à la main.</li>
+      <li><em>Analyser avec l'IA</em> : les notes et la synthèse apparaissent.</li>
+      <li>Vérifiez les notes. Vous pouvez les modifier à la main : elles s'enregistrent toutes seules.</li>
+      <li><em>Publier et générer le QR code</em>, puis <em>Corriger le suivant</em>.</li>
     </ol>
+    <div class="alert alert-info">Dictez sans citer le nom d'un autre élève. Le prénom de l'élève corrigé est retiré du texte avant l'envoi à l'IA.</div>
+    <p>Si l'IA échoue, ouvrez la fiche de la correction (<em>Voir</em> dans la liste du devoir) et cliquez sur <em>Regénérer la synthèse et les notes</em>.</p>
   </section>
 
-  <section id="qr" class="mb-5">
-    <h2>QR Code & page élève</h2>
-    <p>Après publication, un QR code unique est généré. L'élève scanne ce QR avec son téléphone et accède à sa correction — sans compte, sans application.</p>
-    <h5>Consultation hors-ligne</h5>
-    <p>La page de correction se met en cache automatiquement. L'élève peut la relire sans connexion internet via le bouton <em>Télécharger pour écoute hors-ligne</em>.</p>
+  <section id="publier" class="mb-5">
+    <h2>Publier et imprimer les coupons</h2>
+    <ul>
+      <li>La liste du devoir indique pour chaque élève : À corriger, À publier ou Publié. <em>Publier les N brouillons</em> publie tout d'un coup.</li>
+      <li><em>Imprimer les coupons</em> ouvre une feuille de coupons à découper : note, détail des points, synthèse et QR code. Choisissez 4 par page, puis Imprimer ou Enregistrer au format PDF.</li>
+      <li>Seules les corrections publiées sont imprimées. Refaire la dictée d'une copie publiée la retire de la publication.</li>
+    </ul>
   </section>
 
-  <section id="impression" class="mb-5">
-    <h2>Imprimer les corrections</h2>
-    <p>Sur la page du devoir, cliquez sur <em>Imprimer corrections</em>. Une page s'ouvre avec un cadre par élève. Faites Ctrl+P ou cliquez Imprimer / Exporter PDF.</p>
+  <section id="eleves" class="mb-5">
+    <h2>Ce que voient les élèves</h2>
+    <p>L'élève scanne son QR code, sans compte, et voit sa note, le détail, la synthèse et l'audio. Il peut aussi lire la synthèse à voix haute et télécharger l'audio pour l'écouter hors connexion.</p>
+    <p>Il peut également se connecter avec un <strong>code d'accès personnel</strong> pour retrouver toutes ses corrections : <em>Paramètres</em> (mot de passe de votre compte) puis <em>Codes d'accès élèves</em>. Vous pouvez y générer et imprimer les codes à découper.</p>
   </section>
 
-  <section id="rgpd-doc" class="mb-5">
-    <h2>Anonymisation RGPD</h2>
-    <p>Les noms et prénoms des élèves sont chiffrés en base de données (algorithme Fernet, AES-128). Seul l'enseignant connecté peut les déchiffrer. Les logs de consultation stockent l'adresse IP sous forme de hash SHA-256 irréversible.</p>
+  <section id="donnees" class="mb-5">
+    <h2>Données et IA</h2>
+    <p>Les noms des élèves sont chiffrés. Le texte de la dictée (sans le nom de l'élève) est envoyé à un service d'IA pour produire la synthèse et extraire les notes. Le détail est dans la <a href="/pages/rgpd">page Protection des données</a>.</p>
   </section>
 
   <section id="faq">
-    <h2>FAQ</h2>
+    <h2>Questions fréquentes</h2>
     <div class="accordion" id="docFaq">
       {% set faq = [
-        ("Le micro ne fonctionne pas", "Vérifiez que votre navigateur a accès au micro. Utilisez Chrome ou Edge — Firefox ne supporte pas encore pleinement la Web Speech API."),
-        ("Mistral n'a pas extrait mes notes", "Mentionnez les notes explicitement en disant le nom de la question. Vous pouvez toujours saisir les notes manuellement."),
-        ("Le QR code mène à une erreur", "L'URL dans le QR code doit pointer vers votre hébergement public (pas localhost). Vérifiez la variable APP_BASE_URL."),
-        ("Puis-je recommencer une correction ?", "Oui. Sur la page du devoir, cliquez Revoir en face de l'élève."),
-        ("L'audio ne se charge pas sur la page élève", "L'audio est hébergé sur Cloudinary et chargé à la demande. L'élève peut télécharger l'audio pour une écoute hors-ligne."),
+        ("Le micro ne fonctionne pas", "Utilisez Chrome ou Edge et autorisez le micro (cadenas à gauche de l'adresse). Firefox ne propose pas la dictée en direct : vous pouvez alors taper le texte."),
+        ("Les notes sont à zéro après l'analyse", "L'IA est parfois surchargée. Ouvrez la fiche de la correction et cliquez sur « Regénérer la synthèse et les notes », ou saisissez les notes à la main sur la page de correction."),
+        ("Je veux corriger une note après publication", "Ouvrez la correction avec Refaire ou Modifier et changez la note : elle est enregistrée sans dépublier. Relancer l'analyse la retire en revanche de la publication."),
+        ("Le QR code ne s'ouvre pas", "La correction doit être publiée. Si le site met du temps à répondre, patientez une minute : l'hébergement gratuit se met en veille. Un QR code imprimé avec une ancienne adresse du site doit être réimprimé."),
+        ("Un élève a perdu son code", "Paramètres puis Codes d'accès élèves : vous retrouvez et imprimez le code de chaque élève."),
+        ("Puis-je supprimer une correction ?", "Oui, depuis sa fiche (mot de passe demandé). La suppression est définitive."),
       ] %}
       {% for q, r in faq %}
       <div class="accordion-item">
         <h2 class="accordion-header" id="docHeading{{ loop.index }}">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#docCollapse{{ loop.index }}">
-            {{ q }}
-          </button>
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#docCollapse{{ loop.index }}">{{ q }}</button>
         </h2>
         <div id="docCollapse{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#docFaq">
           <div class="accordion-body">{{ r }}</div>

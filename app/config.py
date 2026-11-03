@@ -44,11 +44,6 @@ class Config:
     # ── Upload ─────────────────────────────────────────────────────────────────
     MAX_CONTENT_LENGTH = 15 * 1024 * 1024  # 15 Mo max (sécurité)
 
-    # ── SendGrid ───────────────────────────────────────────────────────────────
-    SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
-    SENDGRID_FROM_EMAIL = os.environ.get('SENDGRID_FROM_EMAIL', 'help.voxcorr@gmail.com')
-    SENDGRID_FROM_NAME = os.environ.get('SENDGRID_FROM_NAME', 'VoxCorr Team')
-
     # ── Session ────────────────────────────────────────────────────────────────
     PERMANENT_SESSION_LIFETIME = 60 * 60 * 24  # 24h pour élèves
     SESSION_COOKIE_SECURE = True  # HTTPS uniquement (en prod)

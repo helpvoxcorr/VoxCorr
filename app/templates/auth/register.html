@@ -8,34 +8,36 @@
     <img src="{{ url_for('static', filename='icons/logo.svg') }}" alt="VoxCorr" class="auth-vc-logo-img">
 
     <div class="auth-vc-logo">Vox<span>Corr</span></div>
-      <p class="auth-vc-subtitle">Gratuit · Noms des élèves chiffrés</p>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="auth-vc-error">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <p class="auth-vc-subtitle">Inscription sur invitation</p>
 
     <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+      <div class="auth-vc-group">
+        <input type="text" name="invite_code" class="input-vc" placeholder="Code d'invitation"
+               value="{{ invite_prefill or '' }}" autocomplete="off" autocapitalize="characters"
+               spellcheck="false" required
+               style="font-family:monospace;letter-spacing:.15em;text-transform:uppercase">
+        <small style="color:var(--text-faint);display:block;margin-top:.3rem;font-size:.75rem;">
+          Code reçu de l'administrateur de l'application.
+        </small>
+      </div>
+
       <div class="row g-3">
         <div class="col-6">
-          <input type="text" name="first_name" class="input-vc" placeholder="Prénom" required>
+          <input type="text" name="first_name" class="input-vc" placeholder="Prénom" value="{{ form.get('first_name', '') }}" required>
         </div>
         <div class="col-6">
-          <input type="text" name="last_name" class="input-vc" placeholder="Nom" required>
+          <input type="text" name="last_name" class="input-vc" placeholder="Nom" value="{{ form.get('last_name', '') }}" required>
         </div>
       </div>
 
       <div class="auth-vc-group mt-3">
-        <input type="email" name="email" class="input-vc" placeholder="E-mail professionnel" required>
+        <input type="email" name="email" class="input-vc" placeholder="E-mail professionnel" value="{{ form.get('email', '') }}" required>
       </div>
 
       <div class="auth-vc-group">
-        <input type="text" name="school" class="input-vc" placeholder="Établissement (optionnel)">
+        <input type="text" name="school" class="input-vc" placeholder="Établissement (optionnel)" value="{{ form.get('school', '') }}">
       </div>
 
       <div class="auth-vc-group">

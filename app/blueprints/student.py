@@ -9,7 +9,7 @@ import io
 student_bp = Blueprint('student', __name__, url_prefix='/student')
 
 @student_bp.route('/login', methods=['GET', 'POST'])
-@limiter.limit("60 per minute; 600 per hour")
+@limiter.limit("10 per minute; 100 per hour")
 def login():
     if request.method == 'POST':
         code = request.form.get('access_code', '').strip().upper()

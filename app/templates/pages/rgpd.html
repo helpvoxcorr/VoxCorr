@@ -2,6 +2,7 @@
    À mettre à jour si les fournisseurs d'IA (LLM_ORDER) ou l'hébergement changent. #}
 {% extends "base.html" %}
 {% block title %}Protection des données — VoxCorr{% endblock %}
+{% block body_class %}vc-app{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -12,7 +13,7 @@
     <strong>Principe.</strong> Le nom d'un élève n'est jamais enregistré en clair : il est chiffré, et les pages consultées par les élèves ne l'affichent pas. L'application se limite aux données nécessaires pour corriger un devoir.
   </div>
   <div class="alert alert-warning">
-    <strong>Point d'attention pour les enseignants.</strong> Si vous prononcez le prénom d'un élève pendant la dictée, ce prénom figure dans la transcription, dans la synthèse et dans le texte envoyé au service d'IA. Dictez de préférence sans prénom ni nom.
+        <strong>Ce que l'IA ne reçoit pas, et ce qu'elle peut recevoir.</strong> Le prénom et le nom de l'élève enregistrés dans l'application sont retirés du texte avant son envoi aux services d'IA. Un autre nom prononcé pendant la dictée (un camarade, par exemple) n'est pas détecté : évitez de citer d'autres personnes. L'enregistrement audio, lui, conserve tout ce qui est dit.
   </div>
 
   <h3 class="mt-5 mb-3">Données enregistrées</h3>
@@ -43,7 +44,6 @@
         <tr><td>Render</td><td>Hébergement de l'application</td><td>Ensemble des échanges avec l'application</td></tr>
         <tr><td>Neon</td><td>Base de données</td><td>Données du tableau ci-dessus</td></tr>
         <tr><td>Cloudinary</td><td>Stockage des enregistrements audio</td><td>Audio</td></tr>
-        <tr><td>SendGrid</td><td>E-mail de vérification du compte</td><td>Adresse e-mail de l'enseignant</td></tr>
         <tr><td>Google (Gemini), Mistral AI, Agnes AI</td><td>Analyse de la dictée : notes et synthèse</td><td>Texte de la dictée, intitulés des questions et barème. Ni le nom enregistré de l'élève, ni son code d'accès.</td></tr>
         <tr><td>Navigateur (Chrome, Edge)</td><td>Dictée en direct</td><td>Audio de la dictée, traité par le service vocal du navigateur (Google pour Chrome)</td></tr>
       </tbody>

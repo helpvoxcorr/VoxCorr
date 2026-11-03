@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Nouveau mot de passe — VoxCorr{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">{% endblock %}
+
+{% block content %}
+<div class="auth-vc-container">
+  <div class="auth-vc-card">
+    <img src="{{ url_for('static', filename='icons/logo.svg') }}" alt="VoxCorr" class="auth-vc-logo-img">
+    <div class="auth-vc-logo">Vox<span>Corr</span></div>
+    <p class="auth-vc-subtitle">Nouveau mot de passe{% if first_name %} pour {{ first_name }}{% endif %}</p>
+
+    <form method="POST" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="auth-vc-group">
+        <input type="password" name="password" class="input-vc" placeholder="Nouveau mot de passe"
+               autocomplete="new-password" required autofocus>
+        <small style="color:var(--text-faint);display:block;margin-top:.3rem;font-size:.75rem;">
+          10 caractères min., majuscule, minuscule, chiffre et caractère spécial.
+        </small>
+      </div>
+      <div class="auth-vc-group">
+        <input type="password" name="confirm_password" class="input-vc" placeholder="Confirmer le mot de passe"
+               autocomplete="new-password" required>
+      </div>
+      <button type="submit" class="auth-vc-btn">Enregistrer</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

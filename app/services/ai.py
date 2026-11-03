@@ -7,6 +7,7 @@ Synthétise la transcription brute du prof en :
 import os, json, re, tempfile
 from mistralai import Mistral
 import time
+from app.services.privacy import redact, restore_result
 
 LLM_ORDER = [p.strip() for p in os.environ.get('LLM_ORDER', 'mistral,agnes,gemini').split(',') if p.strip()]
 LLM_TIMEOUT = 30  # secondes max par fournisseur
@@ -166,6 +167,7 @@ Règles supplémentaires pour formatted_text :
   "zéro", "aucun point", "tu n'as rien"), attribue le score 0 à la question concernée.
 - Si tu ne peux pas identifier la question avec certitude, utilise l'ordre d'apparition.
 - Conserve le ton du professeur.
+- Le texte peut contenir PRENOM_ELEVE et NOM_ELEVE à la place du prénom et du nom de l'élève : recopie-les exactement tels quels, sans les modifier, dans formatted_text et dans advice.
 
 Pour les grades :
 - score : nombre décimal (3.5, pas "3h30"). Ne dépasse jamais max_score.
@@ -185,9 +187,13 @@ def normalize_transcript(text: str) -> str:
     text = text.replace(' virgule ', ',')
     return text
 
-def synthesize_with_mistral(raw_text: str, question_labels: list[str], question_max: list[float] | None = None) -> dict:
-    """Appelle l'IA (chaîne de fournisseurs) et retourne {"formatted_text": ..., "grades": [...]}."""
+def synthesize_with_mistral(raw_text: str, question_labels: list[str], question_max: list[float] | None = None,
+                            student_names: tuple | None = None) -> dict:
+    """Appelle l'IA et retourne {"formatted_text": ..., "grades": [...]}.
+    student_names = (prénom, nom) : retirés du texte envoyé à l'IA, puis remis dans le résultat."""
     raw_text = normalize_transcript(raw_text)
+    first, last = student_names if student_names else (None, None)
+    llm_text = redact(raw_text, first, last) if student_names else raw_text
     labels_str = ', '.join(
         f"Q{i+1} (index {i}, label:\"{lbl}\") [max {question_max[i]}]"
         if question_max else
@@ -196,10 +202,11 @@ def synthesize_with_mistral(raw_text: str, question_labels: list[str], question_
     )
     user_msg = (
         f"Questions du devoir (index : label [max points]) : {labels_str}\n\n"
-        f"Transcription brute :\n{raw_text}"
+        f"Transcription brute :\n{llm_text}"
     )
     try:
-        return _call_llm(SYSTEM_PROMPT, user_msg, 0.2)
+        result = _call_llm(SYSTEM_PROMPT, user_msg, 0.2)
+        return restore_result(result, first, last) if student_names else result
     except Exception as e:
         print(f'[IA] Tous les fournisseurs ont échoué : {e}', flush=True)
         return _fallback(raw_text, 'IA indisponible', question_max)

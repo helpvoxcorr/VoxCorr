@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Comptes enseignants — VoxCorr{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">Comptes enseignants</h1>
+    <p class="text-muted mb-0">Un lien de réinitialisation permet à un collègue de choisir un nouveau mot de passe. Ses classes, devoirs et corrections ne changent pas.</p>
+  </div>
+  <a href="{{ url_for('teacher_admin.admin') }}" class="btn vox-btn-outline"><i class="bi bi-arrow-left"></i> Retour aux paramètres</a>
+</div>
+
+{% if link %}
+<div class="vox-card mb-3" style="border:2px solid #0a0a0a">
+  <div class="fw-bold mb-1">Lien pour {{ target.first_name }} {{ target.last_name }} ({{ target.email }})</div>
+  <p class="text-muted small">Valable 48 heures, utilisable une seule fois. Transmettez-le uniquement à cette personne, par message privé.</p>
+  <div class="d-flex gap-2 flex-wrap">
+    <input id="resetLink" class="vox-input" readonly value="{{ link }}" style="flex:1 1 320px">
+    <button type="button" class="btn vox-btn-primary" id="copyBtn"><i class="bi bi-clipboard"></i> Copier</button>
+  </div>
+</div>
+{% endif %}
+
+<div class="vox-card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr><th>Nom</th><th>Adresse e-mail</th><th>Établissement</th><th>Classes</th><th></th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>{{ r.t.last_name }} {{ r.t.first_name }}</td>
+          <td>{{ r.t.email }}</td>
+          <td class="text-muted">{{ r.t.school or '—' }}</td>
+          <td>{{ r.classes }}</td>
+          <td class="text-end">
+            <form method="post">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="teacher_id" value="{{ r.t.id }}">
+              <button type="submit" class="btn vox-btn-outline btn-sm"><i class="bi bi-key"></i> Lien de réinitialisation</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('copyBtn')?.addEventListener('click', async function () {
+    const input = document.getElementById('resetLink');
+    input.select();
+    try { await navigator.clipboard.writeText(input.value); this.innerHTML = '<i class="bi bi-check2"></i> Copié'; }
+    catch (e) { document.execCommand('copy'); this.textContent = 'Copié'; }
+  });
+</script>
+{% endblock %}

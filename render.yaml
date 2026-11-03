@@ -33,9 +33,3 @@ services:
         sync: false
       - key: AGNES_API_KEY
         sync: false
-      - key: SENDGRID_API_KEY
-        sync: false
-      - key: SENDGRID_FROM_EMAIL
-        sync: false
-      - key: SENDGRID_FROM_NAME
-        sync: false

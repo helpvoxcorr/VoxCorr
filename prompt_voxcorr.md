@@ -49,7 +49,6 @@ init.py # Teacher, Classroom, Student, Pupil, Assignment, Question, Correction, 
 ai.py # synthesize_with_mistral() (Mistral → JSON {formatted_text, grades}), synthesize_appreciation(), transcribe_with_mistral() (Voxtral), normalize_transcript()
 anonymization.py # encrypt_name(), decrypt_name() (Fernet AES-128), generate_alias() (Animal-NN déterministe)
 background.py # run_in_background() (threading.Thread daemon, évite Celery sur Render Free)
-email.py # send_verification_email() (SendGrid HTTP direct)
 qrcode.py # make_qr() (base64 PNG), qr_png_bytes()
 storage.py # upload_audio() (Cloudinary), delete_audio()
 tts.py # generate_tts_audio() (Edge TTS → bytes MP3)
