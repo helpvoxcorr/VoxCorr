@@ -105,7 +105,7 @@
 
   <!-- Main Content -->
   <main class="container py-4">
-    <!-- Flash Messages -->
+    {% block flashes %}
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -116,6 +116,7 @@
         {% endfor %}
       {% endif %}
     {% endwith %}
+    {% endblock %}
 
     {% block content %}{% endblock %}
   </main>

@@ -4,7 +4,7 @@ from app.extensions import db, limiter
 from app.models import Classroom, Student, Pupil, Teacher, Competence
 from app.services.anonymization import decrypt_name
 from app.services.qrcode import public_base_url
-import io, csv, re, os
+import io, csv, re, os, secrets
 from datetime import datetime, timezone, timedelta
 
 teacher_admin_bp = Blueprint('teacher_admin', __name__, url_prefix='/teacher')
@@ -182,3 +182,58 @@ def reset_year():
     
     flash('Remise à zéro effectuée. Toutes vos classes ont été supprimées.', 'success')
     return redirect(url_for('teacher_crud.dashboard'))
+
+@teacher_admin_bp.route('/admin/accounts', methods=['GET', 'POST'])
+@login_required
+def accounts():
+    if not is_site_admin():
+        abort(404)   # la page n'existe pas pour les autres
+    if not session.get('admin_unlocked') or not is_admin_session_valid():
+        flash('Saisissez votre mot de passe pour accéder à cette page.', 'warning')
+        return redirect(url_for('teacher_admin.admin'))
+
+    from app.blueprints.auth import make_reset_token, EMAIL_PATTERN
+    link = target = None
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'create':
+            email = request.form.get('email', '').strip().lower()
+            if not re.match(EMAIL_PATTERN, email):
+                flash('Adresse e-mail invalide.', 'warning')
+            elif Teacher.query.filter_by(email=email).first():
+                flash('Un compte existe déjà avec cette adresse.', 'warning')
+            else:
+                t = Teacher(email=email,
+                            first_name=request.form.get('first_name', '').strip(),
+                            last_name=request.form.get('last_name', '').strip(),
+                            school=request.form.get('school', '').strip())
+                t.set_password(secrets.token_urlsafe(32))   # inutilisable : la personne choisira le sien
+                t.email_verified = True
+                db.session.add(t)
+                db.session.commit()
+                target = t
+                link = url_for('auth.reset_password', token=make_reset_token(t), _external=True)
+                current_app.logger.info('Compte créé par l\'administrateur : %s', email)
+                flash('Compte créé. Transmettez le lien ci-dessous à la personne.', 'success')
+        else:
+            target = db.session.get(Teacher, request.form.get('teacher_id', type=int) or 0)
+            if not target:
+                flash('Compte introuvable.', 'danger')
+            elif action == 'reset':
+                link = url_for('auth.reset_password', token=make_reset_token(target), _external=True)
+                current_app.logger.info('Lien généré pour %s', target.email)
+            elif action == 'suspend':
+                if target.id == current_user.id:
+                    flash('Vous ne pouvez pas suspendre votre propre compte.', 'warning')
+                else:
+                    target.email_verified = False
+                    target.set_password(secrets.token_urlsafe(32))   # invalide aussi les anciens liens
+                    db.session.commit()
+                    current_app.logger.info('Compte suspendu : %s', target.email)
+                    flash(f'Compte de {target.first_name} {target.last_name} suspendu. Ses données sont conservées.', 'success')
+                target = None
+
+    teachers = Teacher.query.order_by(Teacher.last_name, Teacher.first_name).all()
+    rows = [{'t': t, 'classes': Classroom.query.filter_by(teacher_id=t.id).count()} for t in teachers]
+    return render_template('teacher/accounts.html', rows=rows, link=link, target=target)

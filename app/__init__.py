@@ -87,6 +87,10 @@ def create_app(config_class=Config):
             except ValueError:
                 # Si le format de date est corrompu, on nettoie la session
                 session.pop('admin_unlocked_at', None)
+                # Compte suspendu : déconnexion immédiate
+        from flask_login import current_user, logout_user
+        if current_user.is_authenticated and not getattr(current_user, 'email_verified', True):
+            logout_user()
 
     # ── Context processor pour breadcrumb dynamique ─────────────────────────────
     @app.context_processor

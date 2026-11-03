@@ -5,7 +5,7 @@
 <div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
   <div>
     <h1 class="h3 mb-1">Comptes enseignants</h1>
-    <p class="text-muted mb-0">Un lien de réinitialisation permet à un collègue de choisir un nouveau mot de passe. Ses classes, devoirs et corrections ne changent pas.</p>
+    <p class="text-muted mb-0">Créez un compte, donnez un nouvel accès à un collègue, ou suspendez un compte. Les classes, devoirs et corrections ne sont jamais supprimés par ces actions.</p>
   </div>
   <a href="{{ url_for('teacher_admin.admin') }}" class="btn vox-btn-outline"><i class="bi bi-arrow-left"></i> Retour aux paramètres</a>
 </div>
@@ -13,7 +13,7 @@
 {% if link %}
 <div class="vox-card mb-3" style="border:2px solid #0a0a0a">
   <div class="fw-bold mb-1">Lien pour {{ target.first_name }} {{ target.last_name }} ({{ target.email }})</div>
-  <p class="text-muted small">Valable 48 heures, utilisable une seule fois. Transmettez-le uniquement à cette personne, par message privé.</p>
+  <p class="text-muted small">Valable 48 heures, utilisable une seule fois : la personne y choisit son mot de passe. Transmettez-le uniquement à elle, par message privé.</p>
   <div class="d-flex gap-2 flex-wrap">
     <input id="resetLink" class="vox-input" readonly value="{{ link }}" style="flex:1 1 320px">
     <button type="button" class="btn vox-btn-primary" id="copyBtn"><i class="bi bi-clipboard"></i> Copier</button>
@@ -21,23 +21,50 @@
 </div>
 {% endif %}
 
+<div class="vox-card mb-3">
+  <h2 class="h5 mb-3">Créer un compte</h2>
+  <form method="post" class="row g-2 align-items-end">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="create">
+    <div class="col-md-3"><label class="vox-label" for="c_first">Prénom</label><input id="c_first" name="first_name" class="vox-input" required></div>
+    <div class="col-md-3"><label class="vox-label" for="c_last">Nom</label><input id="c_last" name="last_name" class="vox-input" required></div>
+    <div class="col-md-4"><label class="vox-label" for="c_email">Adresse e-mail</label><input id="c_email" type="email" name="email" class="vox-input" required></div>
+    <div class="col-md-2"><button type="submit" class="btn vox-btn-primary w-100"><i class="bi bi-person-plus"></i> Créer</button></div>
+  </form>
+</div>
+
 <div class="vox-card">
   <div class="table-responsive">
     <table class="table align-middle mb-0">
-      <thead><tr><th>Nom</th><th>Adresse e-mail</th><th>Établissement</th><th>Classes</th><th></th></tr></thead>
+      <thead><tr><th>Nom</th><th>Adresse e-mail</th><th>Classes</th><th>État</th><th></th></tr></thead>
       <tbody>
       {% for r in rows %}
         <tr>
           <td>{{ r.t.last_name }} {{ r.t.first_name }}</td>
           <td>{{ r.t.email }}</td>
-          <td class="text-muted">{{ r.t.school or '—' }}</td>
           <td>{{ r.classes }}</td>
+          <td>
+            {% if r.t.email_verified %}<span class="ac-status ac-status-published">Actif</span>
+            {% else %}<span class="ac-status ac-status-draft">Suspendu</span>{% endif %}
+          </td>
           <td class="text-end">
-            <form method="post">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <input type="hidden" name="teacher_id" value="{{ r.t.id }}">
-              <button type="submit" class="btn vox-btn-outline btn-sm"><i class="bi bi-key"></i> Lien de réinitialisation</button>
-            </form>
+            <div class="d-inline-flex gap-2 flex-wrap justify-content-end">
+              <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="reset">
+                <input type="hidden" name="teacher_id" value="{{ r.t.id }}">
+                <button type="submit" class="btn vox-btn-outline btn-sm"><i class="bi bi-key"></i> {{ 'Lien de réinitialisation' if r.t.email_verified else 'Lien de réactivation' }}</button>
+              </form>
+              {% if r.t.email_verified and r.t.id != current_user.id %}
+              <form method="post" data-confirm-type="danger" data-confirm-title="Suspendre ce compte ?"
+                    data-confirm-body="{{ r.t.first_name }} {{ r.t.last_name }} sera déconnecté(e) et ne pourra plus se connecter. Ses classes et ses corrections sont conservées. Vous pourrez le/la réactiver avec un lien." data-confirm-text="Suspendre">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="suspend">
+                <input type="hidden" name="teacher_id" value="{{ r.t.id }}">
+                <button type="submit" class="btn vox-btn-outline btn-sm"><i class="bi bi-slash-circle"></i> Suspendre</button>
+              </form>
+              {% endif %}
+            </div>
           </td>
         </tr>
       {% endfor %}

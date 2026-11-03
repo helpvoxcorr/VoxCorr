@@ -82,7 +82,7 @@ def login():
                     next_page = None
                 return redirect(next_page or url_for('teacher_crud.dashboard'))
 
-            flash("Votre compte n'est pas encore activé. Vérifiez votre boîte mail.", "warning")
+            flash("Ce compte n'est pas actif. Contactez l'administrateur.", "warning")
             return render_template('auth/login.html')
 
         flash('Email ou mot de passe incorrect.', 'danger')
@@ -95,6 +95,9 @@ def login():
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('teacher_crud.dashboard'))
+    if not _invite_codes():
+        flash("Les comptes sont créés par l'administrateur. Demandez-lui un accès.", 'info')
+        return redirect(url_for('auth.login'))
 
     def page():
         prefill = request.form.get('invite_code') or request.args.get('code', '')

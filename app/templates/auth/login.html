@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Connexion — VoxCorr{% endblock %}
 {% block page_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">{% endblock %}
+{% block flashes %}{% endblock %}
 
 {% block content %}
 <div class="auth-vc-container">
@@ -20,12 +21,12 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <div class="auth-vc-group">
-        <input type="email" name="email" class="input-vc"
-               placeholder="Email professionnel" required autofocus>
+        <input type="email" name="email" class="input-vc" placeholder="Adresse e-mail"
+               autocomplete="username" required autofocus>
       </div>
       <div class="auth-vc-group">
-        <input type="password" name="password" class="input-vc"
-               placeholder="Mot de passe" required>
+        <input type="password" name="password" class="input-vc" placeholder="Mot de passe"
+               autocomplete="current-password" required>
       </div>
       <div class="auth-vc-group" style="display:flex;align-items:center;gap:.5rem;">
         <input type="checkbox" name="remember" id="remember" style="width:auto;">
@@ -38,7 +39,7 @@
     </form>
 
     <div class="auth-vc-help">
-      Vous avez un code d'invitation ? <a href="{{ url_for('auth.register') }}">Créer un compte</a>
+      Mot de passe oublié ? Demandez un lien de réinitialisation à l'administrateur.
     </div>
     <div class="auth-vc-help" style="margin-top:.5rem;">
       Vous êtes élève ? <a href="{{ url_for('student.login') }}">Accéder à mes corrections</a>
