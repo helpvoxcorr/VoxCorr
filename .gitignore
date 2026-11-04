@@ -15,8 +15,8 @@ Thumbs.db
 instance/
 
 # Fichiers de test et clés
-test_*.py
-test-*.py
+/test_*.py
+/test-*.py
 .env.*
 *.pem
 *.key
