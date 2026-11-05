@@ -1,6 +1,10 @@
 import os
 from dotenv import load_dotenv
-load_dotenv()
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_DEV = os.environ.get('VOXCORR_ENV') == 'dev'
+# Mode développement : .env.dev (base SQLite locale). Sinon : .env habituel.
+load_dotenv(os.path.join(_ROOT, '.env.dev' if _DEV else '.env'))
 
 class Config:
     # ── Flask ──────────────────────────────────────────────────────────────────
@@ -13,12 +17,18 @@ class Config:
     if SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace('postgres://', 'postgresql://', 1)
 
+    DEV_MODE = _DEV
+    if _DEV and not SQLALCHEMY_DATABASE_URI.startswith('sqlite'):
+        raise RuntimeError("Mode développement : la base doit être SQLite. "
+                           "Vérifiez .env.dev et les variables d'environnement de Windows.")
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
         "pool_recycle": 300,
-        "connect_args": {"sslmode": "require"},
     }
+    if SQLALCHEMY_DATABASE_URI.startswith('postgresql'):
+        SQLALCHEMY_ENGINE_OPTIONS["connect_args"] = {"sslmode": "require"}
 
     # ── Flask-Login ────────────────────────────────────────────────────────────
     REMEMBER_COOKIE_DURATION = 60 * 60 * 24 * 7
@@ -46,4 +56,4 @@ class Config:
 
     # ── Session ────────────────────────────────────────────────────────────────
     PERMANENT_SESSION_LIFETIME = 60 * 60 * 24  # 24h pour élèves
-    SESSION_COOKIE_SECURE = True  # HTTPS uniquement (en prod)
+    SESSION_COOKIE_SECURE = not _DEV  # HTTPS uniquement, sauf en développement local
