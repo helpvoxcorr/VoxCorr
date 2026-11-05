@@ -52,6 +52,9 @@ def record(student_id, assignment_id):
         student_first = student_last = '—'
 
     corr = Correction.query.filter_by(student_id=student_id, assignment_id=assignment_id).first()
+    was_absent = bool(corr and corr.status == 'absent')
+    if was_absent:
+        corr = None   # la page se comporte comme pour une copie jamais corrigée
     all_students = Student.query.filter_by(classroom_id=assignment.classroom_id).all()
     all_students.sort(key=lambda s: _label(s).lower())
     by_id = {s.id: s for s in all_students}
@@ -72,6 +75,7 @@ def record(student_id, assignment_id):
         next_name=_label(by_id[next_id]) if next_id else '',
         next_todo_id=next_todo_id,
         next_todo_name=_label(by_id[next_todo_id]) if next_todo_id else '',
+        was_absent=was_absent,
         student_index=idx + 1, student_total=len(ids),
         student_first=student_first, student_last=student_last)
 
@@ -109,11 +113,76 @@ def print_corrections(assignment_id):
                            back_url=url_for('teacher_corr.assignment_corrections', assignment_id=a.id),
                            back_label='Retour au devoir')
 
+def _student_label(s):
+    try:
+        return f"{decrypt_name(s.encrypted_last_name)} {decrypt_name(s.encrypted_first_name)}"
+    except Exception:
+        return s.alias
+
+
+def _next_todo_after(assignment, student_id):
+    """Prochain élève à corriger après celui-ci (même ordre que la page de correction)."""
+    students = Student.query.filter_by(classroom_id=assignment.classroom_id).all()
+    students.sort(key=lambda s: _student_label(s).lower())
+    ids = [s.id for s in students]
+    done = {r[0] for r in db.session.query(Correction.student_id).filter_by(assignment_id=assignment.id).all()}
+    idx = ids.index(student_id) if student_id in ids else -1
+    after = [i for i in ids[idx + 1:] if i not in done]
+    before = [i for i in ids[:max(idx, 0)] if i not in done]
+    return (after or before or [None])[0]
+
+
+def _own_assignment_and_student(assignment_id, student_id):
+    a = db.session.get(Assignment, assignment_id)
+    if not a:
+        abort(404)
+    if a.classroom.teacher_id != current_user.id:
+        abort(403)
+    s = db.session.get(Student, student_id)
+    if not s or s.classroom_id != a.classroom_id:
+        abort(404)
+    return a, s
+
+
+@teacher_corr_bp.route('/assignments/<int:assignment_id>/students/<int:student_id>/absent', methods=['POST'])
+@login_required
+def mark_absent(assignment_id, student_id):
+    a, s = _own_assignment_and_student(assignment_id, student_id)
+    corr = Correction.query.filter_by(student_id=student_id, assignment_id=assignment_id).first()
+    if corr and corr.status != 'absent':
+        flash("Cette copie a déjà une correction : supprimez-la d'abord pour marquer l'élève absent.", 'warning')
+        return redirect(url_for('teacher_corr.assignment_corrections', assignment_id=assignment_id))
+    if not corr:
+        db.session.add(Correction(student_id=student_id, assignment_id=assignment_id, status='absent'))
+        db.session.commit()
+    if request.form.get('next') == 'record':
+        nxt = _next_todo_after(a, student_id)
+        if nxt:
+            return redirect(url_for('teacher_corr.record', student_id=nxt, assignment_id=assignment_id))
+        flash('Plus aucune copie à corriger pour ce devoir.', 'success')
+    else:
+        flash('Élève marqué absent.', 'success')
+    return redirect(url_for('teacher_corr.assignment_corrections', assignment_id=assignment_id))
+
+
+@teacher_corr_bp.route('/assignments/<int:assignment_id>/students/<int:student_id>/present', methods=['POST'])
+@login_required
+def unmark_absent(assignment_id, student_id):
+    _own_assignment_and_student(assignment_id, student_id)
+    corr = Correction.query.filter_by(student_id=student_id, assignment_id=assignment_id).first()
+    if corr and corr.status == 'absent':
+        db.session.delete(corr)
+        db.session.commit()
+        flash('La mention « absent » a été retirée.', 'success')
+    return redirect(url_for('teacher_corr.assignment_corrections', assignment_id=assignment_id))
+
 @teacher_corr_bp.route('/correction/<int:correction_id>')
 @login_required
 def correction_detail(correction_id):
     corr = db.session.get(Correction, correction_id)
     if not corr or corr.assignment.classroom.teacher_id != current_user.id: flash('Accès non autorisé.', 'danger'); return redirect(url_for('teacher_crud.dashboard'))
+    if corr.status == 'absent':
+        return redirect(url_for('teacher_corr.assignment_corrections', assignment_id=corr.assignment_id))
     student = corr.student
     try: student.display_first = decrypt_name(student.encrypted_first_name); student.display_last = decrypt_name(student.encrypted_last_name)
     except Exception: student.display_first = student.display_last = '—'
@@ -412,6 +481,8 @@ def correction_pdf(correction_id):
     if not corr or corr.assignment.classroom.teacher_id != current_user.id:
         flash('Accès non autorisé.', 'danger')
         return redirect(url_for('teacher_crud.dashboard'))
+    if corr.status == 'absent':
+        return redirect(url_for('teacher_corr.assignment_corrections', assignment_id=corr.assignment_id))
     card = _make_card(corr, with_qr=(corr.status == 'published'))
     return render_template('teacher/print_corrections.html', assignment=corr.assignment, cards=[card],
                            back_url=url_for('teacher_corr.correction_detail', correction_id=corr.id),

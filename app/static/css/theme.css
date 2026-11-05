@@ -269,3 +269,13 @@ body.vc-app .ac-filter.active span { color: var(--on-neon, #0a0a0a); }
 /* Liens dans les textes (aide, RGPD, documentation…) */
 body.vc-app main :is(p, li, td, dd, .alert, .card-text) a:not([class]) { color: #1d4ed8; text-decoration: underline; }
 body.vc-app main :is(p, li, td, dd, .alert, .card-text) a:not([class]):hover { color: #1e3a8a; }
+
+/* Élève absent (1a) */
+.ac-status-absent { background: #e5e7eb; color: #374151; }
+body.vc-app .ac-student-row.row-absent { border-left: 3px solid #9ca3af; padding-left: calc(.5rem - 3px); }
+button.ac-act { font-family: inherit; cursor: pointer; line-height: 1.5; }
+/* Élève absent : toute la ligne est grisée */
+body.vc-app .ac-student-row.row-absent,
+body.vc-app .ac-student-row.row-absent:hover { background: #f3f4f6; }
+body.vc-app .row-absent .ac-student-name a,
+body.vc-app .row-absent .ac-student-num { color: #6b7280; }

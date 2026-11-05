@@ -3,7 +3,9 @@
 
 {% block content %}
 {% set total = students|length %}
-{% set done = students|selectattr('correction')|list|length %}
+{% set absent = students|selectattr('correction.status', 'eq', 'absent')|list|length %}
+{% set done = students|selectattr('correction')|rejectattr('correction.status', 'eq', 'absent')|list|length %}
+{% set expected = total - absent %}
 {% set published = students|selectattr('correction.status', 'eq', 'published')|list|length %}
 {% set drafts = students|selectattr('correction.status', 'eq', 'draft')|list|length %}
 {% set marks = [] %}
@@ -30,16 +32,16 @@
       <i class="bi bi-pencil"></i> Modifier le devoir
     </a>
     <a href="{{ url_for('teacher_corr.print_corrections', assignment_id=assignment.id) }}" class="ac-btn-ghost" target="_blank" title="Imprimer les synthèses et QR codes des copies publiées">
-      <i class="bi bi-printer">Imprimer les coupons</i>
+      <i class="bi bi-printer"></i> Imprimer les coupons
     </a>
   </div>
 </div>
 
 <div class="ac-stats">
   <div class="ac-stat">
-    <div class="ac-stat-val">{{ done }}<span class="ac-stat-total">/{{ total }}</span></div>
-    <div class="ac-stat-lbl">Copies corrigées</div>
-    <div class="ac-stat-bar"><div class="ac-stat-fill" style="width:{{ (done/total*100)|round if total else 0 }}%"></div></div>
+    <div class="ac-stat-val">{{ done }}<span class="ac-stat-total">/{{ expected }}</span></div>
+    <div class="ac-stat-lbl">Copies corrigées{% if absent %} · {{ absent }} absent{{ 's' if absent > 1 }}{% endif %}</div>
+    <div class="ac-stat-bar"><div class="ac-stat-fill" style="width:{{ (done/expected*100)|round if expected else 0 }}%"></div></div>
   </div>
   <div class="ac-stat">
     <div class="ac-stat-val {{ 'warn' if drafts }}">{{ drafts }}</div>
@@ -133,16 +135,17 @@
           <a href="{{ url_for('teacher_corr.record', student_id=next_s.id, assignment_id=assignment.id) }}" class="ac-btn-primary ac-btn-sm">
             <i class="bi bi-mic-fill"></i> Corriger le suivant : {{ next_s.display_last }} {{ next_s.display_first }}
           </a>
-        {% elif total %}
+        {% elif expected %}
           <span class="ac-hint">Toutes les copies sont corrigées ✓</span>
         {% endif %}
       </div>
 
       <div class="ac-filters">
         <button type="button" class="ac-filter active" data-filter="all">Tous <span>{{ total }}</span></button>
-        <button type="button" class="ac-filter" data-filter="none">À corriger <span>{{ total - done }}</span></button>
+        <button type="button" class="ac-filter" data-filter="none">À corriger <span>{{ expected - done }}</span></button>
         <button type="button" class="ac-filter" data-filter="draft">À publier <span>{{ drafts }}</span></button>
         <button type="button" class="ac-filter" data-filter="published">Publiés <span>{{ published }}</span></button>
+        {% if absent %}<button type="button" class="ac-filter" data-filter="absent">Absents <span>{{ absent }}</span></button>{% endif %}
         {% if drafts %}
           <button type="button" class="ac-btn-primary ac-btn-sm ac-publish-all" id="btnPublishAll" data-count="{{ drafts }}">
             <i class="bi bi-send-check"></i> Publier les {{ drafts }} brouillon{{ 's' if drafts > 1 }}
@@ -157,13 +160,13 @@
           {% set score = corr.total_score if corr and corr.total_score is not none else None %}
           {% set pct = (score / assignment.total_points * 100)|round if score is not none else 0 %}
 
-          <div class="ac-student-row {% if status == 'published' %}row-published{% elif status == 'draft' %}row-draft{% elif status == 'processing' %}row-processing{% endif %}" data-status="{{ status }}">
+                    <div class="ac-student-row {% if status == 'published' %}row-published{% elif status == 'draft' %}row-draft{% elif status == 'processing' %}row-processing{% elif status == 'absent' %}row-absent{% endif %}" data-status="{{ status }}">
 
             <div class="ac-student-num">{{ s.student_number }}</div>
 
             <div class="ac-student-info">
               <div class="ac-student-name">
-                {% if corr %}
+                {% if corr and status != 'absent' %}
                   <a href="{{ url_for('teacher_corr.correction_detail', correction_id=corr.id) }}">{{ s.display_last }}, {{ s.display_first }}</a>
                 {% else %}
                   <a href="{{ url_for('teacher_corr.record', student_id=s.id, assignment_id=assignment.id) }}">{{ s.display_last }}, {{ s.display_first }}</a>
@@ -179,7 +182,9 @@
                 <span class="ac-status ac-status-processing"><i class="bi bi-hourglass-split"></i> Analyse…</span>
               {% elif status == 'draft' %}
                 <span class="ac-status ac-status-draft"><i class="bi bi-file-earmark"></i> À publier</span>
-              {% else %}
+                {% elif status == 'absent' %}
+                <span class="ac-status ac-status-absent"><i class="bi bi-person-dash"></i> Absent</span>
+                {% else %}
                 <span class="ac-status ac-status-none">À corriger</span>
               {% endif %}
             </div>
@@ -195,8 +200,16 @@
               {% endif %}
             </div>
 
-                        <div class="ac-student-actions">
-              {% if corr %}
+            <div class="ac-student-actions">
+              {% if status == 'absent' %}
+                <a href="{{ url_for('teacher_corr.record', student_id=s.id, assignment_id=assignment.id) }}" class="ac-act ac-act-primary" title="L'élève est revenu : corriger sa copie">
+                  <i class="bi bi-mic-fill"></i> Corriger
+                </a>
+                <form method="POST" action="{{ url_for('teacher_corr.unmark_absent', assignment_id=assignment.id, student_id=s.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="ac-act" title="Retirer la mention absent"><i class="bi bi-person-check"></i> Présent</button>
+                </form>
+              {% elif corr %}
                 <a href="{{ url_for('teacher_corr.correction_detail', correction_id=corr.id) }}" class="ac-act" title="Voir la note, la synthèse et le QR code">
                   <i class="bi bi-eye"></i> Voir
                 </a>
@@ -213,6 +226,10 @@
                 <a href="{{ url_for('teacher_corr.record', student_id=s.id, assignment_id=assignment.id) }}" class="ac-act ac-act-primary">
                   <i class="bi bi-mic-fill"></i> Corriger
                 </a>
+                <form method="POST" action="{{ url_for('teacher_corr.mark_absent', assignment_id=assignment.id, student_id=s.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="ac-act" title="Marquer cet élève absent"><i class="bi bi-person-dash"></i> Absent</button>
+                </form>
               {% endif %}
             </div>
           </div>

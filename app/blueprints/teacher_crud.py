@@ -32,13 +32,15 @@ def dashboard():
         student_ids = {s.id for s in students}
         total = len(students)
         for a in c.assignments:
-            corrected_ids = {row[0] for row in db.session.query(Correction.student_id)
-                             .filter_by(assignment_id=a.id).all()}
+            status_by_student = {sid: st for sid, st in db.session.query(Correction.student_id, Correction.status)
+                                 .filter_by(assignment_id=a.id).all() if sid in student_ids}
+            absent = sum(1 for st in status_by_student.values() if st == 'absent')
+            done = len(status_by_student) - absent
+            expected = total - absent
             published = db.session.query(db.func.count(Correction.id)) \
                 .filter_by(assignment_id=a.id, status='published').scalar() or 0
-            done = len(corrected_ids & student_ids)
             drafts = max(done - published, 0)
-            nxt = next((s for s in students if s.id not in corrected_ids), None)
+            nxt = next((s for s in students if s.id not in status_by_student), None)
             next_name = ''
             if nxt:
                 try:
@@ -46,14 +48,14 @@ def dashboard():
                 except Exception:
                     next_name = nxt.alias
             item = {
-                'assignment': a, 'classroom': c, 'total': total, 'done': done,
-                'published': published, 'drafts': drafts,
-                'pct': int(done / total * 100) if total else 0,
+                'assignment': a, 'classroom': c, 'total': total, 'expected': expected, 'absent': absent,
+                'done': done, 'published': published, 'drafts': drafts,
+                'pct': int(done / expected * 100) if expected else 0,
                 'next_id': nxt.id if nxt else None, 'next_name': next_name,
             }
             corrected_total += done
-            expected_total += total
-            if total > 0 and done >= total and drafts == 0:
+            expected_total += expected
+            if total > 0 and done >= expected and drafts == 0:
                 finished.append(item)
             else:
                 todo.append(item)
@@ -125,10 +127,14 @@ def class_detail(class_id):
     ids = {s.id for s in students}
     progress = {}
     for a in assignments:
-        corrected = {row[0] for row in db.session.query(Correction.student_id).filter_by(assignment_id=a.id).all()} & ids
+        status_by_student = {sid: st for sid, st in db.session.query(Correction.student_id, Correction.status)
+                             .filter_by(assignment_id=a.id).all() if sid in ids}
+        absent = sum(1 for st in status_by_student.values() if st == 'absent')
+        done = len(status_by_student) - absent
+        expected = total - absent
         published = db.session.query(db.func.count(Correction.id)).filter_by(assignment_id=a.id, status='published').scalar() or 0
-        progress[a.id] = {'done': len(corrected), 'total': total, 'published': published,
-                          'pct': int(len(corrected) / total * 100) if total else 0}
+        progress[a.id] = {'done': done, 'total': expected, 'absent': absent, 'published': published,
+                          'pct': int(done / expected * 100) if expected else 0}
     return render_template('teacher/class_detail.html', classroom=c, students=students,
                            assignments=assignments, progress=progress)
 

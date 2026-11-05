@@ -44,6 +44,13 @@
     <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=assignment.id) }}" class="cd-btn-ghost rec-nav-btn" title="Retour à la liste du devoir">
       <i class="bi bi-list-check"></i> <span class="d-none d-md-inline">Liste</span>
     </a>
+    {% if not existing %}
+    <form method="POST" action="{{ url_for('teacher_corr.mark_absent', assignment_id=assignment.id, student_id=student.id) }}" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="record">
+      <button type="submit" class="cd-btn-ghost rec-nav-btn" title="Cet élève est absent : passer au suivant"><i class="bi bi-person-dash"></i> <span class="d-none d-md-inline">Absent</span></button>
+    </form>
+    {% endif %}
   </div>
 </div>
 
@@ -91,6 +98,13 @@
       <span>Une correction existe déjà. Refaire la dictée <strong>remplacera</strong> la synthèse et les notes.
         <a href="{{ url_for('teacher_corr.correction_detail', correction_id=existing.id) }}" class="rec-alert-link">Voir →</a>
       </span>
+    </div>
+    {% endif %}
+
+    {% if was_absent %}
+    <div class="rec-alert">
+      <i class="bi bi-person-dash-fill"></i>
+      <span>Cet élève est marqué absent. Corrigez sa copie pour le retirer de la liste des absents.</span>
     </div>
     {% endif %}
 

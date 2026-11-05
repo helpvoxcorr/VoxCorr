@@ -45,7 +45,7 @@
           </div>
         </div>
         <div>
-          <div><span class="todo-count">{{ p.done }}/{{ p.total }}</span> copies corrigées · {{ p.published }} publiée{{ 's' if p.published > 1 }}</div>
+          <div><span class="todo-count">{{ p.done }}/{{ p.total }}</span> copies corrigées · {{ p.published }} publiée{{ 's' if p.published > 1 }}{% if p.absent %} · {{ p.absent }} absent{{ 's' if p.absent > 1 }}{% endif %}</div>
           <div class="todo-bar"><div style="width:{{ p.pct }}%"></div></div>
         </div>
         <div class="todo-actions">

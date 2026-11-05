@@ -64,7 +64,7 @@
       </div>
 
       <div>
-        <div><span class="todo-count">{{ t.done }}/{{ t.total }}</span> copies corrigées</div>
+        <div><span class="todo-count">{{ t.done }}/{{ t.expected }}</span> copies corrigées{% if t.absent %} · {{ t.absent }} absent{{ 's' if t.absent > 1 }}{% endif %}</div>
         <div class="todo-bar"><div style="width:{{ t.pct }}%"></div></div>
         <div class="todo-meta mt-1">
           <span>{{ t.published }} publiée{{ 's' if t.published > 1 }}</span>
@@ -112,7 +112,7 @@
     {% for t in finished %}
     <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=t.assignment.id) }}" class="todo-done-row">
       <span><i class="bi bi-check-circle-fill"></i> {{ t.assignment.title }}</span>
-      <span class="todo-meta">{{ t.classroom.name }} · {{ t.published }}/{{ t.total }} publiées</span>
+      <span class="todo-meta">{{ t.classroom.name }} · {{ t.published }}/{{ t.expected }} publiées</span>
     </a>
     {% endfor %}
   </div>
