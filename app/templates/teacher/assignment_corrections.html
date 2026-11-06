@@ -7,7 +7,8 @@
 {% set done = students|selectattr('correction')|rejectattr('correction.status', 'eq', 'absent')|list|length %}
 {% set expected = total - absent %}
 {% set published = students|selectattr('correction.status', 'eq', 'published')|list|length %}
-{% set drafts = students|selectattr('correction.status', 'eq', 'draft')|list|length %}
+{% set failed = students|selectattr('synth_failed')|list|length %}
+{% set drafts = students|selectattr('correction.status', 'eq', 'draft')|list|length - failed %}
 {% set marks = [] %}
 {% for s in students %}
   {% if s.correction and s.correction.total_score is not none %}{% set _ = marks.append(s.correction.total_score) %}{% endif %}
@@ -45,7 +46,7 @@
   </div>
   <div class="ac-stat">
     <div class="ac-stat-val {{ 'warn' if drafts }}">{{ drafts }}</div>
-    <div class="ac-stat-lbl">À publier</div>
+    <div class="ac-stat-lbl">À publier{% if failed %} · {{ failed }} à refaire{% endif %}</div>
   </div>
   <div class="ac-stat">
     <div class="ac-stat-val neon">{{ published }}</div>
@@ -140,10 +141,28 @@
         {% endif %}
       </div>
 
+      {% if failed %}
+      <div class="ai-banner" id="aiBanner">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div class="flex-grow-1">
+          <strong>{{ failed }} copie{{ 's' if failed > 1 }} sans synthèse</strong> : l'IA était indisponible au moment de l'analyse.
+          <div class="small mt-1">Vos notes saisies à la main sont conservées.</div>
+        </div>
+        <button type="button" class="ac-btn-primary ac-btn-sm" id="btnRelaunchAi" data-count="{{ failed }}">
+          <i class="bi bi-arrow-repeat"></i> Relancer l'IA
+        </button>
+      </div>
+      {% endif %}
+      <div class="ai-banner d-none" id="aiProgress">
+        <div class="spinner-border spinner-border-sm"></div>
+        <div id="aiProgressText">Analyse en cours…</div>
+      </div>
+      
       <div class="ac-filters">
         <button type="button" class="ac-filter active" data-filter="all">Tous <span>{{ total }}</span></button>
         <button type="button" class="ac-filter" data-filter="none">À corriger <span>{{ expected - done }}</span></button>
         <button type="button" class="ac-filter" data-filter="draft">À publier <span>{{ drafts }}</span></button>
+        {% if failed %}<button type="button" class="ac-filter" data-filter="redo">À refaire <span>{{ failed }}</span></button>{% endif %}
         <button type="button" class="ac-filter" data-filter="published">Publiés <span>{{ published }}</span></button>
         {% if absent %}<button type="button" class="ac-filter" data-filter="absent">Absents <span>{{ absent }}</span></button>{% endif %}
         {% if drafts %}
@@ -156,11 +175,11 @@
       <div class="ac-student-list">
         {% for s in students %}
           {% set corr = s.correction %}
-          {% set status = corr.status if corr else 'none' %}
+          {% set status = ('redo' if s.synth_failed else corr.status) if corr else 'none' %}
           {% set score = corr.total_score if corr and corr.total_score is not none else None %}
           {% set pct = (score / assignment.total_points * 100)|round if score is not none else 0 %}
 
-                    <div class="ac-student-row {% if status == 'published' %}row-published{% elif status == 'draft' %}row-draft{% elif status == 'processing' %}row-processing{% elif status == 'absent' %}row-absent{% endif %}" data-status="{{ status }}">
+            <div class="ac-student-row {% if status == 'published' %}row-published{% elif status == 'draft' %}row-draft{% elif status == 'processing' %}row-processing{% elif status == 'absent' %}row-absent{% elif status == 'redo' %}row-redo{% endif %}" data-status="{{ status }}">
 
             <div class="ac-student-num">{{ s.student_number }}</div>
 
@@ -184,6 +203,8 @@
                 <span class="ac-status ac-status-draft"><i class="bi bi-file-earmark"></i> À publier</span>
                 {% elif status == 'absent' %}
                 <span class="ac-status ac-status-absent"><i class="bi bi-person-dash"></i> Absent</span>
+                {% elif status == 'redo' %}
+                <span class="ac-status ac-status-redo"><i class="bi bi-exclamation-triangle-fill"></i> Synthèse à refaire</span>
                 {% else %}
                 <span class="ac-status ac-status-none">À corriger</span>
               {% endif %}
@@ -320,6 +341,71 @@
     }
   });
 
+  /* ── Relancer l'IA sur les copies sans synthèse ── */
+  const aiBanner = document.getElementById('aiBanner');
+  const aiProgress = document.getElementById('aiProgress');
+  const aiProgressText = document.getElementById('aiProgressText');
+  const AI_STATUS_URL = "{{ url_for('teacher_corr.ai_status', assignment_id=assignment.id) }}";
+
+  function trackAi(total) {
+    aiBanner?.classList.add('d-none');
+    aiProgress.classList.remove('d-none');
+    let idle = 0, ticks = 0, last = { failed: 0, processing: 0 };
+    const timer = setInterval(async () => {
+      ticks++;
+      try {
+        last = await fetch(AI_STATUS_URL).then(r => r.json());
+      } catch (e) { return; }
+      const remaining = last.failed + last.processing;
+      aiProgressText.textContent = 'Analyse en cours : ' + Math.max(total - remaining, 0) + ' / ' + total + ' copies';
+      idle = last.processing === 0 ? idle + 1 : 0;
+      if (remaining === 0 || idle >= 3 || ticks > 300) {
+        clearInterval(timer);
+        (async () => {
+          if (last.failed > 0) {
+            await VoxModal.alert({
+              type: 'warning',
+              title: "Certaines copies n'ont pas pu être analysées",
+              body: last.failed + " copie(s) restent sans synthèse : l'IA est probablement encore surchargée. Réessayez dans quelques minutes."
+            });
+          }
+          location.reload();
+        })();
+      }
+    }, 3000);
+  }
+
+  document.getElementById('btnRelaunchAi')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const ok = await VoxModal.confirm({
+      type: 'warning',
+      title: "Relancer l'IA sur " + btn.dataset.count + " copie(s) ?",
+      body: "Les synthèses sont refaites une à une, à partir des dictées. Cela peut prendre une à deux minutes. Vous pouvez quitter la page : le travail continue.",
+      confirmText: 'Relancer'
+    });
+    if (!ok) return;
+    btn.disabled = true;
+    try {
+      const res = await fetch("{{ url_for('teacher_corr.relaunch_ai', assignment_id=assignment.id) }}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: '{}'
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur ' + res.status);
+      if (!data.count) { location.reload(); return; }
+      trackAi(data.count);
+    } catch (err) {
+      VoxModal.alert({type: 'danger', title: 'Relance impossible', body: err.message});
+      btn.disabled = false;
+    }
+  });
+
+  // Page rouverte pendant une relance : on reprend l'affichage de la progression
+  fetch(AI_STATUS_URL).then(r => r.json()).then(s => {
+    if (s.processing > 0) trackAi(s.failed + s.processing);
+  }).catch(() => {});
+  
   /* ── Appréciation : enregistrer ── */
   btnSave?.addEventListener('click', async () => {
     btnSave.disabled = true;

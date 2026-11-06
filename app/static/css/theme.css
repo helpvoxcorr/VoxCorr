@@ -284,3 +284,11 @@ body.vc-app .row-absent .ac-student-num { color: #6b7280; }
 #synth-modal .modal-dialog { max-width: 760px; }
 #synth-modal .vm-body { max-height: 65vh; overflow-y: auto; }
 #synth-modal textarea.vox-input { line-height: 1.5; resize: vertical; }
+
+/* Relance de l'IA (1c) */
+.ac-status-redo { background: #fee2e2; color: #991b1b; }
+body.vc-app .ac-student-row.row-redo { border-left: 3px solid #dc2626; padding-left: calc(.5rem - 3px); }
+.ai-banner { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; background: #fef3c7; border: 1.5px solid #f59e0b;
+  color: #78350f; border-radius: 10px; padding: .85rem 1rem; margin-bottom: 1rem; font-size: .9rem; }
+.ai-banner > i { font-size: 1.2rem; color: #b45309; }
+.ai-banner .spinner-border { color: #b45309; }

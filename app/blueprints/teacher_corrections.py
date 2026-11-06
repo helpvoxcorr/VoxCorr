@@ -13,6 +13,14 @@ import io
 from datetime import datetime, timezone
 
 teacher_corr_bp = Blueprint('teacher_corr', __name__, url_prefix='/teacher')
+FAIL_MARK = 'synthèse IA indisponible'
+
+
+def _synth_failed(corr):
+    """Brouillon dont la synthèse IA a échoué, ou n'a jamais été générée."""
+    if corr is None or corr.status != 'draft' or not corr.raw_transcript:
+        return False
+    return (not corr.structured_text) or (FAIL_MARK in corr.structured_text)
 
 @teacher_corr_bp.route('/assignments/<int:assignment_id>/corrections')
 @login_required
@@ -23,6 +31,7 @@ def assignment_corrections(assignment_id):
     students = Student.query.filter_by(classroom_id=a.classroom_id).order_by(Student.student_number).all()
     for s in students:
         s.correction = Correction.query.filter_by(student_id=s.id, assignment_id=assignment_id).first()
+        s.synth_failed = _synth_failed(s.correction)
         try: s.display_last = decrypt_name(s.encrypted_last_name); s.display_first = decrypt_name(s.encrypted_first_name)
         except Exception: s.display_last = s.display_first = '—'
     return render_template('teacher/assignment_corrections.html', assignment=a, students=students)
@@ -377,13 +386,88 @@ def publish_all(assignment_id):
     published = skipped = 0
     for c in drafts:
         # Une synthèse ratée (IA en panne) ne doit pas partir chez les élèves
-        if c.structured_text and 'synthèse IA indisponible' in c.structured_text:
+        if _synth_failed(c):
             skipped += 1
             continue
         c.publish()
         published += 1
     db.session.commit()
     return jsonify({'ok': True, 'published': published, 'skipped': skipped})
+
+@teacher_corr_bp.route('/assignments/<int:assignment_id>/relaunch-ai', methods=['POST'])
+@login_required
+@limiter.limit("6 per hour")
+def relaunch_ai(assignment_id):
+    a = db.session.get(Assignment, assignment_id)
+    if not a:
+        abort(404)
+    if a.classroom.teacher_id != current_user.id:
+        return jsonify({'error': 'Non autorisé'}), 403
+    corrs = Correction.query.filter_by(assignment_id=assignment_id).all()
+    if any(c.status == 'processing' for c in corrs):
+        return jsonify({'error': "Une analyse est déjà en cours pour ce devoir. Patientez quelques instants."}), 409
+    todo = [c for c in corrs if _synth_failed(c)]
+    if not todo:
+        return jsonify({'ok': True, 'count': 0})
+    todo.sort(key=lambda c: c.student.student_number or 0)
+
+    questions = a.questions
+    q_labels = [q.label for q in questions]
+    q_max = [q.max_points for q in questions]
+    q_ids = [q.id for q in questions]
+    jobs = []
+    for c in todo:
+        try:
+            names = (decrypt_name(c.student.encrypted_first_name), decrypt_name(c.student.encrypted_last_name))
+        except Exception:
+            names = None
+        jobs.append((c.id, c.raw_transcript, names))
+    app = current_app._get_current_object()
+
+    def _worker():
+        """Une copie à la fois : une seule en « analyse » à un instant donné."""
+        with app.app_context():
+            for cid, transcript, names in jobs:
+                try:
+                    c = db.session.get(Correction, cid)
+                    if not c or not _synth_failed(c):
+                        continue
+                    c.status = 'processing'
+                    db.session.commit()
+                    db.session.remove()   # libère la connexion pendant l'appel à l'IA
+                    result = synthesize_with_mistral(transcript, q_labels, q_max, student_names=names)
+                    c = db.session.get(Correction, cid)
+                    if c:
+                        c.structured_text = result.get('formatted_text') or transcript
+                        _apply_ai_grades(c, result, q_ids, q_max)
+                        c.status = 'draft'
+                        db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    app.logger.error(f'Relance IA, correction {cid} : {e}')
+                    try:
+                        c = db.session.get(Correction, cid)
+                        if c and c.status == 'processing':
+                            c.status = 'draft'
+                            db.session.commit()
+                    except Exception:
+                        db.session.rollback()
+                finally:
+                    db.session.remove()
+
+    run_in_background(_worker)
+    return jsonify({'ok': True, 'count': len(jobs)})
+
+
+@teacher_corr_bp.route('/assignments/<int:assignment_id>/ai-status')
+@login_required
+def ai_status(assignment_id):
+    a = db.session.get(Assignment, assignment_id)
+    if not a or a.classroom.teacher_id != current_user.id:
+        return jsonify({'error': 'Non autorisé'}), 403
+    corrs = Correction.query.filter_by(assignment_id=assignment_id).all()
+    return jsonify({'failed': sum(1 for c in corrs if _synth_failed(c)),
+                    'processing': sum(1 for c in corrs if c.status == 'processing')})
 
 @teacher_corr_bp.route('/api/correction/<int:correction_id>/scores/update', methods=['POST'])
 @login_required
