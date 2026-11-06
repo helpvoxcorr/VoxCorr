@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ assignment.title }} — Corrections{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/suivi.css') }}">{% endblock %}
 
 {% block content %}
 {% set total = students|length %}
@@ -9,6 +10,7 @@
 {% set published = students|selectattr('correction.status', 'eq', 'published')|list|length %}
 {% set failed = students|selectattr('synth_failed')|list|length %}
 {% set drafts = students|selectattr('correction.status', 'eq', 'draft')|list|length - failed %}
+{% set unseen = students|selectattr('seen', 'eq', 'none')|list|length %}
 {% set marks = [] %}
 {% for s in students %}
   {% if s.correction and s.correction.total_score is not none %}{% set _ = marks.append(s.correction.total_score) %}{% endif %}
@@ -164,6 +166,7 @@
         <button type="button" class="ac-filter" data-filter="draft">À publier <span>{{ drafts }}</span></button>
         {% if failed %}<button type="button" class="ac-filter" data-filter="redo">À refaire <span>{{ failed }}</span></button>{% endif %}
         <button type="button" class="ac-filter" data-filter="published">Publiés <span>{{ published }}</span></button>
+        {% if unseen %}<button type="button" class="ac-filter" data-filter="unseen">Pas encore ouvertes <span>{{ unseen }}</span></button>{% endif %}
         {% if absent %}<button type="button" class="ac-filter" data-filter="absent">Absents <span>{{ absent }}</span></button>{% endif %}
         {% if drafts %}
           <button type="button" class="ac-btn-primary ac-btn-sm ac-publish-all" id="btnPublishAll" data-count="{{ drafts }}">
@@ -179,7 +182,7 @@
           {% set score = corr.total_score if corr and corr.total_score is not none else None %}
           {% set pct = (score / assignment.total_points * 100)|round if score is not none else 0 %}
 
-            <div class="ac-student-row {% if status == 'published' %}row-published{% elif status == 'draft' %}row-draft{% elif status == 'processing' %}row-processing{% elif status == 'absent' %}row-absent{% elif status == 'redo' %}row-redo{% endif %}" data-status="{{ status }}">
+            <div class="ac-student-row {% if status == 'published' %}row-published{% elif status == 'draft' %}row-draft{% elif status == 'processing' %}row-processing{% elif status == 'absent' %}row-absent{% elif status == 'redo' %}row-redo{% endif %}" data-status="{{ status }} data-seen="{{ s.seen or '' }}">
 
             <div class="ac-student-num">{{ s.student_number }}</div>
 
@@ -207,6 +210,13 @@
                 <span class="ac-status ac-status-redo"><i class="bi bi-exclamation-triangle-fill"></i> Synthèse à refaire</span>
                 {% else %}
                 <span class="ac-status ac-status-none">À corriger</span>
+              {% endif %}
+              {% if s.seen == 'listened' %}
+                <div class="ac-seen ac-seen-ok" title="L'élève a écouté au moins 90 % de l'audio"><i class="bi bi-headphones"></i> Écoutée{% if s.seen_at %} le {{ s.seen_at.strftime('%d/%m') }}{% endif %}</div>
+              {% elif s.seen == 'opened' %}
+                <div class="ac-seen" title="Page ouverte, audio non écouté jusqu'au bout"><i class="bi bi-eye"></i> Ouverte{% if s.seen_at %} le {{ s.seen_at.strftime('%d/%m') }}{% endif %}</div>
+              {% elif s.seen == 'none' %}
+                <div class="ac-seen ac-seen-none"><i class="bi bi-eye-slash"></i> Pas encore ouverte</div>
               {% endif %}
             </div>
 
@@ -289,7 +299,8 @@
     document.querySelectorAll('.ac-filter').forEach(b => b.classList.toggle('active', b === btn));
     let shown = 0;
     rows.forEach(r => {
-      const ok = f === 'all' || r.dataset.status === f;
+      const ok = f === 'all' || r.dataset.status === f ||
+                 (f === 'unseen' && r.dataset.status === 'published' && r.dataset.seen === 'none');
       r.style.display = ok ? '' : 'none';
       if (ok) shown++;
     });

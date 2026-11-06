@@ -1,7 +1,7 @@
 from flask import (Blueprint, render_template, redirect, url_for, request, jsonify, flash, send_file, current_app, abort)
 from flask_login import login_required, current_user
 from app.extensions import db, limiter
-from app.models import (Assignment, Student, Correction, QuestionScore, Question, Competence)
+from app.models import (AccessLog, Assignment, Student, Correction, QuestionScore, Question, Competence)
 from app.services.anonymization import decrypt_name
 from app.services.ai import synthesize_with_mistral, synthesize_appreciation
 from app.services import synthesis as synth
@@ -32,6 +32,23 @@ def assignment_corrections(assignment_id):
     for s in students:
         s.correction = Correction.query.filter_by(student_id=s.id, assignment_id=assignment_id).first()
         s.synth_failed = _synth_failed(s.correction)
+    pub_ids = [s.correction.id for s in students if s.correction and s.correction.status == 'published']
+    access = {}
+    if pub_ids:
+        access = {cid: (n, last) for cid, n, last in db.session.query(
+            AccessLog.correction_id, db.func.count(AccessLog.id), db.func.max(AccessLog.accessed_at))
+            .filter(AccessLog.correction_id.in_(pub_ids)).group_by(AccessLog.correction_id).all()}
+    for s in students:
+        c = s.correction
+        s.seen = s.seen_at = None
+        if c and c.status == 'published':
+            n, last = access.get(c.id, (0, None))
+            if c.read_at:
+                s.seen, s.seen_at = 'listened', c.read_at
+            elif n:
+                s.seen, s.seen_at = 'opened', last
+            else:
+                s.seen = 'none'
         try: s.display_last = decrypt_name(s.encrypted_last_name); s.display_first = decrypt_name(s.encrypted_first_name)
         except Exception: s.display_last = s.display_first = '—'
     return render_template('teacher/assignment_corrections.html', assignment=a, students=students)

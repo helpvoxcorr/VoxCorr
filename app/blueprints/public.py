@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, request, jsonify
-from app.extensions import db
+from app.extensions import db, csrf
 from app.models import Correction, AccessLog
 from app.utils.security import hash_ip
 from datetime import datetime, timezone
+from flask_login import current_user
 
 public_bp = Blueprint('public', __name__)
 
@@ -12,18 +13,17 @@ def student_view(token):
         public_token=token, status='published'
     ).first_or_404()
 
-    ip = request.remote_addr
-    forwarded = request.headers.get('X-Forwarded-For')
-    if forwarded:
-        ip = forwarded.split(',')[0].strip()
-    
-    ip_hash = hash_ip(ip)
-    db.session.add(AccessLog(
-        correction_id=corr.id,
-        ip_hash=ip_hash,
-        user_agent=(request.user_agent.string or '')[:255],
-    ))
-    db.session.commit()
+    if not current_user.is_authenticated:   # tes propres ouvertures ne comptent pas
+        ip = request.remote_addr
+        forwarded = request.headers.get('X-Forwarded-For')
+        if forwarded:
+            ip = forwarded.split(',')[0].strip()
+        db.session.add(AccessLog(
+            correction_id=corr.id,
+            ip_hash=hash_ip(ip),
+            user_agent=(request.user_agent.string or '')[:255],
+        ))
+        db.session.commit()
 
     scores_detail = [
         {
@@ -41,6 +41,7 @@ def student_view(token):
                            teacher=corr.assignment.classroom.teacher)
 
 @public_bp.route('/c/<token>/read', methods=['POST'])
+@csrf.exempt
 def mark_as_read(token):
     corr = Correction.query.filter_by(
         public_token=token, status='published'
