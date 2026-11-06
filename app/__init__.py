@@ -47,6 +47,10 @@ def create_app(config_class=Config):
     app.register_blueprint(teacher_stats_bp)
     from app.services.synthesis import clean_markup
     app.jinja_env.filters['synth'] = clean_markup
+    from app.blueprints.teacher_suivi import teacher_suivi_bp
+    app.register_blueprint(teacher_suivi_bp)
+    from app.services.suivi import fr_filter
+    app.jinja_env.filters['fr'] = fr_filter
 
     # ── Gestionnaires d'erreurs ────────────────────────────────────────────────
     @app.errorhandler(404)

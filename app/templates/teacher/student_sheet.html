@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ last }} {{ first }} — Suivi des compétences{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/suivi.css') }}">{% endblock %}
+{% block head %}<style>@page { size: A4; margin: 12mm; }</style>{% endblock %}
+
+{% block content %}
+<div class="suivi-head">
+  <div>
+    <div class="suivi-kicker">{{ classroom.name }}{% if classroom.school_year %} · {{ classroom.school_year }}{% endif %} · Suivi des compétences</div>
+    <h1 class="suivi-title">{{ last }} {{ first }}</h1>
+    <div class="suivi-sub">{{ student.alias }}</div>
+  </div>
+  <div class="suivi-actions no-print">
+    {% if prev_s %}<a class="btn vox-btn-outline" href="{{ url_for('teacher_suivi.student_sheet', class_id=classroom.id, student_id=prev_s.id) }}" title="{{ prev_name }}"><i class="bi bi-arrow-left"></i> Précédent</a>{% endif %}
+    {% if next_s %}<a class="btn vox-btn-outline" href="{{ url_for('teacher_suivi.student_sheet', class_id=classroom.id, student_id=next_s.id) }}" title="{{ next_name }}">Suivant <i class="bi bi-arrow-right"></i></a>{% endif %}
+    <a class="btn vox-btn-outline" href="{{ url_for('teacher_suivi.class_matrix', class_id=classroom.id) }}"><i class="bi bi-grid-3x3-gap"></i> Tableau de la classe</a>
+    <button type="button" class="btn vox-btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> Imprimer la fiche</button>
+  </div>
+</div>
+
+{% if domains %}
+  {% for d in domains %}
+  <section class="vox-card suivi-domain">
+    <h2 class="suivi-domain-title"><span class="suivi-code">{{ d.code or '—' }}</span> {{ d.title }}</h2>
+    <div class="table-responsive">
+      <table class="suivi-table">
+        <thead><tr><th>Compétence</th><th>Évaluations</th><th class="text-end">Moyenne</th><th>Niveau</th><th>Tendance</th></tr></thead>
+        <tbody>
+        {% for g in d.groups %}
+          {% set s = g.summary %}
+          <tr>
+            <td><strong>{{ g.name }}</strong>{% if s.few_data %}<div class="suivi-few">Peu évaluée</div>{% endif %}</td>
+            <td>{% for e in g.evals %}<span class="ev-chip pal-{{ e.level.rank }}" title="{{ e.assignment }}{% if e.date %} ({{ e.date.strftime('%d/%m/%Y') }}){% endif %} : {{ e.score|fr }} / {{ e.max|fr }}">{{ e.score|fr }}/{{ e.max|fr }}</span>{% endfor %}</td>
+            <td class="text-end"><strong>{{ s.on4|fr(1) }}</strong> / 4<div class="small text-muted">{{ s.percent }} % · {{ s.count }} évaluation{{ 's' if s.count > 1 }}</div></td>
+            <td><span class="pal-badge pal-{{ s.level.rank }}">{% if s.level.star %}★ {% endif %}{{ s.level.label }}</span></td>
+            <td>
+              {% if s.trend == 'hausse' %}<i class="bi bi-arrow-up-right"></i> En progrès
+              {% elif s.trend == 'baisse' %}<i class="bi bi-arrow-down-right"></i> En recul
+              {% elif s.trend == 'stable' %}<i class="bi bi-arrow-right"></i> Stable
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endfor %}
+{% else %}
+  <div class="todo-empty">Aucune compétence évaluée pour l'instant. Rattachez une compétence aux questions d'un devoir, puis corrigez les copies.</div>
+{% endif %}
+
+{% include "teacher/_suivi_legend.html" %}
+
+<section class="vox-card suivi-domain">
+  <h2 class="suivi-domain-title"><i class="bi bi-journal-check"></i> Devoirs</h2>
+  <div class="table-responsive">
+    <table class="suivi-table">
+      <thead><tr><th>Devoir</th><th>Date</th><th>État</th><th class="text-end">Note</th></tr></thead>
+      <tbody>
+      {% for d in devoirs %}
+        {% set c = d.correction %}
+        <tr>
+          <td>{% if c and c.status != 'absent' %}<a href="{{ url_for('teacher_corr.correction_detail', correction_id=c.id) }}">{{ d.assignment.title }}</a>{% else %}{{ d.assignment.title }}{% endif %}</td>
+          <td>{{ d.assignment.date.strftime('%d/%m/%Y') if d.assignment.date else '' }}</td>
+          <td>{% if not c %}Pas encore corrigée{% elif c.status == 'published' %}Publiée{% elif c.status == 'draft' %}Corrigée (à publier){% elif c.status == 'absent' %}Absent{% else %}Analyse en cours{% endif %}</td>
+          <td class="text-end">{% if c and c.status in ('draft', 'published') and c.total_score is not none %}<strong>{{ c.total_score|fr(1) }}</strong> / {{ d.assignment.total_points|fr }}{% else %}—{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="text-muted">Aucun devoir dans cette classe.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

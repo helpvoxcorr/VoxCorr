@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Compétences — {{ classroom.name }}{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/suivi.css') }}">{% endblock %}
+{% block head %}<style>@page { size: A4 landscape; margin: 8mm; }</style>{% endblock %}
+
+{% block content %}
+{% set abbr = ['I', 'F', 'S', 'TB'] %}
+<div class="suivi-head">
+  <div>
+    <div class="suivi-kicker">{{ classroom.school_year }} · Suivi des compétences</div>
+    <h1 class="suivi-title">{{ classroom.name }}</h1>
+  </div>
+  <div class="suivi-actions no-print">
+    <a href="{{ url_for('teacher_crud.class_detail', class_id=classroom.id) }}" class="btn vox-btn-outline"><i class="bi bi-arrow-left"></i> La classe</a>
+    <a href="{{ url_for('teacher_suivi.class_matrix_csv', class_id=classroom.id) }}" class="btn vox-btn-outline"><i class="bi bi-download"></i> Exporter en CSV</a>
+    <button type="button" class="btn vox-btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> Imprimer</button>
+  </div>
+</div>
+
+{% if columns %}
+<div class="mx-wrap">
+  <table class="matrix">
+    <thead>
+      <tr>
+        <th class="sticky-col">Élève</th>
+        {% for col in columns %}
+          <th title="{{ col.name }}"><div class="mx-dom">{{ col.domain or '' }}</div>{{ col.name }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <th class="sticky-col"><a class="student-link" href="{{ url_for('teacher_suivi.student_sheet', class_id=classroom.id, student_id=r.student.id) }}">{{ r.last }} {{ r.first }}</a></th>
+        {% for col in columns %}
+          {% set g = cells[r.student.id].get(col.id) %}
+          {% if g %}
+            {% set sm = g.summary %}
+            <td class="mx-cell pal-{{ sm.level.rank }}{{ ' mx-few' if sm.few_data }}"
+                title="{{ col.name }} : {{ sm.on4|fr(1) }}/4, {{ sm.level.label }} ({{ sm.count }} évaluation{{ 's' if sm.count > 1 }})">
+              <strong>{{ sm.on4|fr(1) }}{% if sm.level.star %}★{% endif %}</strong>
+              <span class="mx-sub">{{ abbr[sm.level.rank - 1] }} · {{ sm.count }}</span>
+            </td>
+          {% else %}
+            <td class="mx-cell mx-empty">—</td>
+          {% endif %}
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="small text-muted mt-2">Dans chaque case : la moyenne sur 4, la lettre du palier (I insuffisante, F fragile, S satisfaisante, TB très bonne, ★ excellente) et le nombre d'évaluations. Une bordure pointillée signale une seule évaluation.</p>
+{% else %}
+<div class="todo-empty">Aucune compétence évaluée pour l'instant dans cette classe.</div>
+{% endif %}
+
+{% include "teacher/_suivi_legend.html" %}
+{% endblock %}

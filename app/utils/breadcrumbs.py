@@ -95,6 +95,14 @@ def _build(endpoint):
         a = _assignment(corr.assignment_id) if corr else None
         if a:
             to_assignment(a); add(_student_label(corr.student))
+    elif endpoint == 'teacher_suivi.class_matrix':
+        c = _classroom(args.get('class_id'))
+        if c: to_class(c); add('Suivi des compétences')
+    elif endpoint == 'teacher_suivi.student_sheet':
+        c = _classroom(args.get('class_id'))
+        s = db.session.get(Student, args.get('student_id')) if args.get('student_id') else None
+        if c and s and s.classroom_id == c.id:
+            to_class(c); add(_student_label(s))
     elif endpoint == 'teacher_corr.list_competences':
         add('Accueil', url_for('teacher_crud.dashboard')); add('Compétences')
     elif endpoint == 'teacher_admin.admin':

@@ -22,6 +22,9 @@
     <a href="{{ url_for('teacher_corr.correction_pdf', correction_id=correction.id) }}" class="cd-icon-btn" title="Exporter PDF">
       <i class="bi bi-file-pdf"></i>
     </a>
+    <a href="{{ url_for('teacher_suivi.student_sheet', class_id=correction.assignment.classroom_id, student_id=student.id) }}" class="cd-icon-btn" title="Fiche de l'élève : compétences et devoirs">
+      <i class="bi bi-person-lines-fill"></i>
+    </a>
     <a href="{{ url_for('teacher_corr.assignment_corrections', assignment_id=correction.assignment_id) }}" class="cd-icon-btn" title="Retour">
       <i class="bi bi-arrow-left"></i>
     </a>

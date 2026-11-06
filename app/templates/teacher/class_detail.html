@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ classroom.name }} — VoxCorr{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/suivi.css') }}">{% endblock %}
 
 {% block content %}
 <div class="cd-hero">
@@ -16,6 +17,9 @@
   <div class="cd-hero-actions">
     <a href="{{ url_for('teacher_crud.new_assignment', class_id=classroom.id) }}" class="cd-btn-primary">
       <i class="bi bi-plus-lg"></i> Nouveau devoir
+    </a>
+    <a href="{{ url_for('teacher_suivi.class_matrix', class_id=classroom.id) }}" class="cd-btn-ghost rec-nav-btn" title="Tableau des compétences de la classe">
+      <i class="bi bi-grid-3x3-gap"></i> <span class="d-none d-md-inline">Compétences</span>
     </a>
     <a href="{{ url_for('teacher_crud.edit_class', class_id=classroom.id) }}" class="cd-btn-ghost" title="Modifier la classe">
       <i class="bi bi-pencil"></i>
@@ -77,7 +81,7 @@
             <div class="cd-student-row">
               <span class="cd-student-num">{{ s.student_number }}</span>
               <span class="cd-alias">{{ s.alias }}</span>
-              <span class="cd-student-name">{{ s.display_last }}, {{ s.display_first }}</span>
+              <a class="cd-student-name student-link" href="{{ url_for('teacher_suivi.student_sheet', class_id=classroom.id, student_id=s.id) }}" title="Fiche de l'élève : compétences et devoirs">{{ s.display_last }}, {{ s.display_first }}</a>
               <div class="cd-student-actions">
                 <a href="{{ url_for('teacher_crud.edit_student', class_id=classroom.id, student_id=s.id) }}" class="cd-icon-btn" title="Modifier cet élève">
                   <i class="bi bi-pencil"></i>
