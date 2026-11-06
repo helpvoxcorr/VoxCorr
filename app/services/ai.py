@@ -8,6 +8,8 @@ import os, json, re, tempfile
 from mistralai import Mistral
 import time
 from app.services.privacy import redact, restore_result
+from html import escape
+from app.services.synthesis import clean as clean_synthesis
 
 LLM_ORDER = [p.strip() for p in os.environ.get('LLM_ORDER', 'mistral,agnes,gemini').split(',') if p.strip()]
 LLM_TIMEOUT = 30  # secondes max par fournisseur
@@ -206,7 +208,10 @@ def synthesize_with_mistral(raw_text: str, question_labels: list[str], question_
     )
     try:
         result = _call_llm(SYSTEM_PROMPT, user_msg, 0.2)
-        return restore_result(result, first, last) if student_names else result
+        if student_names:
+            result = restore_result(result, first, last)
+        result['formatted_text'] = clean_synthesis(result.get('formatted_text') or '')
+        return result
     except Exception as e:
         print(f'[IA] Tous les fournisseurs ont échoué : {e}', flush=True)
         return _fallback(raw_text, 'IA indisponible', question_max)
@@ -229,7 +234,7 @@ def _fallback(transcript: str, reason: str, question_max=None) -> dict:
         used.add(idx)
         grades.append({'question_index': idx, 'question': f'Q{idx + 1}', 'score': min(score, mx),
                        'max_score': mx, 'competence': '', 'advice': ''})
-    html = (f'<p>{transcript}</p><p class="text-muted small">Note : synthèse IA indisponible ({reason}). '
+    html = (f'<p>{escape(transcript, quote=False)}</p><p class="text-muted small">Note : synthèse IA indisponible ({reason}). '
             f'Utilisez « Regénérer la synthèse » plus tard.</p>')
     return {'formatted_text': html, 'grades': grades}
 

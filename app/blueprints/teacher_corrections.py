@@ -4,6 +4,7 @@ from app.extensions import db, limiter
 from app.models import (Assignment, Student, Correction, QuestionScore, Question, Competence)
 from app.services.anonymization import decrypt_name
 from app.services.ai import synthesize_with_mistral, synthesize_appreciation
+from app.services import synthesis as synth
 from app.services.storage import upload_audio
 from app.services.qrcode import make_qr, qr_png_bytes
 from app.services.background import run_in_background
@@ -270,7 +271,7 @@ def save_correction():
 def correction_status(correction_id):
     corr = db.session.get(Correction, correction_id)
     if not corr or corr.assignment.classroom.teacher_id != current_user.id: return jsonify({'error': 'Non autorisé'}), 404
-    return jsonify({'status': corr.status, 'structured_text': corr.structured_text or '', 'total_score': corr.total_score})
+    return jsonify({'status': corr.status, 'structured_text': synth.clean(corr.structured_text or ''), 'total_score': corr.total_score})
 
 @teacher_corr_bp.route('/api/correction/<int:correction_id>/scores')
 @login_required
@@ -410,6 +411,46 @@ def update_scores(correction_id):
     corr.compute_total()
     db.session.commit()
     return jsonify({'ok': True, 'total_score': corr.total_score})
+
+def _editable_correction(correction_id):
+    corr = db.session.get(Correction, correction_id)
+    if not corr or corr.assignment.classroom.teacher_id != current_user.id:
+        return None, (jsonify({'error': 'Non autorisé'}), 403)
+    if corr.status not in ('draft', 'published'):
+        return None, (jsonify({'error': "La synthèse n'est pas modifiable pour le moment (analyse en cours ou élève absent)."}), 409)
+    return corr, None
+
+
+@teacher_corr_bp.route('/api/correction/<int:correction_id>/synthesis')
+@login_required
+def get_synthesis(correction_id):
+    corr, err = _editable_correction(correction_id)
+    if err:
+        return err
+    return jsonify({'fields': synth.editor_fields(corr.structured_text, corr.assignment.questions)})
+
+
+@teacher_corr_bp.route('/api/correction/<int:correction_id>/synthesis', methods=['POST'])
+@login_required
+@limiter.limit("60 per hour")
+def save_synthesis(correction_id):
+    corr, err = _editable_correction(correction_id)
+    if err:
+        return err
+    texts, total = {}, 0
+    for f in (request.get_json(silent=True) or {}).get('fields', []):
+        text = f.get('text', '')
+        if isinstance(text, str):
+            total += len(text)
+            texts[str(f.get('key', ''))] = text
+    if total > synth.MAX_TEXT:
+        return jsonify({'error': 'Texte trop long.'}), 400
+    html = synth.build(texts, corr.assignment.questions)
+    if not html:
+        return jsonify({'error': 'La synthèse ne peut pas être vide.'}), 400
+    corr.structured_text = html
+    db.session.commit()
+    return jsonify({'ok': True, 'structured_text': html})
 
 @teacher_corr_bp.route('/api/correction/<int:correction_id>/resynthesize', methods=['POST'])
 @login_required

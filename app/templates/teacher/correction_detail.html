@@ -53,11 +53,16 @@
           <i class="bi bi-stars text-neon"></i>
           Synthèse pour l'élève
         </h2>
+        {% if correction.structured_text %}
+        <button type="button" class="cd-btn-outline cd-btn-sm js-edit-synth" data-id="{{ correction.id }}">
+          <i class="bi bi-pencil-square"></i> Modifier le texte
+        </button>
+        {% endif %}
       </div>
       
       {% if correction.structured_text %}
         <div class="cd-synthesis">
-          {{ correction.structured_text | safe }}
+          {{ correction.structured_text | synth }}
         </div>
       {% else %}
         <div class="cd-empty">
@@ -210,11 +215,13 @@
     </div>
   </div>
 </div>
+{% include "teacher/_synth_editor.html" %}
 {% endblock %}
 {% block scripts %}
 <script>
 const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
 const IS_PUBLISHED = {{ 'true' if correction.status == 'published' else 'false' }};
+const HAS_SYNTH = {{ 'true' if correction.structured_text else 'false' }};
 
 async function post(url, body) {
   const res = await fetch(url, {
@@ -231,6 +238,15 @@ async function post(url, body) {
 function fail(title, e) { VoxModal.alert({type: 'danger', title: title, body: e.message || String(e)}); }
 
 document.querySelectorAll('.js-resynth').forEach(btn => btn.addEventListener('click', async () => {
+  if (HAS_SYNTH) {
+    const ok = await VoxModal.confirm({
+      type: 'warning',
+      title: 'Regénérer la synthèse ?',
+      body: "La synthèse actuelle, y compris vos modifications, sera remplacée par une nouvelle analyse de la dictée. Vos notes déjà saisies sont conservées.",
+      confirmText: 'Regénérer'
+    });
+    if (!ok) return;
+  }
   const id = btn.dataset.id;
   const before = await fetch('/teacher/api/correction/' + id + '/status').then(r => r.json()).catch(() => ({}));
   btn.disabled = true; btn.textContent = 'Analyse en cours…';
@@ -268,6 +284,9 @@ document.querySelectorAll('.js-delete').forEach(btn => btn.addEventListener('cli
     await post('/teacher/api/correction/' + btn.dataset.id + '/delete', {password: pwd});
     location.href = "{{ url_for('teacher_corr.assignment_corrections', assignment_id=correction.assignment_id) }}";
   } catch (e) { fail('Suppression impossible', e); }
+}));
+document.querySelectorAll('.js-edit-synth').forEach(btn => btn.addEventListener('click', () => {
+  SynthEditor.open(btn.dataset.id, () => location.reload());
 }));
 </script>
 {% endblock %}

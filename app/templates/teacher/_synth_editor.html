@@ -1,0 +1,88 @@
+{# Fenêtre « Modifier la synthèse » : SynthEditor.open(idCorrection, rappel(htmlNettoyé)) #}
+<div class="modal fade vm" id="synth-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="vm-head">
+        <div class="vm-icon" style="background:#e0e7ff;color:#3730a3"><i class="bi bi-pencil-square"></i></div>
+        <h5 class="vm-title">Modifier la synthèse de l'élève</h5>
+      </div>
+      <div class="vm-body">
+        <p class="vm-text" style="font-size:.85rem">
+          Séparez les paragraphes par une ligne vide. <strong>**mot**</strong> met en gras ;
+          une ligne qui commence par « - » devient une liste. Les notes ne sont pas modifiées ici.
+        </p>
+        <div id="synth-fields"></div>
+        <div id="synth-error" class="vm-error"></div>
+      </div>
+      <div class="vm-foot">
+        <button type="button" class="btn vox-btn-outline" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn vm-btn-primary" id="synth-save">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.SynthEditor = (function () {
+  const $ = (id) => document.getElementById(id);
+  const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+  let current = null, onSaved = null;
+
+  async function open(correctionId, callback) {
+    current = correctionId; onSaved = callback;
+    $('synth-error').textContent = '';
+    const box = $('synth-fields');
+    box.textContent = 'Chargement…';
+    bootstrap.Modal.getOrCreateInstance($('synth-modal')).show();
+    try {
+      const res = await fetch('/teacher/api/correction/' + correctionId + '/synthesis');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || ('Erreur ' + res.status));
+      box.textContent = '';
+      data.fields.forEach((f, i) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'mb-3';
+        const label = document.createElement('label');
+        label.className = 'vox-label';
+        label.htmlFor = 'synth-f-' + i;
+        label.textContent = f.label;
+        const ta = document.createElement('textarea');
+        ta.className = 'vox-input';
+        ta.id = 'synth-f-' + i;
+        ta.dataset.key = f.key;
+        ta.value = f.text;
+        ta.rows = f.text ? Math.min(9, Math.max(3, Math.ceil(f.text.length / 85) + 1)) : 2;
+        wrap.append(label, ta);
+        box.appendChild(wrap);
+      });
+    } catch (e) {
+      box.textContent = '';
+      $('synth-error').textContent = e.message;
+    }
+  }
+
+  $('synth-save').addEventListener('click', async () => {
+    const btn = $('synth-save');
+    btn.disabled = true;
+    $('synth-error').textContent = '';
+    const fields = [...document.querySelectorAll('#synth-fields textarea')].map(t => ({ key: t.dataset.key, text: t.value }));
+    try {
+      const res = await fetch('/teacher/api/correction/' + current + '/synthesis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ fields })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || ('Erreur ' + res.status));
+      bootstrap.Modal.getOrCreateInstance($('synth-modal')).hide();
+      if (onSaved) onSaved(data.structured_text);
+    } catch (e) {
+      $('synth-error').textContent = e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  return { open };
+})();
+</script>

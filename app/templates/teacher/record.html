@@ -170,8 +170,11 @@
     <div id="ai-result-section" class="cd-card mt-3 {{ '' if existing and existing.structured_text else 'd-none' }}">
       <div class="cd-card-header">
         <h2 class="cd-section-title"><i class="bi bi-stars text-neon"></i> Synthèse pour l'élève</h2>
+        <button type="button" class="cd-btn-outline cd-btn-sm {{ '' if existing and existing.structured_text and existing.status in ('draft', 'published') else 'd-none' }}" id="btn-edit-synth">
+          <i class="bi bi-pencil-square"></i> Modifier le texte
+        </button>
       </div>
-      <div id="ai-formatted-text">{{ (existing.structured_text or '')|safe if existing else '' }}</div>
+      <div id="ai-formatted-text">{{ (existing.structured_text or '')|synth if existing else '' }}</div>
     </div>
 
     {# QR code #}
@@ -193,11 +196,12 @@
 
   </div>
 </div>
+{% include "teacher/_synth_editor.html" %}
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/recorder.js?v=2"></script>
-<script type="module" src="/static/js/record_page.js?v=2"></script>
+<script src="/static/js/recorder.js?v=3"></script>
+<script type="module" src="/static/js/record_page.js?v=3"></script>
 <script>
 window.voxShowError = function (title, message) {
   window.VoxModal.alert({ type: 'danger', title: title, body: message });

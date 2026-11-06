@@ -310,7 +310,7 @@
       <button type="button" id="btn-tts" class="btn vox-btn-outline btn-sm"><i class="bi bi-volume-up"></i> Lire à voix haute</button>
     </div>
         <div id="transcript-body" style="line-height:1.85">
-          {{ correction.structured_text | safe }}
+          {{ correction.structured_text | synth }}
         </div>
       </div>
       {% endif %}

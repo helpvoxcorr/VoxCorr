@@ -8,6 +8,7 @@ export const UI = {
   get btnStop()      { return document.getElementById('btn-stop'); },
   get btnSave()      { return document.getElementById('btn-save'); },
   get btnPublish()   { return document.getElementById('btn-publish'); },
+  get btnEditSynth() { return document.getElementById('btn-edit-synth'); },
   get transcript()   { return document.getElementById('transcription'); },
   get interim()      { return document.getElementById('interim'); },
   get statusText()   { return document.getElementById('recording-status'); },
@@ -51,6 +52,7 @@ export const UI = {
       },
       processing: () => {
         this.hide(this.btnSave);
+        this.hide(this.btnEditSynth);
         this.setStatus('<span class="text-warning">⏳ Analyse en cours…</span>');
         this.show(this.synthPanel);
         if (this.synthText) {
@@ -61,6 +63,7 @@ export const UI = {
       },
       done: () => {
         this.show(this.btnPublish);
+        this.show(this.btnEditSynth);
         this.setStatus('<span class="text-success fw-bold">✓ Analyse terminée : vérifiez les notes puis publiez</span>');
         this.show(this.synthPanel);
         if (payload.structured_text && this.synthText) this.synthText.innerHTML = payload.structured_text;

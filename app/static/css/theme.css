@@ -279,3 +279,8 @@ body.vc-app .ac-student-row.row-absent,
 body.vc-app .ac-student-row.row-absent:hover { background: #f3f4f6; }
 body.vc-app .row-absent .ac-student-name a,
 body.vc-app .row-absent .ac-student-num { color: #6b7280; }
+
+/* Éditeur de synthèse (1b) */
+#synth-modal .modal-dialog { max-width: 760px; }
+#synth-modal .vm-body { max-height: 65vh; overflow-y: auto; }
+#synth-modal textarea.vox-input { line-height: 1.5; resize: vertical; }

@@ -26,7 +26,7 @@
   {% endif %}
 
   <div class="c-text">
-    {% if c.text %}{{ c.text | safe }}{% else %}<em>Pas de commentaire.</em>{% endif %}
+    {% if c.text %}{{ c.text | synth }}{% else %}<em>Pas de commentaire.</em>{% endif %}
   </div>
 
   <footer class="c-foot">

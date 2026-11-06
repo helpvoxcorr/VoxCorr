@@ -3,8 +3,8 @@
  * Orchestre la page de correction : dictée → analyse → vérification → publication → élève suivant.
  * window.VC est injecté par record.html.
  */
-import { UI }  from './modules/ui.js?v=2';
-import { api } from './modules/api.js?v=2';
+import { UI }  from './modules/ui.js?v=3';
+import { api } from './modules/api.js?v=3';
 
 const CTX = window.VC || {};
 const dialog = () => window.VoxModal;
@@ -175,5 +175,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  UI.btnEditSynth?.addEventListener('click', () => {
+    if (!correctionId) return;
+    window.SynthEditor.open(correctionId, (html) => { if (UI.synthText) UI.synthText.innerHTML = html; });
+  });
   document.getElementById('btn-next-todo')?.addEventListener('click', () => goTo(CTX.nextTodoId));
 });
