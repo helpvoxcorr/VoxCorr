@@ -76,9 +76,6 @@ def _build(endpoint):
     elif endpoint == 'teacher_crud.edit_student':
         c = _classroom(args.get('class_id'))
         if c: to_class(c); add("Modifier l'élève")
-    elif endpoint == 'teacher_crud.edit_group':
-        c = _classroom(args.get('class_id'))
-        if c: to_class(c); add('Modifier le groupe')
     elif endpoint == 'teacher_corr.assignment_corrections':
         a = _assignment(args.get('assignment_id'))
         if a: to_assignment(a)
