@@ -28,3 +28,4 @@ rapport.md
 AUDIT_VOXCORR_2026.md
 start_ngrok.bat.venv-test/
 requirements-dev.txt
+.venv-test/
