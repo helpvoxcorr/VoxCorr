@@ -178,22 +178,6 @@ def register():
     # Affichage du formulaire lors d'une requête GET
     return page()
 
-@auth_bp.route('/verify/<token>')
-def verify_email(token):
-    teacher = Teacher.query.filter_by(verification_token=token).first()
-    if not teacher:
-        flash('Lien de vérification invalide ou expiré.', 'danger')
-        return redirect(url_for('auth.login'))
-
-    teacher.email_verified = True
-    teacher.verification_token = None
-    db.session.commit()
-
-    login_user(teacher)
-    session.permanent = True
-    flash(f'Email confirmé ! Bienvenue, {teacher.first_name}.', 'success')
-    return redirect(url_for('teacher_crud.dashboard'))
-
 @auth_bp.route('/logout')
 @login_required
 def logout():
