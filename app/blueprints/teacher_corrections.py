@@ -348,20 +348,6 @@ def delete_correction(correction_id):
     assignment_id = corr.assignment_id; db.session.delete(corr); db.session.commit()
     return jsonify({'ok': True, 'assignment_id': assignment_id})
 
-@teacher_corr_bp.route('/api/corrections/delete-bulk', methods=['POST'])
-@login_required
-def delete_corrections_bulk():
-    data = request.get_json(silent=True) or {}
-    if not current_user.check_password(data.get('password', '')): return jsonify({'error': 'Mot de passe incorrect'}), 403
-    ids = data.get('ids', [])
-    if len(ids) > 100: return jsonify({'error': 'Trop de corrections sélectionnées (max 100)'}), 400
-    if not ids: return jsonify({'error': 'Aucune correction sélectionnée'}), 400
-    deleted = 0
-    for cid in ids:
-        corr = db.session.get(Correction, cid)
-        if corr and corr.assignment.classroom.teacher_id == current_user.id: db.session.delete(corr); deleted += 1
-    db.session.commit(); return jsonify({'ok': True, 'deleted': deleted})
-
 def _apply_ai_grades(c, result, q_ids, q_max):
     """Enregistre les notes/conseils extraits par l'IA (sans écraser une note déjà saisie)."""
     existing = {qs.question_id: qs for qs in c.scores}

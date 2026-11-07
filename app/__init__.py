@@ -35,7 +35,6 @@ def create_app(config_class=Config):
     from app.blueprints.teacher_crud import teacher_crud_bp
     from app.blueprints.teacher_corrections import teacher_corr_bp
     from app.blueprints.teacher_admin import teacher_admin_bp
-    from app.blueprints.teacher_stats import teacher_stats_bp
 
     app.register_blueprint(student_bp)
     app.register_blueprint(auth_bp)
@@ -44,7 +43,6 @@ def create_app(config_class=Config):
     app.register_blueprint(teacher_crud_bp)
     app.register_blueprint(teacher_corr_bp)
     app.register_blueprint(teacher_admin_bp)
-    app.register_blueprint(teacher_stats_bp)
     from app.services.synthesis import clean_markup
     app.jinja_env.filters['synth'] = clean_markup
     from app.blueprints.teacher_suivi import teacher_suivi_bp
