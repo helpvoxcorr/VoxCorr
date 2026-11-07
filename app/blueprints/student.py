@@ -2,7 +2,6 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from app.extensions import db, limiter
 from app.models import Pupil, Correction
 from app.services.anonymization import decrypt_name
-from app.services.tts import generate_tts_audio
 from datetime import datetime, timezone
 import io
 
@@ -52,31 +51,6 @@ def view_correction(correction_id):
     if not correction or correction.student_id != pupil.student_id or correction.status != 'published':
         abort(404)
     return redirect(url_for('public.student_view', token=correction.public_token))
-
-@student_bp.route('/api/tts/<int:correction_id>')
-@limiter.limit("20 per hour")
-def tts_correction(correction_id):
-    if 'pupil_id' not in session:
-        return jsonify({'error': 'Non autorisé'}), 401
-
-    pupil = db.session.get(Pupil, session['pupil_id'])
-    if not pupil:
-        return jsonify({'error': 'Session invalide'}), 401
-
-    correction = db.session.get(Correction, correction_id)
-    if not correction or correction.student_id != pupil.student_id or correction.status != 'published':
-        abort(403)
-
-    if not correction.structured_text:
-        return jsonify({'error': 'Aucune synthèse'}), 404
-
-    audio_bytes = generate_tts_audio(correction.structured_text)
-    return send_file(
-        io.BytesIO(audio_bytes),
-        mimetype='audio/mpeg',
-        as_attachment=False,
-        download_name=f'correction_{correction_id}.mp3'
-    )
 
 @student_bp.route('/logout')
 def logout():

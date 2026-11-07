@@ -8,7 +8,6 @@ from app.services import synthesis as synth
 from app.services.storage import upload_audio
 from app.services.qrcode import make_qr, qr_png_bytes
 from app.services.background import run_in_background
-from app.services.tts import generate_tts_audio
 import io
 from datetime import datetime, timezone
 
@@ -629,16 +628,6 @@ def correction_pdf(correction_id):
     return render_template('teacher/print_corrections.html', assignment=corr.assignment, cards=[card],
                            back_url=url_for('teacher_corr.correction_detail', correction_id=corr.id),
                            back_label='Retour à la correction')
-
-@teacher_corr_bp.route('/api/tts/<int:correction_id>')
-@login_required
-def tts_correction(correction_id):
-    corr = db.session.get(Correction, correction_id)
-    if not corr: abort(404)
-    if corr.assignment.classroom.teacher_id != current_user.id: abort(403)
-    if not corr.structured_text: return jsonify({'error': 'Aucune synthèse disponible'}), 404
-    audio_bytes = generate_tts_audio(corr.structured_text)
-    return send_file(io.BytesIO(audio_bytes), mimetype='audio/mpeg', as_attachment=False, download_name=f'correction_{correction_id}.mp3')
 
 @teacher_corr_bp.route('/competences')
 @login_required
